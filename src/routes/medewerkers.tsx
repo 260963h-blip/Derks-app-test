@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -60,6 +61,26 @@ type Employee = {
   job_title: string | null;
   status: string;
   notes: string | null;
+  contract_type: string | null;
+  start_date: string | null;
+  probation_end_date: string | null;
+  end_date: string | null;
+  hours_per_week: number | null;
+  work_days: string | null;
+  hourly_rate: number | null;
+  monthly_salary: number | null;
+  vacation_days_per_year: number | null;
+  iban: string | null;
+  bic: string | null;
+  payroll_tax_credit: boolean | null;
+  special_arrangement: string | null;
+  liability_policy_number: string | null;
+  accident_policy_number: string | null;
+  insurance_notes: string | null;
+  arbo_check_date: string | null;
+  medical_exam_date: string | null;
+  safety_instructions_signed: boolean | null;
+  arbo_notes: string | null;
 };
 
 const empty = {
@@ -79,7 +100,34 @@ const empty = {
   job_title: "",
   status: "actief",
   notes: "",
+  contract_type: "",
+  start_date: "",
+  probation_end_date: "",
+  end_date: "",
+  hours_per_week: "",
+  work_days: "",
+  hourly_rate: "",
+  monthly_salary: "",
+  vacation_days_per_year: "20",
+  iban: "",
+  bic: "",
+  payroll_tax_credit: false,
+  special_arrangement: "",
+  liability_policy_number: "",
+  accident_policy_number: "",
+  insurance_notes: "",
+  arbo_check_date: "",
+  medical_exam_date: "",
+  safety_instructions_signed: false,
+  arbo_notes: "",
 };
+
+function num(v: string): number | null {
+  const t = v.trim();
+  if (!t) return null;
+  const n = Number(t.replace(",", "."));
+  return Number.isNaN(n) ? null : n;
+}
 
 function MedewerkersPage() {
   const navigate = useNavigate();
@@ -138,6 +186,26 @@ function MedewerkersPage() {
       job_title: e.job_title ?? "",
       status: e.status ?? "actief",
       notes: e.notes ?? "",
+      contract_type: e.contract_type ?? "",
+      start_date: e.start_date ?? "",
+      probation_end_date: e.probation_end_date ?? "",
+      end_date: e.end_date ?? "",
+      hours_per_week: e.hours_per_week?.toString() ?? "",
+      work_days: e.work_days ?? "",
+      hourly_rate: e.hourly_rate?.toString() ?? "",
+      monthly_salary: e.monthly_salary?.toString() ?? "",
+      vacation_days_per_year: e.vacation_days_per_year?.toString() ?? "20",
+      iban: e.iban ?? "",
+      bic: e.bic ?? "",
+      payroll_tax_credit: e.payroll_tax_credit ?? false,
+      special_arrangement: e.special_arrangement ?? "",
+      liability_policy_number: e.liability_policy_number ?? "",
+      accident_policy_number: e.accident_policy_number ?? "",
+      insurance_notes: e.insurance_notes ?? "",
+      arbo_check_date: e.arbo_check_date ?? "",
+      medical_exam_date: e.medical_exam_date ?? "",
+      safety_instructions_signed: e.safety_instructions_signed ?? false,
+      arbo_notes: e.arbo_notes ?? "",
     });
     setOpen(true);
   }
@@ -167,6 +235,26 @@ function MedewerkersPage() {
       job_title: form.job_title.trim() || null,
       status: form.status,
       notes: form.notes.trim() || null,
+      contract_type: form.contract_type.trim() || null,
+      start_date: form.start_date || null,
+      probation_end_date: form.probation_end_date || null,
+      end_date: form.end_date || null,
+      hours_per_week: num(form.hours_per_week),
+      work_days: form.work_days.trim() || null,
+      hourly_rate: num(form.hourly_rate),
+      monthly_salary: num(form.monthly_salary),
+      vacation_days_per_year: num(form.vacation_days_per_year),
+      iban: form.iban.trim() || null,
+      bic: form.bic.trim() || null,
+      payroll_tax_credit: form.payroll_tax_credit,
+      special_arrangement: form.special_arrangement.trim() || null,
+      liability_policy_number: form.liability_policy_number.trim() || null,
+      accident_policy_number: form.accident_policy_number.trim() || null,
+      insurance_notes: form.insurance_notes.trim() || null,
+      arbo_check_date: form.arbo_check_date || null,
+      medical_exam_date: form.medical_exam_date || null,
+      safety_instructions_signed: form.safety_instructions_signed,
+      arbo_notes: form.arbo_notes.trim() || null,
     };
     const { error } = editing
       ? await supabase.from("employees").update(payload).eq("id", editing.id)
@@ -211,6 +299,9 @@ function MedewerkersPage() {
     );
   }
 
+  const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
+    setForm({ ...form, [k]: v });
+
   return (
     <AppShell title="Medewerkers" subtitle="HR-dossier en personeelsgegevens" back>
       <div className="mb-6 flex items-center justify-end">
@@ -251,7 +342,7 @@ function MedewerkersPage() {
                   <TableHead>E-mail</TableHead>
                   <TableHead>Mobiel</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-24"></TableHead>
+                  <TableHead className="w-32"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -299,156 +390,318 @@ function MedewerkersPage() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editing ? "Medewerker bewerken" : "Nieuwe medewerker"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div>
-                <Label>Voornaam *</Label>
-                <Input
-                  value={form.first_name}
-                  onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Tussenvoegsel</Label>
-                <Input
-                  value={form.middle_name}
-                  onChange={(e) => setForm({ ...form, middle_name: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Achternaam *</Label>
-                <Input
-                  value={form.last_name}
-                  onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                />
-              </div>
-            </div>
+          <Tabs defaultValue="persoonlijk" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="persoonlijk">Persoonlijk</TabsTrigger>
+              <TabsTrigger value="arbeid">Arbeid</TabsTrigger>
+              <TabsTrigger value="loon">Loon</TabsTrigger>
+              <TabsTrigger value="arbo">Verzekering & Arbo</TabsTrigger>
+            </TabsList>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <Label>BSN</Label>
-                <Input
-                  value={form.bsn}
-                  onChange={(e) => setForm({ ...form, bsn: e.target.value })}
-                  placeholder="9 cijfers"
-                />
+            {/* PERSOONLIJK */}
+            <TabsContent value="persoonlijk" className="space-y-4 pt-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                  <Label>Voornaam *</Label>
+                  <Input value={form.first_name} onChange={(e) => set("first_name", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Tussenvoegsel</Label>
+                  <Input value={form.middle_name} onChange={(e) => set("middle_name", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Achternaam *</Label>
+                  <Input value={form.last_name} onChange={(e) => set("last_name", e.target.value)} />
+                </div>
               </div>
-              <div>
-                <Label>Geboortedatum</Label>
-                <Input
-                  type="date"
-                  value={form.date_of_birth}
-                  onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
-                />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr_1fr]">
-              <div>
-                <Label>Straat</Label>
-                <Input
-                  value={form.street}
-                  onChange={(e) => setForm({ ...form, street: e.target.value })}
-                />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>BSN</Label>
+                  <Input value={form.bsn} onChange={(e) => set("bsn", e.target.value)} placeholder="9 cijfers" />
+                </div>
+                <div>
+                  <Label>Geboortedatum</Label>
+                  <Input type="date" value={form.date_of_birth} onChange={(e) => set("date_of_birth", e.target.value)} />
+                </div>
               </div>
-              <div>
-                <Label>Huisnr.</Label>
-                <Input
-                  value={form.house_number}
-                  onChange={(e) => setForm({ ...form, house_number: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Toevoeging</Label>
-                <Input
-                  value={form.house_number_addition}
-                  onChange={(e) =>
-                    setForm({ ...form, house_number_addition: e.target.value })
-                  }
-                />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <Label>Postcode</Label>
-                <Input
-                  value={form.postal_code}
-                  onChange={(e) => setForm({ ...form, postal_code: e.target.value })}
-                />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr_1fr]">
+                <div>
+                  <Label>Straat</Label>
+                  <Input value={form.street} onChange={(e) => set("street", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Huisnr.</Label>
+                  <Input value={form.house_number} onChange={(e) => set("house_number", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Toevoeging</Label>
+                  <Input value={form.house_number_addition} onChange={(e) => set("house_number_addition", e.target.value)} />
+                </div>
               </div>
-              <div>
-                <Label>Plaats</Label>
-                <Input
-                  value={form.city}
-                  onChange={(e) => setForm({ ...form, city: e.target.value })}
-                />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div>
-                <Label>Telefoon</Label>
-                <Input
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Postcode</Label>
+                  <Input value={form.postal_code} onChange={(e) => set("postal_code", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Plaats</Label>
+                  <Input value={form.city} onChange={(e) => set("city", e.target.value)} />
+                </div>
               </div>
-              <div>
-                <Label>Mobiel</Label>
-                <Input
-                  value={form.mobile}
-                  onChange={(e) => setForm({ ...form, mobile: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>E-mail</Label>
-                <Input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                  <Label>Telefoon</Label>
+                  <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Mobiel</Label>
+                  <Input value={form.mobile} onChange={(e) => set("mobile", e.target.value)} />
+                </div>
+                <div>
+                  <Label>E-mail</Label>
+                  <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
+                </div>
+              </div>
+
               <div>
-                <Label>Functie</Label>
-                <Input
-                  value={form.job_title}
-                  onChange={(e) => setForm({ ...form, job_title: e.target.value })}
-                  placeholder="bv. Stucadoor"
+                <Label>Notities</Label>
+                <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={3} />
+              </div>
+            </TabsContent>
+
+            {/* ARBEID */}
+            <TabsContent value="arbeid" className="space-y-4 pt-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Functie</Label>
+                  <Input value={form.job_title} onChange={(e) => set("job_title", e.target.value)} placeholder="bv. Stucadoor" />
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    value={form.status}
+                    onChange={(e) => set("status", e.target.value)}
+                  >
+                    <option value="actief">Actief</option>
+                    <option value="uit_dienst">Uit dienst</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Contracttype</Label>
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    value={form.contract_type}
+                    onChange={(e) => set("contract_type", e.target.value)}
+                  >
+                    <option value="">— kies —</option>
+                    <option value="onbepaalde_tijd">Onbepaalde tijd</option>
+                    <option value="bepaalde_tijd">Bepaalde tijd</option>
+                    <option value="oproep">Oproep / nul-uren</option>
+                    <option value="zzp">ZZP / inhuur</option>
+                    <option value="uitzend">Uitzendkracht</option>
+                    <option value="stage">Stage</option>
+                  </select>
+                </div>
+                <div>
+                  <Label>Vakantiedagen per jaar (fulltime)</Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    value={form.vacation_days_per_year}
+                    onChange={(e) => set("vacation_days_per_year", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                  <Label>Startdatum</Label>
+                  <Input type="date" value={form.start_date} onChange={(e) => set("start_date", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Einde proeftijd</Label>
+                  <Input type="date" value={form.probation_end_date} onChange={(e) => set("probation_end_date", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Einddatum (indien bepaald)</Label>
+                  <Input type="date" value={form.end_date} onChange={(e) => set("end_date", e.target.value)} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Uren per week</Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    value={form.hours_per_week}
+                    onChange={(e) => set("hours_per_week", e.target.value)}
+                    placeholder="bv. 40"
+                  />
+                </div>
+                <div>
+                  <Label>Werkdagen</Label>
+                  <Input
+                    value={form.work_days}
+                    onChange={(e) => set("work_days", e.target.value)}
+                    placeholder="bv. ma-di-wo-do-vr"
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* LOON */}
+            <TabsContent value="loon" className="space-y-4 pt-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Uurtarief (€)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.hourly_rate}
+                    onChange={(e) => set("hourly_rate", e.target.value)}
+                    placeholder="bv. 28,50"
+                  />
+                </div>
+                <div>
+                  <Label>Maandsalaris (€, bruto)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.monthly_salary}
+                    onChange={(e) => set("monthly_salary", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>IBAN</Label>
+                  <Input
+                    value={form.iban}
+                    onChange={(e) => set("iban", e.target.value.toUpperCase())}
+                    placeholder="NL00 BANK 0123 4567 89"
+                  />
+                </div>
+                <div>
+                  <Label>BIC (optioneel)</Label>
+                  <Input value={form.bic} onChange={(e) => set("bic", e.target.value.toUpperCase())} />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 rounded-md border p-3">
+                <input
+                  id="payroll_tax_credit"
+                  type="checkbox"
+                  checked={form.payroll_tax_credit}
+                  onChange={(e) => set("payroll_tax_credit", e.target.checked)}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="payroll_tax_credit" className="cursor-pointer font-normal">
+                  Loonheffingskorting toepassen
+                </Label>
+              </div>
+
+              <div>
+                <Label>Bijzondere regeling (bv. 30%-regeling, ET-regeling)</Label>
+                <Textarea
+                  value={form.special_arrangement}
+                  onChange={(e) => set("special_arrangement", e.target.value)}
+                  rows={2}
                 />
               </div>
-              <div>
-                <Label>Status</Label>
-                <select
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                >
-                  <option value="actief">Actief</option>
-                  <option value="uit_dienst">Uit dienst</option>
-                </select>
-              </div>
-            </div>
+            </TabsContent>
 
-            <div>
-              <Label>Notities</Label>
-              <Textarea
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                rows={3}
-              />
-            </div>
-          </div>
+            {/* VERZEKERING & ARBO */}
+            <TabsContent value="arbo" className="space-y-4 pt-4">
+              <div>
+                <h4 className="mb-2 text-sm font-semibold">Verzekeringen</h4>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label>WA-polisnummer</Label>
+                    <Input
+                      value={form.liability_policy_number}
+                      onChange={(e) => set("liability_policy_number", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Ongevallen-polisnummer</Label>
+                    <Input
+                      value={form.accident_policy_number}
+                      onChange={(e) => set("accident_policy_number", e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <Label>Notitie verzekeringen</Label>
+                  <Textarea
+                    value={form.insurance_notes}
+                    onChange={(e) => set("insurance_notes", e.target.value)}
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="mb-2 text-sm font-semibold">Arbo</h4>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label>Datum arbo-check</Label>
+                    <Input
+                      type="date"
+                      value={form.arbo_check_date}
+                      onChange={(e) => set("arbo_check_date", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Datum medische keuring</Label>
+                    <Input
+                      type="date"
+                      value={form.medical_exam_date}
+                      onChange={(e) => set("medical_exam_date", e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center gap-2 rounded-md border p-3">
+                  <input
+                    id="safety_instructions"
+                    type="checkbox"
+                    checked={form.safety_instructions_signed}
+                    onChange={(e) => set("safety_instructions_signed", e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="safety_instructions" className="cursor-pointer font-normal">
+                    Veiligheidsinstructies ondertekend
+                  </Label>
+                </div>
+
+                <div className="mt-3">
+                  <Label>Notitie arbo</Label>
+                  <Textarea
+                    value={form.arbo_notes}
+                    onChange={(e) => set("arbo_notes", e.target.value)}
+                    rows={2}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>

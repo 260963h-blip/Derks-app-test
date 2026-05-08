@@ -260,73 +260,133 @@ export type Database = {
       }
       employees: {
         Row: {
+          accident_policy_number: string | null
+          arbo_check_date: string | null
+          arbo_notes: string | null
+          bic: string | null
           bsn: string | null
           city: string | null
+          contract_type: string | null
           country: string | null
           created_at: string
           date_of_birth: string | null
           email: string | null
+          end_date: string | null
           first_name: string
+          hourly_rate: number | null
+          hours_per_week: number | null
           house_number: string | null
           house_number_addition: string | null
+          iban: string | null
           id: string
+          insurance_notes: string | null
           job_title: string | null
           last_name: string
+          liability_policy_number: string | null
+          medical_exam_date: string | null
           middle_name: string | null
           mobile: string | null
+          monthly_salary: number | null
           notes: string | null
+          payroll_tax_credit: boolean | null
           phone: string | null
           postal_code: string | null
+          probation_end_date: string | null
+          safety_instructions_signed: boolean | null
+          special_arrangement: string | null
+          start_date: string | null
           status: string
           street: string | null
           updated_at: string
           user_id: string
+          vacation_days_per_year: number | null
+          work_days: string | null
         }
         Insert: {
+          accident_policy_number?: string | null
+          arbo_check_date?: string | null
+          arbo_notes?: string | null
+          bic?: string | null
           bsn?: string | null
           city?: string | null
+          contract_type?: string | null
           country?: string | null
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
+          end_date?: string | null
           first_name: string
+          hourly_rate?: number | null
+          hours_per_week?: number | null
           house_number?: string | null
           house_number_addition?: string | null
+          iban?: string | null
           id?: string
+          insurance_notes?: string | null
           job_title?: string | null
           last_name: string
+          liability_policy_number?: string | null
+          medical_exam_date?: string | null
           middle_name?: string | null
           mobile?: string | null
+          monthly_salary?: number | null
           notes?: string | null
+          payroll_tax_credit?: boolean | null
           phone?: string | null
           postal_code?: string | null
+          probation_end_date?: string | null
+          safety_instructions_signed?: boolean | null
+          special_arrangement?: string | null
+          start_date?: string | null
           status?: string
           street?: string | null
           updated_at?: string
           user_id: string
+          vacation_days_per_year?: number | null
+          work_days?: string | null
         }
         Update: {
+          accident_policy_number?: string | null
+          arbo_check_date?: string | null
+          arbo_notes?: string | null
+          bic?: string | null
           bsn?: string | null
           city?: string | null
+          contract_type?: string | null
           country?: string | null
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
+          end_date?: string | null
           first_name?: string
+          hourly_rate?: number | null
+          hours_per_week?: number | null
           house_number?: string | null
           house_number_addition?: string | null
+          iban?: string | null
           id?: string
+          insurance_notes?: string | null
           job_title?: string | null
           last_name?: string
+          liability_policy_number?: string | null
+          medical_exam_date?: string | null
           middle_name?: string | null
           mobile?: string | null
+          monthly_salary?: number | null
           notes?: string | null
+          payroll_tax_credit?: boolean | null
           phone?: string | null
           postal_code?: string | null
+          probation_end_date?: string | null
+          safety_instructions_signed?: boolean | null
+          special_arrangement?: string | null
+          start_date?: string | null
           status?: string
           street?: string | null
           updated_at?: string
           user_id?: string
+          vacation_days_per_year?: number | null
+          work_days?: string | null
         }
         Relationships: []
       }
