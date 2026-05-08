@@ -33,13 +33,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
@@ -524,21 +517,19 @@ function KlantenPage() {
             {/* BTW keuze */}
             <div className="space-y-2">
               <Label>Standaard BTW-tarief voor deze klant</Label>
-              <Select
+              <select
                 value={form.default_vat_type}
-                onValueChange={(v) => setForm({ ...form, default_vat_type: v as VatType })}
+                onChange={(e) =>
+                  setForm({ ...form, default_vat_type: e.target.value as VatType })
+                }
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {VAT_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {VAT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
               <p className="text-xs text-muted-foreground">
                 Wordt later voorgesteld bij het maken van een offerte. Per offerte aanpasbaar.
               </p>
