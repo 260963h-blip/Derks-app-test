@@ -762,7 +762,7 @@ function MedewerkersPage() {
                          />
                        </div>
                       <div>
-                        <Label>Uurtarief excl. BTW (€)</Label>
+                        <Label>Uurtarief excl. BTW</Label>
                         <Input
                           type="number"
                           step="0.01"
@@ -774,7 +774,7 @@ function MedewerkersPage() {
                         />
                       </div>
                       <div>
-                        <Label>BTW</Label>
+                        <Label>BTW tarief</Label>
                         <Input value="21%" readOnly className="bg-muted" />
                       </div>
                       <div className="flex items-end">
