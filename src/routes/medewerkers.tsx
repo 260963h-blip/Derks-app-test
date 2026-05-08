@@ -48,6 +48,7 @@ type Employee = {
   first_name: string;
   middle_name: string | null;
   last_name: string;
+  role: string;
   bsn: string | null;
   date_of_birth: string | null;
   street: string | null;
@@ -83,10 +84,20 @@ type Employee = {
   arbo_notes: string | null;
 };
 
+type EmployeeRate = {
+  id: string;
+  employee_id: string;
+  name: string;
+  hourly_rate: number;
+  is_default: boolean;
+  sort_order: number;
+};
+
 const empty = {
   first_name: "",
   middle_name: "",
   last_name: "",
+  role: "medewerker",
   bsn: "",
   date_of_birth: "",
   street: "",
@@ -140,6 +151,8 @@ function MedewerkersPage() {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [docsFor, setDocsFor] = useState<Employee | null>(null);
+  const [rates, setRates] = useState<EmployeeRate[]>([]);
+  const [newRate, setNewRate] = useState({ name: "", hourly_rate: "", is_default: false });
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -164,6 +177,7 @@ function MedewerkersPage() {
   function openNew() {
     setEditing(null);
     setForm(empty);
+    setRates([]);
     setOpen(true);
   }
 
@@ -173,6 +187,7 @@ function MedewerkersPage() {
       first_name: e.first_name ?? "",
       middle_name: e.middle_name ?? "",
       last_name: e.last_name ?? "",
+      role: e.role ?? "medewerker",
       bsn: e.bsn ?? "",
       date_of_birth: e.date_of_birth ?? "",
       street: e.street ?? "",
@@ -207,7 +222,75 @@ function MedewerkersPage() {
       safety_instructions_signed: e.safety_instructions_signed ?? false,
       arbo_notes: e.arbo_notes ?? "",
     });
+    loadRates(e.id);
     setOpen(true);
+  }
+
+  async function loadRates(employeeId: string) {
+    const { data, error } = await supabase
+      .from("employee_rates")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+    if (error) {
+      toast.error("Kon tarieven niet laden");
+      return;
+    }
+    setRates((data ?? []) as EmployeeRate[]);
+  }
+
+  async function addRate() {
+    if (!user || !editing) {
+      toast.error("Sla eerst de medewerker op voordat je tarieven toevoegt");
+      return;
+    }
+    const naam = newRate.name.trim();
+    const tarief = num(newRate.hourly_rate);
+    if (!naam || tarief == null) {
+      toast.error("Vul naam en uurtarief in");
+      return;
+    }
+    if (newRate.is_default) {
+      await supabase
+        .from("employee_rates")
+        .update({ is_default: false })
+        .eq("employee_id", editing.id);
+    }
+    const { error } = await supabase.from("employee_rates").insert({
+      user_id: user.id,
+      employee_id: editing.id,
+      name: naam,
+      hourly_rate: tarief,
+      is_default: newRate.is_default,
+      sort_order: rates.length,
+    });
+    if (error) {
+      toast.error("Toevoegen mislukt: " + error.message);
+      return;
+    }
+    setNewRate({ name: "", hourly_rate: "", is_default: false });
+    loadRates(editing.id);
+  }
+
+  async function setDefaultRate(id: string) {
+    if (!editing) return;
+    await supabase
+      .from("employee_rates")
+      .update({ is_default: false })
+      .eq("employee_id", editing.id);
+    await supabase.from("employee_rates").update({ is_default: true }).eq("id", id);
+    loadRates(editing.id);
+  }
+
+  async function deleteRate(id: string) {
+    if (!editing) return;
+    const { error } = await supabase.from("employee_rates").delete().eq("id", id);
+    if (error) {
+      toast.error("Verwijderen mislukt");
+      return;
+    }
+    loadRates(editing.id);
   }
 
   async function save() {
@@ -222,6 +305,7 @@ function MedewerkersPage() {
       first_name: form.first_name.trim(),
       middle_name: form.middle_name.trim() || null,
       last_name: form.last_name.trim(),
+      role: form.role,
       bsn: form.bsn.trim() || null,
       date_of_birth: form.date_of_birth || null,
       street: form.street.trim() || null,
@@ -338,6 +422,7 @@ function MedewerkersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Naam</TableHead>
+                  <TableHead>Rol</TableHead>
                   <TableHead>Functie</TableHead>
                   <TableHead>E-mail</TableHead>
                   <TableHead>Mobiel</TableHead>
@@ -350,6 +435,11 @@ function MedewerkersPage() {
                   <TableRow key={e.id}>
                     <TableCell className="font-medium">
                       {[e.first_name, e.middle_name, e.last_name].filter(Boolean).join(" ")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={e.role === "eigenaar" ? "default" : "outline"}>
+                        {e.role === "eigenaar" ? "Eigenaar" : "Medewerker"}
+                      </Badge>
                     </TableCell>
                     <TableCell>{e.job_title ?? "—"}</TableCell>
                     <TableCell>{e.email ?? "—"}</TableCell>
@@ -398,15 +488,28 @@ function MedewerkersPage() {
           </DialogHeader>
 
           <Tabs defaultValue="persoonlijk" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="persoonlijk">Persoonlijk</TabsTrigger>
               <TabsTrigger value="arbeid">Arbeid</TabsTrigger>
               <TabsTrigger value="loon">Loon</TabsTrigger>
+              <TabsTrigger value="tarieven">Tarieven</TabsTrigger>
               <TabsTrigger value="arbo">Verzekering & Arbo</TabsTrigger>
             </TabsList>
 
             {/* PERSOONLIJK */}
             <TabsContent value="persoonlijk" className="space-y-4 pt-4">
+              <div>
+                <Label>Rol</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={form.role}
+                  onChange={(e) => set("role", e.target.value)}
+                >
+                  <option value="medewerker">Medewerker</option>
+                  <option value="eigenaar">Eigenaar</option>
+                </select>
+              </div>
+
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
                   <Label>Voornaam *</Label>
@@ -625,6 +728,115 @@ function MedewerkersPage() {
                   rows={2}
                 />
               </div>
+            </TabsContent>
+
+            {/* TARIEVEN */}
+            <TabsContent value="tarieven" className="space-y-4 pt-4">
+              {!editing ? (
+                <p className="text-sm text-muted-foreground">
+                  Sla eerst de medewerker op. Daarna kun je hier meerdere uurtarieven beheren
+                  (bv. Stucwerk, Schilderwerk).
+                </p>
+              ) : (
+                <>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Naam</TableHead>
+                          <TableHead className="w-32">Uurtarief</TableHead>
+                          <TableHead className="w-32">Standaard</TableHead>
+                          <TableHead className="w-16"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rates.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center text-muted-foreground">
+                              Nog geen tarieven
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          rates.map((r) => (
+                            <TableRow key={r.id}>
+                              <TableCell>{r.name}</TableCell>
+                              <TableCell>€ {Number(r.hourly_rate).toFixed(2)}</TableCell>
+                              <TableCell>
+                                {r.is_default ? (
+                                  <Badge>Standaard</Badge>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setDefaultRate(r.id)}
+                                  >
+                                    Maak standaard
+                                  </Button>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => deleteRate(r.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="rounded-md border p-3">
+                    <h4 className="mb-2 text-sm font-semibold">Tarief toevoegen</h4>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr_auto]">
+                      <div>
+                        <Label>Naam</Label>
+                        <Input
+                          value={newRate.name}
+                          onChange={(e) => setNewRate({ ...newRate, name: e.target.value })}
+                          placeholder="bv. Stucwerk"
+                        />
+                      </div>
+                      <div>
+                        <Label>Uurtarief (€)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={newRate.hourly_rate}
+                          onChange={(e) =>
+                            setNewRate({ ...newRate, hourly_rate: e.target.value })
+                          }
+                          placeholder="45,00"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <Button onClick={addRate} className="w-full">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Toevoegen
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2">
+                      <input
+                        id="rate_default"
+                        type="checkbox"
+                        checked={newRate.is_default}
+                        onChange={(e) =>
+                          setNewRate({ ...newRate, is_default: e.target.checked })
+                        }
+                        className="h-4 w-4"
+                      />
+                      <Label htmlFor="rate_default" className="cursor-pointer font-normal">
+                        Als standaard tarief instellen
+                      </Label>
+                    </div>
+                  </div>
+                </>
+              )}
             </TabsContent>
 
             {/* VERZEKERING & ARBO */}
