@@ -48,6 +48,7 @@ type Employee = {
   first_name: string;
   middle_name: string | null;
   last_name: string;
+  role: string;
   bsn: string | null;
   date_of_birth: string | null;
   street: string | null;
@@ -83,10 +84,20 @@ type Employee = {
   arbo_notes: string | null;
 };
 
+type EmployeeRate = {
+  id: string;
+  employee_id: string;
+  name: string;
+  hourly_rate: number;
+  is_default: boolean;
+  sort_order: number;
+};
+
 const empty = {
   first_name: "",
   middle_name: "",
   last_name: "",
+  role: "medewerker",
   bsn: "",
   date_of_birth: "",
   street: "",
@@ -140,6 +151,8 @@ function MedewerkersPage() {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [docsFor, setDocsFor] = useState<Employee | null>(null);
+  const [rates, setRates] = useState<EmployeeRate[]>([]);
+  const [newRate, setNewRate] = useState({ name: "", hourly_rate: "", is_default: false });
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -164,6 +177,7 @@ function MedewerkersPage() {
   function openNew() {
     setEditing(null);
     setForm(empty);
+    setRates([]);
     setOpen(true);
   }
 
@@ -173,6 +187,7 @@ function MedewerkersPage() {
       first_name: e.first_name ?? "",
       middle_name: e.middle_name ?? "",
       last_name: e.last_name ?? "",
+      role: e.role ?? "medewerker",
       bsn: e.bsn ?? "",
       date_of_birth: e.date_of_birth ?? "",
       street: e.street ?? "",
@@ -207,7 +222,75 @@ function MedewerkersPage() {
       safety_instructions_signed: e.safety_instructions_signed ?? false,
       arbo_notes: e.arbo_notes ?? "",
     });
+    loadRates(e.id);
     setOpen(true);
+  }
+
+  async function loadRates(employeeId: string) {
+    const { data, error } = await supabase
+      .from("employee_rates")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+    if (error) {
+      toast.error("Kon tarieven niet laden");
+      return;
+    }
+    setRates((data ?? []) as EmployeeRate[]);
+  }
+
+  async function addRate() {
+    if (!user || !editing) {
+      toast.error("Sla eerst de medewerker op voordat je tarieven toevoegt");
+      return;
+    }
+    const naam = newRate.name.trim();
+    const tarief = num(newRate.hourly_rate);
+    if (!naam || tarief == null) {
+      toast.error("Vul naam en uurtarief in");
+      return;
+    }
+    if (newRate.is_default) {
+      await supabase
+        .from("employee_rates")
+        .update({ is_default: false })
+        .eq("employee_id", editing.id);
+    }
+    const { error } = await supabase.from("employee_rates").insert({
+      user_id: user.id,
+      employee_id: editing.id,
+      name: naam,
+      hourly_rate: tarief,
+      is_default: newRate.is_default,
+      sort_order: rates.length,
+    });
+    if (error) {
+      toast.error("Toevoegen mislukt: " + error.message);
+      return;
+    }
+    setNewRate({ name: "", hourly_rate: "", is_default: false });
+    loadRates(editing.id);
+  }
+
+  async function setDefaultRate(id: string) {
+    if (!editing) return;
+    await supabase
+      .from("employee_rates")
+      .update({ is_default: false })
+      .eq("employee_id", editing.id);
+    await supabase.from("employee_rates").update({ is_default: true }).eq("id", id);
+    loadRates(editing.id);
+  }
+
+  async function deleteRate(id: string) {
+    if (!editing) return;
+    const { error } = await supabase.from("employee_rates").delete().eq("id", id);
+    if (error) {
+      toast.error("Verwijderen mislukt");
+      return;
+    }
+    loadRates(editing.id);
   }
 
   async function save() {
@@ -222,6 +305,7 @@ function MedewerkersPage() {
       first_name: form.first_name.trim(),
       middle_name: form.middle_name.trim() || null,
       last_name: form.last_name.trim(),
+      role: form.role,
       bsn: form.bsn.trim() || null,
       date_of_birth: form.date_of_birth || null,
       street: form.street.trim() || null,
