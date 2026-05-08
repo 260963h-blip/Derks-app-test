@@ -76,6 +76,29 @@ type Article = {
 type CategoryRow = { id: string; scope: "materiaal" | "werkzaamheid"; name: string };
 type UnitRow = { id: string; code: string; label: string };
 
+const normalizeOption = (value: string | null | undefined) => value?.trim() ?? "";
+
+const uniqueOptionNames = (values: Array<string | null | undefined>) =>
+  Array.from(new Set(values.map(normalizeOption).filter(Boolean)));
+
+const normalizeUnits = (rows: UnitRow[]) => {
+  const seen = new Set<string>();
+
+  return rows.reduce<UnitRow[]>((acc, row) => {
+    const code = normalizeOption(row.code);
+    if (!code || seen.has(code)) return acc;
+
+    seen.add(code);
+    acc.push({
+      ...row,
+      code,
+      label: normalizeOption(row.label) || code,
+    });
+
+    return acc;
+  }, []);
+};
+
 const emptyForm = (type: "materiaal" | "werkzaamheid", defaultVat = 21) => ({
   article_type: type,
   category: type === "materiaal" ? "Materialen" : "",
@@ -174,7 +197,10 @@ function ArtikelenPage() {
   const save = async () => {
     if (!user) return;
     if (!form.name.trim()) return toast.error("Naam is verplicht");
-    if (!form.category.trim()) return toast.error(tab === "werkzaamheid" ? "Ruimte is verplicht" : "Categorie is verplicht");
+    const selectedCategory = form.article_type === "materiaal" ? form.subcategory.trim() : form.category.trim();
+    if (!selectedCategory) {
+      return toast.error(form.article_type === "werkzaamheid" ? "Ruimte is verplicht" : "Categorie is verplicht");
+    }
 
     const payload = {
       user_id: user.id,
@@ -235,10 +261,10 @@ function ArtikelenPage() {
 
   if (authLoading || !user) return null;
 
-  const materialCats = categories.filter((c) => c.scope === "materiaal").map((c) => c.name);
-  const roomCats = categories.filter((c) => c.scope === "werkzaamheid").map((c) => c.name);
+  const materialCats = uniqueOptionNames(categories.filter((c) => c.scope === "materiaal").map((c) => c.name));
+  const roomCats = uniqueOptionNames(categories.filter((c) => c.scope === "werkzaamheid").map((c) => c.name));
   const filterOptions = tab === "materiaal" ? materialCats : roomCats;
-  const unitOptions = units.length > 0 ? units : [];
+  const unitOptions = normalizeUnits(units);
 
   return (
     <AppShell title="Artikelen">
