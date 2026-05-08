@@ -18,6 +18,8 @@ import { Route as InstellingenRouteImport } from './routes/instellingen'
 import { Route as BedrijfsgegevensRouteImport } from './routes/bedrijfsgegevens'
 import { Route as ArtikelenRouteImport } from './routes/artikelen'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OffertesIndexRouteImport } from './routes/offertes.index'
+import { Route as OffertesIdRouteImport } from './routes/offertes.$id'
 
 const VerlofRoute = VerlofRouteImport.update({
   id: '/verlof',
@@ -64,6 +66,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OffertesIndexRoute = OffertesIndexRouteImport.update({
+  id: '/offertes/',
+  path: '/offertes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OffertesIdRoute = OffertesIdRouteImport.update({
+  id: '/offertes/$id',
+  path: '/offertes/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +87,8 @@ export interface FileRoutesByFullPath {
   '/medewerkers': typeof MedewerkersRoute
   '/uren': typeof UrenRoute
   '/verlof': typeof VerlofRoute
+  '/offertes/$id': typeof OffertesIdRoute
+  '/offertes/': typeof OffertesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +100,8 @@ export interface FileRoutesByTo {
   '/medewerkers': typeof MedewerkersRoute
   '/uren': typeof UrenRoute
   '/verlof': typeof VerlofRoute
+  '/offertes/$id': typeof OffertesIdRoute
+  '/offertes': typeof OffertesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +114,8 @@ export interface FileRoutesById {
   '/medewerkers': typeof MedewerkersRoute
   '/uren': typeof UrenRoute
   '/verlof': typeof VerlofRoute
+  '/offertes/$id': typeof OffertesIdRoute
+  '/offertes/': typeof OffertesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +129,8 @@ export interface FileRouteTypes {
     | '/medewerkers'
     | '/uren'
     | '/verlof'
+    | '/offertes/$id'
+    | '/offertes/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +142,8 @@ export interface FileRouteTypes {
     | '/medewerkers'
     | '/uren'
     | '/verlof'
+    | '/offertes/$id'
+    | '/offertes'
   id:
     | '__root__'
     | '/'
@@ -133,6 +155,8 @@ export interface FileRouteTypes {
     | '/medewerkers'
     | '/uren'
     | '/verlof'
+    | '/offertes/$id'
+    | '/offertes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +169,8 @@ export interface RootRouteChildren {
   MedewerkersRoute: typeof MedewerkersRoute
   UrenRoute: typeof UrenRoute
   VerlofRoute: typeof VerlofRoute
+  OffertesIdRoute: typeof OffertesIdRoute
+  OffertesIndexRoute: typeof OffertesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,6 +238,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/offertes/': {
+      id: '/offertes/'
+      path: '/offertes'
+      fullPath: '/offertes/'
+      preLoaderRoute: typeof OffertesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offertes/$id': {
+      id: '/offertes/$id'
+      path: '/offertes/$id'
+      fullPath: '/offertes/$id'
+      preLoaderRoute: typeof OffertesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -225,7 +265,19 @@ const rootRouteChildren: RootRouteChildren = {
   MedewerkersRoute: MedewerkersRoute,
   UrenRoute: UrenRoute,
   VerlofRoute: VerlofRoute,
+  OffertesIdRoute: OffertesIdRoute,
+  OffertesIndexRoute: OffertesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
