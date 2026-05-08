@@ -322,16 +322,48 @@ function OfferteEditor() {
               <Label className="text-xs">Klant</Label>
               <Select
                 value={quote.customer_id ?? undefined}
-                onValueChange={(v) => setQuote({ ...quote, customer_id: v })}
+                onValueChange={onCustomerChange}
               >
                 <SelectTrigger><SelectValue placeholder="Selecteer klant..." /></SelectTrigger>
                 <SelectContent>
                   {customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name} {c.customer_type === "zakelijk" ? "· zakelijk" : "· particulier"}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+            {selectedCustomer?.customer_type === "zakelijk" && (
+              <>
+                <div className="sm:col-span-2">
+                  <Label className="text-xs">Contactpersoon</Label>
+                  <Select
+                    value={quote.contact_id ?? undefined}
+                    onValueChange={(v) => setQuote({ ...quote, contact_id: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={contacts.length === 0 ? "Geen contactpersonen" : "Kies contactpersoon..."} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contacts.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}{c.email ? ` — ${c.email}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="sm:col-span-2">
+                  <Label className="text-xs">Referentie</Label>
+                  <Input
+                    value={quote.reference ?? ""}
+                    onChange={(e) => setQuote({ ...quote, reference: e.target.value })}
+                    placeholder="bv. inkoopordernummer of project"
+                  />
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
