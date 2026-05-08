@@ -31,6 +31,18 @@ export type Database = {
           invoice_footer: string | null
           kvk_number: string | null
           logo_url: string | null
+          owner_bsn: string | null
+          owner_city: string | null
+          owner_date_of_birth: string | null
+          owner_email: string | null
+          owner_first_name: string | null
+          owner_house_number: string | null
+          owner_house_number_addition: string | null
+          owner_last_name: string | null
+          owner_middle_name: string | null
+          owner_phone: string | null
+          owner_postal_code: string | null
+          owner_street: string | null
           phone: string | null
           postal_code: string | null
           quote_footer: string | null
@@ -55,6 +67,18 @@ export type Database = {
           invoice_footer?: string | null
           kvk_number?: string | null
           logo_url?: string | null
+          owner_bsn?: string | null
+          owner_city?: string | null
+          owner_date_of_birth?: string | null
+          owner_email?: string | null
+          owner_first_name?: string | null
+          owner_house_number?: string | null
+          owner_house_number_addition?: string | null
+          owner_last_name?: string | null
+          owner_middle_name?: string | null
+          owner_phone?: string | null
+          owner_postal_code?: string | null
+          owner_street?: string | null
           phone?: string | null
           postal_code?: string | null
           quote_footer?: string | null
@@ -79,6 +103,18 @@ export type Database = {
           invoice_footer?: string | null
           kvk_number?: string | null
           logo_url?: string | null
+          owner_bsn?: string | null
+          owner_city?: string | null
+          owner_date_of_birth?: string | null
+          owner_email?: string | null
+          owner_first_name?: string | null
+          owner_house_number?: string | null
+          owner_house_number_addition?: string | null
+          owner_last_name?: string | null
+          owner_middle_name?: string | null
+          owner_phone?: string | null
+          owner_postal_code?: string | null
+          owner_street?: string | null
           phone?: string | null
           postal_code?: string | null
           quote_footer?: string | null
