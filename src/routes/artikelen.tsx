@@ -48,6 +48,24 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/artikelen")({
   component: ArtikelenPage,
+  errorComponent: ({ error, reset }) => {
+    // eslint-disable-next-line no-console
+    console.error("[artikelen] route error:", error);
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-8">
+        <h1 className="text-xl font-bold mb-2">Er ging iets mis op deze pagina</h1>
+        <pre className="whitespace-pre-wrap rounded-md border bg-muted p-3 text-xs">
+          {String((error as Error)?.stack || (error as Error)?.message || error)}
+        </pre>
+        <button
+          onClick={() => reset()}
+          className="mt-3 rounded-md border px-3 py-1 text-sm"
+        >
+          Opnieuw proberen
+        </button>
+      </div>
+    );
+  },
 });
 
 type Article = {
