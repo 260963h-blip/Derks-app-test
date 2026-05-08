@@ -622,7 +622,7 @@ function ArticleTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>{type === "materiaal" ? "Subcategorie" : "Ruimte"}</TableHead>
+          <TableHead>{type === "materiaal" ? "Categorie" : "Ruimte"}</TableHead>
           <TableHead>Naam</TableHead>
           <TableHead>Eenheid</TableHead>
           <TableHead className="text-right">Prijs</TableHead>
