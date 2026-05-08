@@ -149,17 +149,15 @@ function InstellingenPage() {
           </TabsList>
 
           <TabsContent value="categories" className="mt-4 space-y-4">
-            {(["materiaal", "werkzaamheid"] as const).map((scope) => (
+            {(["materiaal"] as const).map((scope) => (
               <Card key={scope}>
                 <CardHeader>
-                  <CardTitle className="text-base">
-                    {scope === "materiaal" ? "Materiaal-categorieën" : "Werkzaamheid-ruimtes"}
-                  </CardTitle>
+                  <CardTitle className="text-base">Materiaal-categorieën</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="mb-3 flex gap-2">
                     <Input
-                      placeholder={scope === "materiaal" ? "bv. Verf, Behang, Voorstrijk" : "bv. Keuken, Badkamer"}
+                      placeholder="bv. Verf, Behang, Voorstrijk"
                       value={newCat[scope]}
                       onChange={(e) => setNewCat({ ...newCat, [scope]: e.target.value })}
                       onKeyDown={(e) => e.key === "Enter" && addCat(scope)}
