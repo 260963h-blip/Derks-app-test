@@ -32,6 +32,18 @@ type Form = {
   default_quote_validity_days: string;
   quote_footer: string;
   invoice_footer: string;
+  owner_first_name: string;
+  owner_middle_name: string;
+  owner_last_name: string;
+  owner_date_of_birth: string;
+  owner_bsn: string;
+  owner_street: string;
+  owner_house_number: string;
+  owner_house_number_addition: string;
+  owner_postal_code: string;
+  owner_city: string;
+  owner_phone: string;
+  owner_email: string;
 };
 
 const empty: Form = {
@@ -52,6 +64,18 @@ const empty: Form = {
   default_quote_validity_days: "30",
   quote_footer: "",
   invoice_footer: "",
+  owner_first_name: "",
+  owner_middle_name: "",
+  owner_last_name: "",
+  owner_date_of_birth: "",
+  owner_bsn: "",
+  owner_street: "",
+  owner_house_number: "",
+  owner_house_number_addition: "",
+  owner_postal_code: "",
+  owner_city: "",
+  owner_phone: "",
+  owner_email: "",
 };
 
 function BedrijfsgegevensPage() {
@@ -89,6 +113,18 @@ function BedrijfsgegevensPage() {
           default_quote_validity_days: String(data.default_quote_validity_days ?? 30),
           quote_footer: data.quote_footer ?? "",
           invoice_footer: data.invoice_footer ?? "",
+          owner_first_name: data.owner_first_name ?? "",
+          owner_middle_name: data.owner_middle_name ?? "",
+          owner_last_name: data.owner_last_name ?? "",
+          owner_date_of_birth: data.owner_date_of_birth ?? "",
+          owner_bsn: data.owner_bsn ?? "",
+          owner_street: data.owner_street ?? "",
+          owner_house_number: data.owner_house_number ?? "",
+          owner_house_number_addition: data.owner_house_number_addition ?? "",
+          owner_postal_code: data.owner_postal_code ?? "",
+          owner_city: data.owner_city ?? "",
+          owner_phone: data.owner_phone ?? "",
+          owner_email: data.owner_email ?? "",
         });
       }
       setLoading(false);
@@ -124,6 +160,18 @@ function BedrijfsgegevensPage() {
       default_quote_validity_days: Number(form.default_quote_validity_days) || 30,
       quote_footer: form.quote_footer || null,
       invoice_footer: form.invoice_footer || null,
+      owner_first_name: form.owner_first_name || null,
+      owner_middle_name: form.owner_middle_name || null,
+      owner_last_name: form.owner_last_name || null,
+      owner_date_of_birth: form.owner_date_of_birth || null,
+      owner_bsn: form.owner_bsn || null,
+      owner_street: form.owner_street || null,
+      owner_house_number: form.owner_house_number || null,
+      owner_house_number_addition: form.owner_house_number_addition || null,
+      owner_postal_code: form.owner_postal_code || null,
+      owner_city: form.owner_city || null,
+      owner_phone: form.owner_phone || null,
+      owner_email: form.owner_email || null,
     };
     const { error } = await supabase
       .from("company_settings")
@@ -163,6 +211,32 @@ function BedrijfsgegevensPage() {
               <Field label="Standaard BTW %" v={form.default_vat_rate} on={(v) => set("default_vat_rate", v)} type="number" />
               <Field label="Betaaltermijn (dagen)" v={form.default_payment_term_days} on={(v) => set("default_payment_term_days", v)} type="number" />
               <Field label="Offerte geldig (dagen)" v={form.default_quote_validity_days} on={(v) => set("default_quote_validity_days", v)} type="number" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="mb-4 text-lg font-semibold">Eigenaar</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Voornaam" v={form.owner_first_name} on={(v) => set("owner_first_name", v)} />
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Tussenvoegsel" v={form.owner_middle_name} on={(v) => set("owner_middle_name", v)} />
+                  <Field label="Achternaam" v={form.owner_last_name} on={(v) => set("owner_last_name", v)} />
+                </div>
+                <Field label="Geboortedatum" v={form.owner_date_of_birth} on={(v) => set("owner_date_of_birth", v)} type="date" />
+                <Field label="BSN" v={form.owner_bsn} on={(v) => set("owner_bsn", v)} />
+                <Field label="Straat" v={form.owner_street} on={(v) => set("owner_street", v)} />
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Huisnr." v={form.owner_house_number} on={(v) => set("owner_house_number", v)} />
+                  <Field label="Toevoeging" v={form.owner_house_number_addition} on={(v) => set("owner_house_number_addition", v)} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Postcode" v={form.owner_postal_code} on={(v) => set("owner_postal_code", v)} />
+                  <Field label="Plaats" v={form.owner_city} on={(v) => set("owner_city", v)} />
+                </div>
+                <Field label="Telefoon" v={form.owner_phone} on={(v) => set("owner_phone", v)} />
+                <Field label="E-mail" v={form.owner_email} on={(v) => set("owner_email", v)} type="email" />
+              </div>
             </CardContent>
           </Card>
 
