@@ -730,6 +730,115 @@ function MedewerkersPage() {
               </div>
             </TabsContent>
 
+            {/* TARIEVEN */}
+            <TabsContent value="tarieven" className="space-y-4 pt-4">
+              {!editing ? (
+                <p className="text-sm text-muted-foreground">
+                  Sla eerst de medewerker op. Daarna kun je hier meerdere uurtarieven beheren
+                  (bv. Stucwerk, Schilderwerk).
+                </p>
+              ) : (
+                <>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Naam</TableHead>
+                          <TableHead className="w-32">Uurtarief</TableHead>
+                          <TableHead className="w-32">Standaard</TableHead>
+                          <TableHead className="w-16"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rates.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center text-muted-foreground">
+                              Nog geen tarieven
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          rates.map((r) => (
+                            <TableRow key={r.id}>
+                              <TableCell>{r.name}</TableCell>
+                              <TableCell>€ {Number(r.hourly_rate).toFixed(2)}</TableCell>
+                              <TableCell>
+                                {r.is_default ? (
+                                  <Badge>Standaard</Badge>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setDefaultRate(r.id)}
+                                  >
+                                    Maak standaard
+                                  </Button>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => deleteRate(r.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="rounded-md border p-3">
+                    <h4 className="mb-2 text-sm font-semibold">Tarief toevoegen</h4>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr_auto]">
+                      <div>
+                        <Label>Naam</Label>
+                        <Input
+                          value={newRate.name}
+                          onChange={(e) => setNewRate({ ...newRate, name: e.target.value })}
+                          placeholder="bv. Stucwerk"
+                        />
+                      </div>
+                      <div>
+                        <Label>Uurtarief (€)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={newRate.hourly_rate}
+                          onChange={(e) =>
+                            setNewRate({ ...newRate, hourly_rate: e.target.value })
+                          }
+                          placeholder="45,00"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <Button onClick={addRate} className="w-full">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Toevoegen
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2">
+                      <input
+                        id="rate_default"
+                        type="checkbox"
+                        checked={newRate.is_default}
+                        onChange={(e) =>
+                          setNewRate({ ...newRate, is_default: e.target.checked })
+                        }
+                        className="h-4 w-4"
+                      />
+                      <Label htmlFor="rate_default" className="cursor-pointer font-normal">
+                        Als standaard tarief instellen
+                      </Label>
+                    </div>
+                  </div>
+                </>
+              )}
+            </TabsContent>
+
             {/* VERZEKERING & ARBO */}
             <TabsContent value="arbo" className="space-y-4 pt-4">
               <div>
