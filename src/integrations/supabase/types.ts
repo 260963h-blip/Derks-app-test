@@ -146,6 +146,8 @@ export type Database = {
           iban: string | null
           id: string
           invoice_footer: string | null
+          invoice_number_next: number
+          invoice_number_year: number
           kvk_number: string | null
           logo_url: string | null
           owner_bsn: string | null
@@ -163,6 +165,8 @@ export type Database = {
           phone: string | null
           postal_code: string | null
           quote_footer: string | null
+          quote_number_next: number
+          quote_number_year: number
           updated_at: string
           user_id: string
           vat_number: string | null
@@ -182,6 +186,8 @@ export type Database = {
           iban?: string | null
           id?: string
           invoice_footer?: string | null
+          invoice_number_next?: number
+          invoice_number_year?: number
           kvk_number?: string | null
           logo_url?: string | null
           owner_bsn?: string | null
@@ -199,6 +205,8 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           quote_footer?: string | null
+          quote_number_next?: number
+          quote_number_year?: number
           updated_at?: string
           user_id: string
           vat_number?: string | null
@@ -218,6 +226,8 @@ export type Database = {
           iban?: string | null
           id?: string
           invoice_footer?: string | null
+          invoice_number_next?: number
+          invoice_number_year?: number
           kvk_number?: string | null
           logo_url?: string | null
           owner_bsn?: string | null
@@ -235,6 +245,8 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           quote_footer?: string | null
+          quote_number_next?: number
+          quote_number_year?: number
           updated_at?: string
           user_id?: string
           vat_number?: string | null
