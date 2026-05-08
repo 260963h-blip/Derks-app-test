@@ -210,12 +210,8 @@ function MedewerkersPage() {
   }
 
   return (
-    <AppShell>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Medewerkers</h2>
-          <p className="text-muted-foreground">HR-dossier en personeelsgegevens</p>
-        </div>
+    <AppShell title="Medewerkers" subtitle="HR-dossier en personeelsgegevens" back>
+      <div className="mb-6 flex items-center justify-end">
         <Button onClick={openNew}>
           <Plus className="mr-2 h-4 w-4" />
           Nieuwe medewerker
