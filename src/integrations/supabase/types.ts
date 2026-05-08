@@ -89,6 +89,47 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_contacts: {
+        Row: {
+          created_at: string
+          customer_id: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -96,13 +137,20 @@ export type Database = {
           contact_person: string | null
           country: string | null
           created_at: string
+          customer_type: string
+          default_vat_rate: number
+          default_vat_type: string
           email: string | null
+          email_invoice: string | null
+          house_number: string | null
+          house_number_addition: string | null
           id: string
           kvk_number: string | null
           name: string
           notes: string | null
           phone: string | null
           postal_code: string | null
+          street: string | null
           updated_at: string
           user_id: string
           vat_number: string | null
@@ -113,13 +161,20 @@ export type Database = {
           contact_person?: string | null
           country?: string | null
           created_at?: string
+          customer_type?: string
+          default_vat_rate?: number
+          default_vat_type?: string
           email?: string | null
+          email_invoice?: string | null
+          house_number?: string | null
+          house_number_addition?: string | null
           id?: string
           kvk_number?: string | null
           name: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
+          street?: string | null
           updated_at?: string
           user_id: string
           vat_number?: string | null
@@ -130,13 +185,20 @@ export type Database = {
           contact_person?: string | null
           country?: string | null
           created_at?: string
+          customer_type?: string
+          default_vat_rate?: number
+          default_vat_type?: string
           email?: string | null
+          email_invoice?: string | null
+          house_number?: string | null
+          house_number_addition?: string | null
           id?: string
           kvk_number?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
+          street?: string | null
           updated_at?: string
           user_id?: string
           vat_number?: string | null
