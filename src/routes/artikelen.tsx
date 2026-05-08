@@ -546,13 +546,19 @@ function ArtikelenPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>BTW (%)</Label>
-                <Input
-                  type="number"
-                  value={matForm.vat_rate}
-                  onChange={(e) =>
-                    setMatForm({ ...matForm, vat_rate: Number(e.target.value) })
-                  }
-                />
+                <Select
+                  value={String(matForm.vat_rate)}
+                  onValueChange={(v) => setMatForm({ ...matForm, vat_rate: Number(v) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0% (verlegd)</SelectItem>
+                    <SelectItem value="9">9%</SelectItem>
+                    <SelectItem value="21">21%</SelectItem>
+                  </SelectContent>
+                </Select>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Standaard uit Bedrijfsgegevens, hier wijzigbaar.
                 </p>
@@ -698,13 +704,19 @@ function ArtikelenPage() {
               </div>
               <div>
                 <Label>BTW (%)</Label>
-                <Input
-                  type="number"
-                  value={roomForm.vat_rate}
-                  onChange={(e) =>
-                    setRoomForm({ ...roomForm, vat_rate: Number(e.target.value) })
-                  }
-                />
+                <Select
+                  value={String(roomForm.vat_rate)}
+                  onValueChange={(v) => setRoomForm({ ...roomForm, vat_rate: Number(v) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0% (verlegd)</SelectItem>
+                    <SelectItem value="9">9%</SelectItem>
+                    <SelectItem value="21">21%</SelectItem>
+                  </SelectContent>
+                </Select>
                 <p className="mt-1 text-xs text-muted-foreground">Standaard 9% (laag tarief).</p>
               </div>
             </div>
