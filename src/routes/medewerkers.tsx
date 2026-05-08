@@ -34,8 +34,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
+import { EmployeeDocumentsDialog } from "@/components/employee-documents-dialog";
 
 export const Route = createFileRoute("/medewerkers")({
   component: MedewerkersPage,
@@ -90,6 +91,7 @@ function MedewerkersPage() {
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [docsFor, setDocsFor] = useState<Employee | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -268,6 +270,14 @@ function MedewerkersPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Documenten"
+                          onClick={() => setDocsFor(e)}
+                        >
+                          <FolderOpen className="h-4 w-4" />
+                        </Button>
                         <Button size="icon" variant="ghost" onClick={() => openEdit(e)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -466,6 +476,19 @@ function MedewerkersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EmployeeDocumentsDialog
+        employeeId={docsFor?.id ?? null}
+        employeeName={
+          docsFor
+            ? [docsFor.first_name, docsFor.middle_name, docsFor.last_name]
+                .filter(Boolean)
+                .join(" ")
+            : ""
+        }
+        open={!!docsFor}
+        onOpenChange={(o) => !o && setDocsFor(null)}
+      />
     </AppShell>
   );
 }
