@@ -265,6 +265,9 @@ function ArtikelenPage() {
   const roomCats = uniqueOptionNames(categories.filter((c) => c.scope === "werkzaamheid").map((c) => c.name));
   const filterOptions = tab === "materiaal" ? materialCats : roomCats;
   const unitOptions = normalizeUnits(units);
+  const selectedMaterialCategory = materialCats.includes(form.subcategory) ? form.subcategory : undefined;
+  const selectedRoomCategory = roomCats.includes(form.category) ? form.category : undefined;
+  const selectedUnit = unitOptions.some((u) => u.code === form.unit) ? form.unit : undefined;
 
   return (
     <AppShell title="Artikelen">
@@ -355,7 +358,7 @@ function ArtikelenPage() {
                     </p>
                   ) : (
                     <Select
-                      value={form.subcategory || undefined}
+                      value={selectedMaterialCategory}
                       onValueChange={(v) => setForm({ ...form, subcategory: v })}
                     >
                       <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
@@ -393,7 +396,7 @@ function ArtikelenPage() {
                         <Link to="/instellingen" className="underline">Instellingen</Link>.
                       </p>
                     ) : (
-                      <Select value={form.unit || undefined} onValueChange={(v) => setForm({ ...form, unit: v })}>
+                      <Select value={selectedUnit} onValueChange={(v) => setForm({ ...form, unit: v })}>
                         <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
                         <SelectContent>
                           {unitOptions.map((u) => (
@@ -441,7 +444,7 @@ function ArtikelenPage() {
                 <div>
                   <Label>Ruimte</Label>
                   <Select
-                    value={roomCats.includes(form.category) ? form.category : undefined}
+                    value={selectedRoomCategory}
                     onValueChange={(v) => setForm({ ...form, category: v })}
                   >
                     <SelectTrigger><SelectValue placeholder="Kies of typ..." /></SelectTrigger>
@@ -491,7 +494,7 @@ function ArtikelenPage() {
                   <Link to="/instellingen" className="underline">Instellingen</Link>.
                 </p>
               ) : (
-                <Select value={form.unit || undefined} onValueChange={(v) => setForm({ ...form, unit: v })}>
+                <Select value={selectedUnit} onValueChange={(v) => setForm({ ...form, unit: v })}>
                   <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
                   <SelectContent>
                     {unitOptions.map((u) => (
