@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      articles: {
+        Row: {
+          article_type: string
+          category: string
+          cost_price: number | null
+          created_at: string
+          description: string | null
+          field_schema: Json
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          subcategory: string | null
+          unit: string
+          unit_label: string | null
+          updated_at: string
+          user_id: string
+          vat_rate: number
+        }
+        Insert: {
+          article_type?: string
+          category: string
+          cost_price?: number | null
+          created_at?: string
+          description?: string | null
+          field_schema?: Json
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number
+          subcategory?: string | null
+          unit?: string
+          unit_label?: string | null
+          updated_at?: string
+          user_id: string
+          vat_rate?: number
+        }
+        Update: {
+          article_type?: string
+          category?: string
+          cost_price?: number | null
+          created_at?: string
+          description?: string | null
+          field_schema?: Json
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          subcategory?: string | null
+          unit?: string
+          unit_label?: string | null
+          updated_at?: string
+          user_id?: string
+          vat_rate?: number
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           address: string | null
