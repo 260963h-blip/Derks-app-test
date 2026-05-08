@@ -375,7 +375,10 @@ function ArtikelenPage() {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
-                {tab === "materiaal" && (
+              </div>
+
+              <TabsContent value="materiaal" className="m-0">
+                <div className="mb-4">
                   <Select value={filterCat} onValueChange={setFilterCat}>
                     <SelectTrigger className="w-[220px]">
                       <SelectValue placeholder="Categorie" />
@@ -389,10 +392,7 @@ function ArtikelenPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                )}
-              </div>
-
-              <TabsContent value="materiaal" className="m-0">
+                </div>
                 {loading ? (
                   <p className="text-sm text-muted-foreground">Laden...</p>
                 ) : filteredMaterials.length === 0 ? (
