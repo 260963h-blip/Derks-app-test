@@ -232,7 +232,7 @@ function ArtikelenPage() {
   const filterOptions = tab === "materiaal" ? MATERIAL_SUBCATS : ROOMS;
 
   return (
-    <AppShell>
+    <AppShell title="Artikelen">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
           <div>
