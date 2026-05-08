@@ -273,7 +273,7 @@ function ArtikelenPage() {
                 </div>
                 <Select value={filterCat} onValueChange={setFilterCat}>
                   <SelectTrigger className="w-[220px]">
-                    <SelectValue placeholder={tab === "materiaal" ? "Subcategorie" : "Ruimte"} />
+                    <SelectValue placeholder={tab === "materiaal" ? "Categorie" : "Ruimte"} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="alle">Alle</SelectItem>
@@ -319,7 +319,7 @@ function ArtikelenPage() {
 
           <div className="grid gap-4">
             {form.article_type === "materiaal" ? (
-              <div className="grid grid-cols-2 gap-3">
+              <>
                 <div>
                   <Label>Categorie</Label>
                   {materialCats.length === 0 ? (
@@ -342,15 +342,75 @@ function ArtikelenPage() {
                   )}
                 </div>
                 <div>
-                  <Label>BTW (%)</Label>
+                  <Label>Naam</Label>
                   <Input
-                    type="number"
-                    value={form.vat_rate}
-                    onChange={(e) => setForm({ ...form, vat_rate: Number(e.target.value) })}
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="bv. Hoekprofiel 2m"
                   />
                 </div>
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>BTW (%)</Label>
+                    <Input
+                      type="number"
+                      value={form.vat_rate}
+                      onChange={(e) => setForm({ ...form, vat_rate: Number(e.target.value) })}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">Standaard uit Bedrijfsgegevens, hier wijzigbaar.</p>
+                  </div>
+                  <div>
+                    <Label>Eenheid</Label>
+                    {unitOptions.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        Nog geen eenheden. Maak ze aan via{" "}
+                        <Link to="/instellingen" className="underline">Instellingen</Link>.
+                      </p>
+                    ) : (
+                      <Select value={form.unit || undefined} onValueChange={(v) => setForm({ ...form, unit: v })}>
+                        <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
+                        <SelectContent>
+                          {unitOptions.map((u) => (
+                            <SelectItem key={u.code} value={u.code}>{u.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label>Omschrijving</Label>
+                  <Textarea
+                    rows={2}
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Verkoopprijs (€)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.price}
+                      onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Inkoopprijs (€) — optioneel</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.cost_price ?? ""}
+                      onChange={(e) =>
+                        setForm({ ...form, cost_price: e.target.value === "" ? null : Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                </div>
+              </>
             ) : (
+              <>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Ruimte</Label>
@@ -379,14 +439,12 @@ function ArtikelenPage() {
                   />
                 </div>
               </div>
-            )}
-
             <div>
               <Label>Naam</Label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder={form.article_type === "materiaal" ? "bv. Hoekprofiel 2m" : "bv. Stukadoren wanden"}
+                placeholder="bv. Stukadoren wanden"
               />
             </div>
 
@@ -411,7 +469,7 @@ function ArtikelenPage() {
                   <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
                   <SelectContent>
                     {unitOptions.map((u) => (
-                      <SelectItem key={u.code} value={u.code}>{u.label} ({u.code})</SelectItem>
+                      <SelectItem key={u.code} value={u.code}>{u.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -515,6 +573,8 @@ function ArtikelenPage() {
                   ))}
                 </div>
               </div>
+            )}
+            </>
             )}
           </div>
 
