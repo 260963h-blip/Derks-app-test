@@ -639,6 +639,116 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_lines: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          line_total: number
+          line_type: string
+          quantity: number
+          quote_id: string
+          reference_extra: string | null
+          reference_id: string | null
+          sort_order: number
+          unit: string | null
+          unit_price: number
+          updated_at: string
+          user_id: string
+          vat_rate: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          line_total?: number
+          line_type?: string
+          quantity?: number
+          quote_id: string
+          reference_extra?: string | null
+          reference_id?: string | null
+          sort_order?: number
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string
+          user_id: string
+          vat_rate?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          line_total?: number
+          line_type?: string
+          quantity?: number
+          quote_id?: string
+          reference_extra?: string | null
+          reference_id?: string | null
+          sort_order?: number
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string
+          user_id?: string
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_lines_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          id: string
+          notes: string | null
+          quote_date: string
+          quote_number: string
+          status: string
+          subtotal: number
+          total: number
+          updated_at: string
+          user_id: string
+          valid_until: string | null
+          vat_total: number
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          notes?: string | null
+          quote_date?: string
+          quote_number: string
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id: string
+          valid_until?: string | null
+          vat_total?: number
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          notes?: string | null
+          quote_date?: string
+          quote_number?: string
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id?: string
+          valid_until?: string | null
+          vat_total?: number
+        }
+        Relationships: []
+      }
       rooms: {
         Row: {
           created_at: string
