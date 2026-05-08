@@ -35,7 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, FolderOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FolderOpen, Save } from "lucide-react";
 import { toast } from "sonner";
 import { EmployeeDocumentsDialog } from "@/components/employee-documents-dialog";
 
@@ -238,6 +238,12 @@ function MedewerkersPage() {
       return;
     }
     setRates((data ?? []) as EmployeeRate[]);
+    const first = (data ?? [])[0] as EmployeeRate | undefined;
+    setNewRate({
+      name: "",
+      hourly_rate: first ? String(first.hourly_rate) : "",
+      is_default: true,
+    });
   }
 
   async function addRate() {
@@ -254,25 +260,21 @@ function MedewerkersPage() {
       toast.error("Vul eerst de naam van de medewerker en een uurtarief in");
       return;
     }
-    if (newRate.is_default) {
-      await supabase
-        .from("employee_rates")
-        .update({ is_default: false })
-        .eq("employee_id", editing.id);
-    }
+    // Eén tarief per medewerker: bestaande tarieven verwijderen en nieuwe opslaan.
+    await supabase.from("employee_rates").delete().eq("employee_id", editing.id);
     const { error } = await supabase.from("employee_rates").insert({
       user_id: user.id,
       employee_id: editing.id,
       name: naam,
       hourly_rate: tarief,
-      is_default: newRate.is_default,
-      sort_order: rates.length,
+      is_default: true,
+      sort_order: 0,
     });
     if (error) {
-      toast.error("Toevoegen mislukt: " + error.message);
+      toast.error("Opslaan mislukt: " + error.message);
       return;
     }
-    setNewRate({ name: "", hourly_rate: "", is_default: false });
+    toast.success("Tarief opgeslagen");
     loadRates(editing.id);
   }
 
@@ -742,60 +744,12 @@ function MedewerkersPage() {
                 </p>
               ) : (
                 <>
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Naam</TableHead>
-                          <TableHead className="w-32">Uurtarief</TableHead>
-                          <TableHead className="w-32">Standaard</TableHead>
-                          <TableHead className="w-16"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {rates.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center text-muted-foreground">
-                              Nog geen tarieven
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          rates.map((r) => (
-                            <TableRow key={r.id}>
-                              <TableCell>{r.name}</TableCell>
-                              <TableCell>€ {Number(r.hourly_rate).toFixed(2)}</TableCell>
-                              <TableCell>
-                                {r.is_default ? (
-                                  <Badge>Standaard</Badge>
-                                ) : (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => setDefaultRate(r.id)}
-                                  >
-                                    Maak standaard
-                                  </Button>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => deleteRate(r.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-
                   <div className="rounded-md border p-3">
-                    <h4 className="mb-2 text-sm font-semibold">Tarief toevoegen</h4>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr_auto]">
+                    <h4 className="mb-1 text-sm font-semibold">Verkooptarief medewerker</h4>
+                    <p className="mb-3 text-xs text-muted-foreground">
+                      BTW is altijd 21%. Vul het uurtarief excl. BTW in en sla op.
+                    </p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr_1fr_auto]">
                        <div>
                          <Label>Naam</Label>
                          <Input
@@ -808,7 +762,7 @@ function MedewerkersPage() {
                          />
                        </div>
                       <div>
-                        <Label>Uurtarief (€)</Label>
+                        <Label>Uurtarief excl. BTW (€)</Label>
                         <Input
                           type="number"
                           step="0.01"
@@ -819,26 +773,16 @@ function MedewerkersPage() {
                           placeholder="45,00"
                         />
                       </div>
+                      <div>
+                        <Label>BTW</Label>
+                        <Input value="21%" readOnly className="bg-muted" />
+                      </div>
                       <div className="flex items-end">
                         <Button onClick={addRate} className="w-full">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Toevoegen
+                          <Save className="mr-2 h-4 w-4" />
+                          Opslaan
                         </Button>
                       </div>
-                    </div>
-                    <div className="mt-3 flex items-center gap-2">
-                      <input
-                        id="rate_default"
-                        type="checkbox"
-                        checked={newRate.is_default}
-                        onChange={(e) =>
-                          setNewRate({ ...newRate, is_default: e.target.checked })
-                        }
-                        className="h-4 w-4"
-                      />
-                      <Label htmlFor="rate_default" className="cursor-pointer font-normal">
-                        Als standaard tarief instellen
-                      </Label>
                     </div>
                   </div>
                 </>
