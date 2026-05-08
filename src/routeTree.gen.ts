@@ -9,12 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerlofRouteImport } from './routes/verlof'
+import { Route as UrenRouteImport } from './routes/uren'
 import { Route as MedewerkersRouteImport } from './routes/medewerkers'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as KlantenRouteImport } from './routes/klanten'
 import { Route as BedrijfsgegevensRouteImport } from './routes/bedrijfsgegevens'
 import { Route as IndexRouteImport } from './routes/index'
 
+const VerlofRoute = VerlofRouteImport.update({
+  id: '/verlof',
+  path: '/verlof',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UrenRoute = UrenRouteImport.update({
+  id: '/uren',
+  path: '/uren',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MedewerkersRoute = MedewerkersRouteImport.update({
   id: '/medewerkers',
   path: '/medewerkers',
@@ -47,6 +59,8 @@ export interface FileRoutesByFullPath {
   '/klanten': typeof KlantenRoute
   '/login': typeof LoginRoute
   '/medewerkers': typeof MedewerkersRoute
+  '/uren': typeof UrenRoute
+  '/verlof': typeof VerlofRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +68,8 @@ export interface FileRoutesByTo {
   '/klanten': typeof KlantenRoute
   '/login': typeof LoginRoute
   '/medewerkers': typeof MedewerkersRoute
+  '/uren': typeof UrenRoute
+  '/verlof': typeof VerlofRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,12 +78,28 @@ export interface FileRoutesById {
   '/klanten': typeof KlantenRoute
   '/login': typeof LoginRoute
   '/medewerkers': typeof MedewerkersRoute
+  '/uren': typeof UrenRoute
+  '/verlof': typeof VerlofRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/bedrijfsgegevens' | '/klanten' | '/login' | '/medewerkers'
+  fullPaths:
+    | '/'
+    | '/bedrijfsgegevens'
+    | '/klanten'
+    | '/login'
+    | '/medewerkers'
+    | '/uren'
+    | '/verlof'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/bedrijfsgegevens' | '/klanten' | '/login' | '/medewerkers'
+  to:
+    | '/'
+    | '/bedrijfsgegevens'
+    | '/klanten'
+    | '/login'
+    | '/medewerkers'
+    | '/uren'
+    | '/verlof'
   id:
     | '__root__'
     | '/'
@@ -75,6 +107,8 @@ export interface FileRouteTypes {
     | '/klanten'
     | '/login'
     | '/medewerkers'
+    | '/uren'
+    | '/verlof'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -83,10 +117,26 @@ export interface RootRouteChildren {
   KlantenRoute: typeof KlantenRoute
   LoginRoute: typeof LoginRoute
   MedewerkersRoute: typeof MedewerkersRoute
+  UrenRoute: typeof UrenRoute
+  VerlofRoute: typeof VerlofRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verlof': {
+      id: '/verlof'
+      path: '/verlof'
+      fullPath: '/verlof'
+      preLoaderRoute: typeof VerlofRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/uren': {
+      id: '/uren'
+      path: '/uren'
+      fullPath: '/uren'
+      preLoaderRoute: typeof UrenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/medewerkers': {
       id: '/medewerkers'
       path: '/medewerkers'
@@ -131,6 +181,8 @@ const rootRouteChildren: RootRouteChildren = {
   KlantenRoute: KlantenRoute,
   LoginRoute: LoginRoute,
   MedewerkersRoute: MedewerkersRoute,
+  UrenRoute: UrenRoute,
+  VerlofRoute: VerlofRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
