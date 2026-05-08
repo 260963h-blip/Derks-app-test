@@ -14,7 +14,135 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      company_settings: {
+        Row: {
+          address: string | null
+          bic: string | null
+          city: string | null
+          company_name: string
+          country: string | null
+          created_at: string
+          default_payment_term_days: number
+          default_quote_validity_days: number
+          default_vat_rate: number
+          email: string | null
+          iban: string | null
+          id: string
+          invoice_footer: string | null
+          kvk_number: string | null
+          logo_url: string | null
+          phone: string | null
+          postal_code: string | null
+          quote_footer: string | null
+          updated_at: string
+          user_id: string
+          vat_number: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          bic?: string | null
+          city?: string | null
+          company_name?: string
+          country?: string | null
+          created_at?: string
+          default_payment_term_days?: number
+          default_quote_validity_days?: number
+          default_vat_rate?: number
+          email?: string | null
+          iban?: string | null
+          id?: string
+          invoice_footer?: string | null
+          kvk_number?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          quote_footer?: string | null
+          updated_at?: string
+          user_id: string
+          vat_number?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          bic?: string | null
+          city?: string | null
+          company_name?: string
+          country?: string | null
+          created_at?: string
+          default_payment_term_days?: number
+          default_quote_validity_days?: number
+          default_vat_rate?: number
+          email?: string | null
+          iban?: string | null
+          id?: string
+          invoice_footer?: string | null
+          kvk_number?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          quote_footer?: string | null
+          updated_at?: string
+          user_id?: string
+          vat_number?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      customers: {
+        Row: {
+          address: string | null
+          city: string | null
+          contact_person: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          kvk_number: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          updated_at: string
+          user_id: string
+          vat_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          kvk_number?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          updated_at?: string
+          user_id: string
+          vat_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          kvk_number?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          updated_at?: string
+          user_id?: string
+          vat_number?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
