@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,18 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
-const menu = [
+const menu: Array<{
+  title: string;
+  desc: string;
+  icon: typeof FileText;
+  to?: string;
+}> = [
   { title: "Offertes", desc: "Offertes maken en beheren", icon: FileText },
   { title: "Facturen", desc: "Facturen en UBL/XML-export", icon: Receipt },
-  { title: "Klanten", desc: "Klantgegevens beheren", icon: Users },
+  { title: "Klanten", desc: "Klantgegevens beheren", icon: Users, to: "/klanten" },
   { title: "Artikelen", desc: "Producten en diensten", icon: Package },
   { title: "Medewerkers", desc: "Medewerkers en uurtarieven", icon: UserCog },
-  { title: "Bedrijfsgegevens", desc: "Eigen bedrijfsinformatie", icon: Building2 },
+  { title: "Bedrijfsgegevens", desc: "Eigen bedrijfsinformatie", icon: Building2, to: "/bedrijfsgegevens" },
 ];
 
 function Dashboard() {
@@ -62,8 +67,14 @@ function Dashboard() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {menu.map((item) => {
             const Icon = item.icon;
-            return (
-              <Card key={item.title} className="cursor-not-allowed opacity-70">
+            const inner = (
+              <Card
+                className={
+                  item.to
+                    ? "cursor-pointer transition-colors hover:bg-accent/50"
+                    : "cursor-not-allowed opacity-70"
+                }
+              >
                 <CardHeader>
                   <div className="flex items-center gap-3">
                     <div className="rounded-md bg-secondary p-2 text-primary">
@@ -74,9 +85,18 @@ function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">{item.desc}</p>
-                  <p className="mt-2 text-xs italic text-muted-foreground">Binnenkort beschikbaar</p>
+                  {!item.to && (
+                    <p className="mt-2 text-xs italic text-muted-foreground">Binnenkort beschikbaar</p>
+                  )}
                 </CardContent>
               </Card>
+            );
+            return item.to ? (
+              <Link key={item.title} to={item.to}>
+                {inner}
+              </Link>
+            ) : (
+              <div key={item.title}>{inner}</div>
             );
           })}
         </div>
