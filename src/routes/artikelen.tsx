@@ -318,18 +318,25 @@ function ArtikelenPage() {
             {form.article_type === "materiaal" ? (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Subcategorie</Label>
-                  <Select
-                    value={form.subcategory || undefined}
-                    onValueChange={(v) => setForm({ ...form, subcategory: v })}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
-                    <SelectContent>
-                      {MATERIAL_SUBCATS.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Categorie</Label>
+                  {materialCats.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Nog geen categorieën. Maak ze aan via{" "}
+                      <Link to="/instellingen" className="underline">Instellingen</Link>.
+                    </p>
+                  ) : (
+                    <Select
+                      value={form.subcategory || undefined}
+                      onValueChange={(v) => setForm({ ...form, subcategory: v })}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
+                      <SelectContent>
+                        {materialCats.map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div>
                   <Label>BTW (%)</Label>
@@ -345,12 +352,12 @@ function ArtikelenPage() {
                 <div>
                   <Label>Ruimte</Label>
                   <Select
-                    value={ROOMS.includes(form.category) ? form.category : undefined}
+                    value={roomCats.includes(form.category) ? form.category : undefined}
                     onValueChange={(v) => setForm({ ...form, category: v })}
                   >
                     <SelectTrigger><SelectValue placeholder="Kies of typ..." /></SelectTrigger>
                     <SelectContent>
-                      {ROOMS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                      {roomCats.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Input
@@ -389,24 +396,23 @@ function ArtikelenPage() {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label>Eenheid</Label>
+            <div>
+              <Label>Eenheid</Label>
+              {unitOptions.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Nog geen eenheden. Maak ze aan via{" "}
+                  <Link to="/instellingen" className="underline">Instellingen</Link>.
+                </p>
+              ) : (
                 <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
                   <SelectContent>
-                    {UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                    {unitOptions.map((u) => (
+                      <SelectItem key={u.code} value={u.code}>{u.label} ({u.code})</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="col-span-2">
-                <Label>Eenheidslabel (weergave)</Label>
-                <Input
-                  value={form.unit_label}
-                  onChange={(e) => setForm({ ...form, unit_label: e.target.value })}
-                  placeholder="bv. per zak (25kg)"
-                />
-              </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
