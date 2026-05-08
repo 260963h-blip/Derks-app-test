@@ -1,26 +1,86 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileText, Receipt, Users, Package, UserCog, Building2, LogOut } from "lucide-react";
+import logo from "@/assets/logo-derks.png";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: Dashboard,
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
+const menu = [
+  { title: "Offertes", desc: "Offertes maken en beheren", icon: FileText },
+  { title: "Facturen", desc: "Facturen en UBL/XML-export", icon: Receipt },
+  { title: "Klanten", desc: "Klantgegevens beheren", icon: Users },
+  { title: "Artikelen", desc: "Producten en diensten", icon: Package },
+  { title: "Medewerkers", desc: "Medewerkers en uurtarieven", icon: UserCog },
+  { title: "Bedrijfsgegevens", desc: "Eigen bedrijfsinformatie", icon: Building2 },
+];
+
+function Dashboard() {
+  const navigate = useNavigate();
+  const { user, loading, signOut } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !user) navigate({ to: "/login" });
+  }, [user, loading, navigate]);
+
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground">Laden...</p>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-card">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="Derks" className="h-10 w-auto" />
+            <div>
+              <h1 className="text-lg font-semibold leading-tight">Stucadoorsbedrijf Derks</h1>
+              <p className="text-xs text-muted-foreground">Offertes & Facturen</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={signOut}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Uitloggen
+          </Button>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-4 py-8">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold">Welkom terug</h2>
+          <p className="text-muted-foreground">Ingelogd als {user.email}</p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {menu.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Card key={item.title} className="cursor-not-allowed opacity-70">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-md bg-secondary p-2 text-primary">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <CardTitle className="text-base">{item.title}</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                  <p className="mt-2 text-xs italic text-muted-foreground">Binnenkort beschikbaar</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </main>
     </div>
   );
-}
-
-function Index() {
-  return <PlaceholderIndex />;
 }
