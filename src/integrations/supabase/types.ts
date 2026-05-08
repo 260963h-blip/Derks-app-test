@@ -588,6 +588,51 @@ export type Database = {
         }
         Relationships: []
       }
+      rooms: {
+        Row: {
+          created_at: string
+          default_m2: number | null
+          default_walls: number
+          id: string
+          include_ceiling: boolean
+          is_active: boolean
+          name: string
+          price_per_m2: number
+          sort_order: number
+          updated_at: string
+          user_id: string
+          vat_rate: number
+        }
+        Insert: {
+          created_at?: string
+          default_m2?: number | null
+          default_walls?: number
+          id?: string
+          include_ceiling?: boolean
+          is_active?: boolean
+          name: string
+          price_per_m2?: number
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+          vat_rate?: number
+        }
+        Update: {
+          created_at?: string
+          default_m2?: number | null
+          default_walls?: number
+          id?: string
+          include_ceiling?: boolean
+          is_active?: boolean
+          name?: string
+          price_per_m2?: number
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+          vat_rate?: number
+        }
+        Relationships: []
+      }
       time_entries: {
         Row: {
           break_minutes: number

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -42,24 +43,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/artikelen")({
   component: ArtikelenPage,
 });
 
-type FieldType = "number" | "text" | "select" | "boolean";
-type FieldDef = {
-  key: string;
-  label: string;
-  type: FieldType;
-  options?: string[];
-};
-
 type Article = {
   id: string;
-  article_type: "materiaal" | "werkzaamheid";
+  article_type: "materiaal";
   category: string;
   subcategory: string | null;
   name: string;
@@ -69,66 +62,83 @@ type Article = {
   vat_rate: number;
   price: number;
   cost_price: number | null;
-  field_schema: FieldDef[];
+  is_active: boolean;
+};
+
+type Room = {
+  id: string;
+  name: string;
+  default_walls: number;
+  include_ceiling: boolean;
+  default_m2: number | null;
+  price_per_m2: number;
+  vat_rate: number;
   is_active: boolean;
 };
 
 type CategoryRow = { id: string; scope: "materiaal" | "werkzaamheid"; name: string };
 type UnitRow = { id: string; code: string; label: string };
 
-const normalizeOption = (value: string | null | undefined) => value?.trim() ?? "";
-
-const uniqueOptionNames = (values: Array<string | null | undefined>) =>
-  Array.from(new Set(values.map(normalizeOption).filter(Boolean)));
-
+const normalize = (v: string | null | undefined) => v?.trim() ?? "";
+const uniqueNames = (vals: Array<string | null | undefined>) =>
+  Array.from(new Set(vals.map(normalize).filter(Boolean)));
 const normalizeUnits = (rows: UnitRow[]) => {
   const seen = new Set<string>();
-
-  return rows.reduce<UnitRow[]>((acc, row) => {
-    const code = normalizeOption(row.code);
+  return rows.reduce<UnitRow[]>((acc, r) => {
+    const code = normalize(r.code);
     if (!code || seen.has(code)) return acc;
-
     seen.add(code);
-    acc.push({
-      ...row,
-      code,
-      label: normalizeOption(row.label) || code,
-    });
-
+    acc.push({ ...r, code, label: normalize(r.label) || code });
     return acc;
   }, []);
 };
 
-const emptyForm = (type: "materiaal" | "werkzaamheid", defaultVat = 21) => ({
-  article_type: type,
-  category: type === "materiaal" ? "Materialen" : "",
+const emptyMaterial = (defaultVat = 21) => ({
+  category: "Materialen",
   subcategory: "",
   name: "",
   description: "",
   unit: "",
   unit_label: "",
-  vat_rate: type === "materiaal" ? defaultVat : 9,
+  vat_rate: defaultVat,
   price: 0,
   cost_price: null as number | null,
-  field_schema: [] as FieldDef[],
+  is_active: true,
+});
+
+const emptyRoom = () => ({
+  name: "",
+  default_walls: 4,
+  include_ceiling: false,
+  default_m2: null as number | null,
+  price_per_m2: 0,
+  vat_rate: 9,
   is_active: true,
 });
 
 function ArtikelenPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [tab, setTab] = useState<"materiaal" | "werkzaamheid">("materiaal");
+  const [tab, setTab] = useState<"materiaal" | "ruimte">("materiaal");
+
   const [articles, setArticles] = useState<Article[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [units, setUnits] = useState<UnitRow[]>([]);
   const [defaultVat, setDefaultVat] = useState<number>(21);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState<string>("alle");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Article | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyForm("materiaal"));
+
+  const [matDialog, setMatDialog] = useState(false);
+  const [matEditing, setMatEditing] = useState<Article | null>(null);
+  const [matForm, setMatForm] = useState(emptyMaterial());
+  const [delMat, setDelMat] = useState<string | null>(null);
+
+  const [roomDialog, setRoomDialog] = useState(false);
+  const [roomEditing, setRoomEditing] = useState<Room | null>(null);
+  const [roomForm, setRoomForm] = useState(emptyRoom());
+  const [delRoom, setDelRoom] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -140,14 +150,21 @@ function ArtikelenPage() {
 
   const load = async () => {
     setLoading(true);
-    const [a, c, u, s] = await Promise.all([
-      supabase.from("articles").select("*").order("category").order("name"),
+    const [a, r, c, u, s] = await Promise.all([
+      supabase
+        .from("articles")
+        .select("*")
+        .eq("article_type", "materiaal")
+        .order("subcategory")
+        .order("name"),
+      supabase.from("rooms").select("*").order("sort_order").order("name"),
       supabase.from("article_categories").select("id,scope,name").order("sort_order").order("name"),
       supabase.from("article_units").select("id,code,label").order("sort_order").order("label"),
       supabase.from("company_settings").select("default_vat_rate").maybeSingle(),
     ]);
     if (a.error) toast.error("Laden mislukt: " + a.error.message);
     else setArticles((a.data ?? []) as unknown as Article[]);
+    if (!r.error) setRooms((r.data ?? []) as Room[]);
     if (!c.error) setCategories((c.data ?? []) as CategoryRow[]);
     if (!u.error) setUnits((u.data ?? []) as UnitRow[]);
     if (!s.error && s.data?.default_vat_rate != null)
@@ -155,35 +172,39 @@ function ArtikelenPage() {
     setLoading(false);
   };
 
-  const filtered = useMemo(() => {
+  const materialCats = uniqueNames(
+    categories.filter((c) => c.scope === "materiaal").map((c) => c.name),
+  );
+  const unitOptions = normalizeUnits(units);
+
+  const filteredMaterials = useMemo(() => {
     return articles
-      .filter((a) => a.article_type === tab)
-      .filter(
-        (a) =>
-          filterCat === "alle" ||
-          (tab === "materiaal" ? a.subcategory === filterCat : a.category === filterCat),
-      )
+      .filter((a) => filterCat === "alle" || a.subcategory === filterCat)
       .filter((a) => {
         if (!search.trim()) return true;
         const q = search.toLowerCase();
         return (
-          a.name.toLowerCase().includes(q) ||
-          (a.subcategory ?? "").toLowerCase().includes(q) ||
-          a.category.toLowerCase().includes(q)
+          a.name.toLowerCase().includes(q) || (a.subcategory ?? "").toLowerCase().includes(q)
         );
       });
-  }, [articles, tab, filterCat, search]);
+  }, [articles, filterCat, search]);
 
-  const openNew = () => {
-    setEditing(null);
-    setForm(emptyForm(tab, defaultVat));
-    setDialogOpen(true);
+  const filteredRooms = useMemo(() => {
+    return rooms.filter((r) => {
+      if (!search.trim()) return true;
+      return r.name.toLowerCase().includes(search.toLowerCase());
+    });
+  }, [rooms, search]);
+
+  // ---- Materiaal handlers ----
+  const openNewMat = () => {
+    setMatEditing(null);
+    setMatForm(emptyMaterial(defaultVat));
+    setMatDialog(true);
   };
-
-  const openEdit = (a: Article) => {
-    setEditing(a);
-    setForm({
-      article_type: a.article_type,
+  const openEditMat = (a: Article) => {
+    setMatEditing(a);
+    setMatForm({
       category: a.category,
       subcategory: a.subcategory ?? "",
       name: a.name,
@@ -193,96 +214,110 @@ function ArtikelenPage() {
       vat_rate: Number(a.vat_rate),
       price: Number(a.price),
       cost_price: a.cost_price !== null ? Number(a.cost_price) : null,
-      field_schema: Array.isArray(a.field_schema) ? a.field_schema : [],
       is_active: a.is_active,
     });
-    setDialogOpen(true);
+    setMatDialog(true);
   };
-
-  const save = async () => {
+  const saveMat = async () => {
     if (!user) return;
-    if (!form.name.trim()) return toast.error("Naam is verplicht");
-    const selectedCategory =
-      form.article_type === "materiaal" ? form.subcategory.trim() : form.category.trim();
-    if (!selectedCategory) {
-      return toast.error(
-        form.article_type === "werkzaamheid" ? "Ruimte is verplicht" : "Categorie is verplicht",
-      );
-    }
-
+    if (!matForm.name.trim()) return toast.error("Naam is verplicht");
+    if (!matForm.subcategory.trim()) return toast.error("Categorie is verplicht");
     const payload = {
       user_id: user.id,
-      article_type: form.article_type,
-      category: form.category.trim(),
-      subcategory: form.subcategory.trim() || null,
-      name: form.name.trim(),
-      description: form.description.trim() || null,
-      unit: form.unit,
-      unit_label: form.unit_label.trim() || null,
-      vat_rate: Number(form.vat_rate),
-      price: Number(form.price) || 0,
+      article_type: "materiaal" as const,
+      category: matForm.category.trim() || "Materialen",
+      subcategory: matForm.subcategory.trim() || null,
+      name: matForm.name.trim(),
+      description: matForm.description.trim() || null,
+      unit: matForm.unit,
+      unit_label: matForm.unit_label.trim() || null,
+      vat_rate: Number(matForm.vat_rate),
+      price: Number(matForm.price) || 0,
       cost_price:
-        form.cost_price !== null && !Number.isNaN(form.cost_price) ? Number(form.cost_price) : null,
-      field_schema: form.field_schema as unknown as never,
-      is_active: form.is_active,
+        matForm.cost_price !== null && !Number.isNaN(matForm.cost_price)
+          ? Number(matForm.cost_price)
+          : null,
+      is_active: matForm.is_active,
     };
-
-    if (editing) {
-      const { error } = await supabase.from("articles").update(payload).eq("id", editing.id);
-      if (error) return toast.error("Opslaan mislukt: " + error.message);
-      toast.success("Artikel bijgewerkt");
-    } else {
-      const { error } = await supabase.from("articles").insert(payload);
-      if (error) return toast.error("Opslaan mislukt: " + error.message);
-      toast.success("Artikel toegevoegd");
-    }
-    setDialogOpen(false);
+    const res = matEditing
+      ? await supabase.from("articles").update(payload).eq("id", matEditing.id)
+      : await supabase.from("articles").insert(payload);
+    if (res.error) return toast.error("Opslaan mislukt: " + res.error.message);
+    toast.success(matEditing ? "Materiaal bijgewerkt" : "Materiaal toegevoegd");
+    setMatDialog(false);
     load();
   };
-
-  const remove = async () => {
-    if (!deleteId) return;
-    const { error } = await supabase.from("articles").delete().eq("id", deleteId);
+  const removeMat = async () => {
+    if (!delMat) return;
+    const { error } = await supabase.from("articles").delete().eq("id", delMat);
     if (error) toast.error("Verwijderen mislukt: " + error.message);
     else {
       toast.success("Verwijderd");
       load();
     }
-    setDeleteId(null);
+    setDelMat(null);
   };
 
-  // Field schema helpers
-  const addField = () => {
-    setForm((f) => ({
-      ...f,
-      field_schema: [...f.field_schema, { key: "", label: "", type: "number" as FieldType }],
-    }));
+  // ---- Ruimte handlers ----
+  const openNewRoom = () => {
+    setRoomEditing(null);
+    setRoomForm(emptyRoom());
+    setRoomDialog(true);
   };
-  const updateField = (idx: number, patch: Partial<FieldDef>) => {
-    setForm((f) => ({
-      ...f,
-      field_schema: f.field_schema.map((fd, i) => (i === idx ? { ...fd, ...patch } : fd)),
-    }));
+  const openEditRoom = (r: Room) => {
+    setRoomEditing(r);
+    setRoomForm({
+      name: r.name,
+      default_walls: r.default_walls,
+      include_ceiling: r.include_ceiling,
+      default_m2: r.default_m2 !== null ? Number(r.default_m2) : null,
+      price_per_m2: Number(r.price_per_m2),
+      vat_rate: Number(r.vat_rate),
+      is_active: r.is_active,
+    });
+    setRoomDialog(true);
   };
-  const removeField = (idx: number) => {
-    setForm((f) => ({ ...f, field_schema: f.field_schema.filter((_, i) => i !== idx) }));
+  const saveRoom = async () => {
+    if (!user) return;
+    if (!roomForm.name.trim()) return toast.error("Naam is verplicht");
+    const payload = {
+      user_id: user.id,
+      name: roomForm.name.trim(),
+      default_walls: Number(roomForm.default_walls) || 0,
+      include_ceiling: roomForm.include_ceiling,
+      default_m2:
+        roomForm.default_m2 !== null && !Number.isNaN(roomForm.default_m2)
+          ? Number(roomForm.default_m2)
+          : null,
+      price_per_m2: Number(roomForm.price_per_m2) || 0,
+      vat_rate: Number(roomForm.vat_rate),
+      is_active: roomForm.is_active,
+    };
+    const res = roomEditing
+      ? await supabase.from("rooms").update(payload).eq("id", roomEditing.id)
+      : await supabase.from("rooms").insert(payload);
+    if (res.error) return toast.error("Opslaan mislukt: " + res.error.message);
+    toast.success(roomEditing ? "Ruimte bijgewerkt" : "Ruimte toegevoegd");
+    setRoomDialog(false);
+    load();
+  };
+  const removeRoom = async () => {
+    if (!delRoom) return;
+    const { error } = await supabase.from("rooms").delete().eq("id", delRoom);
+    if (error) toast.error("Verwijderen mislukt: " + error.message);
+    else {
+      toast.success("Verwijderd");
+      load();
+    }
+    setDelRoom(null);
   };
 
   if (authLoading || !user) return null;
 
-  const materialCats = uniqueOptionNames(
-    categories.filter((c) => c.scope === "materiaal").map((c) => c.name),
-  );
-  const roomCats = uniqueOptionNames(
-    categories.filter((c) => c.scope === "werkzaamheid").map((c) => c.name),
-  );
-  const filterOptions = tab === "materiaal" ? materialCats : roomCats;
-  const unitOptions = normalizeUnits(units);
-  const selectedMaterialCategory = materialCats.includes(form.subcategory)
-    ? form.subcategory
+  const selectedMatCat = materialCats.includes(matForm.subcategory)
+    ? matForm.subcategory
     : undefined;
-  const selectedRoomCategory = roomCats.includes(form.category) ? form.category : undefined;
-  const selectedUnit = unitOptions.some((u) => u.code === form.unit) ? form.unit : undefined;
+  const selectedUnit = unitOptions.some((u) => u.code === matForm.unit) ? matForm.unit : undefined;
 
   return (
     <AppShell title="Artikelen">
@@ -290,9 +325,9 @@ function ArtikelenPage() {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Artikelen</h1>
-            <p className="text-muted-foreground">Materialen en werkzaamheden beheren</p>
+            <p className="text-muted-foreground">Materialen en ruimten beheren</p>
           </div>
-          <Button onClick={openNew}>
+          <Button onClick={tab === "materiaal" ? openNewMat : openNewRoom}>
             <Plus className="mr-2 h-4 w-4" /> Nieuw
           </Button>
         </div>
@@ -300,13 +335,14 @@ function ArtikelenPage() {
         <Tabs
           value={tab}
           onValueChange={(v) => {
-            setTab(v as "materiaal" | "werkzaamheid");
+            setTab(v as "materiaal" | "ruimte");
             setFilterCat("alle");
+            setSearch("");
           }}
         >
           <TabsList>
             <TabsTrigger value="materiaal">Materialen</TabsTrigger>
-            <TabsTrigger value="werkzaamheid">Werkzaamheden</TabsTrigger>
+            <TabsTrigger value="ruimte">Ruimten</TabsTrigger>
           </TabsList>
 
           <Card className="mt-4">
@@ -321,453 +357,385 @@ function ArtikelenPage() {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
-                <Select value={filterCat} onValueChange={setFilterCat}>
-                  <SelectTrigger className="w-[220px]">
-                    <SelectValue placeholder={tab === "materiaal" ? "Categorie" : "Ruimte"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="alle">Alle</SelectItem>
-                    {filterOptions.map((o) => (
-                      <SelectItem key={o} value={o}>
-                        {o}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {tab === "materiaal" && (
+                  <Select value={filterCat} onValueChange={setFilterCat}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Categorie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="alle">Alle</SelectItem>
+                      {materialCats.map((o) => (
+                        <SelectItem key={o} value={o}>
+                          {o}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <TabsContent value="materiaal" className="m-0">
-                <ArticleTable
-                  loading={loading}
-                  rows={filtered}
-                  type="materiaal"
-                  onEdit={openEdit}
-                  onDelete={setDeleteId}
-                />
+                {loading ? (
+                  <p className="text-sm text-muted-foreground">Laden...</p>
+                ) : filteredMaterials.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Geen materialen gevonden.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Categorie</TableHead>
+                        <TableHead>Naam</TableHead>
+                        <TableHead>Eenheid</TableHead>
+                        <TableHead className="text-right">Prijs</TableHead>
+                        <TableHead>BTW</TableHead>
+                        <TableHead className="w-[100px]" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredMaterials.map((a) => (
+                        <TableRow key={a.id}>
+                          <TableCell>{a.subcategory ?? "—"}</TableCell>
+                          <TableCell className="font-medium">
+                            {a.name}
+                            {!a.is_active && (
+                              <Badge variant="outline" className="ml-2">
+                                inactief
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>{a.unit_label || a.unit}</TableCell>
+                          <TableCell className="text-right">
+                            € {Number(a.price).toFixed(2)}
+                          </TableCell>
+                          <TableCell>{Number(a.vat_rate)}%</TableCell>
+                          <TableCell className="text-right">
+                            <Button size="icon" variant="ghost" onClick={() => openEditMat(a)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => setDelMat(a.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </TabsContent>
-              <TabsContent value="werkzaamheid" className="m-0">
-                <ArticleTable
-                  loading={loading}
-                  rows={filtered}
-                  type="werkzaamheid"
-                  onEdit={openEdit}
-                  onDelete={setDeleteId}
-                />
+
+              <TabsContent value="ruimte" className="m-0">
+                {loading ? (
+                  <p className="text-sm text-muted-foreground">Laden...</p>
+                ) : filteredRooms.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Nog geen ruimten. Klik op "Nieuw" om er een toe te voegen.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Naam</TableHead>
+                        <TableHead className="text-right">Standaard wanden</TableHead>
+                        <TableHead>Plafond</TableHead>
+                        <TableHead className="text-right">Standaard m²</TableHead>
+                        <TableHead className="text-right">Prijs / m²</TableHead>
+                        <TableHead>BTW</TableHead>
+                        <TableHead className="w-[100px]" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRooms.map((r) => (
+                        <TableRow key={r.id}>
+                          <TableCell className="font-medium">
+                            {r.name}
+                            {!r.is_active && (
+                              <Badge variant="outline" className="ml-2">
+                                inactief
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">{r.default_walls}</TableCell>
+                          <TableCell>{r.include_ceiling ? "Ja" : "Nee"}</TableCell>
+                          <TableCell className="text-right">
+                            {r.default_m2 !== null ? Number(r.default_m2).toFixed(2) : "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            € {Number(r.price_per_m2).toFixed(2)}
+                          </TableCell>
+                          <TableCell>{Number(r.vat_rate)}%</TableCell>
+                          <TableCell className="text-right">
+                            <Button size="icon" variant="ghost" onClick={() => openEditRoom(r)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => setDelRoom(r.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </TabsContent>
             </CardContent>
           </Card>
         </Tabs>
       </div>
 
-      {/* Edit dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Materiaal dialog */}
+      <Dialog open={matDialog} onOpenChange={setMatDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editing ? "Artikel bewerken" : "Nieuw artikel"} —{" "}
-              {form.article_type === "materiaal" ? "Materiaal" : "Werkzaamheid"}
-            </DialogTitle>
+            <DialogTitle>{matEditing ? "Materiaal bewerken" : "Nieuw materiaal"}</DialogTitle>
           </DialogHeader>
-
           <div className="grid gap-4">
-            {form.article_type === "materiaal" ? (
-              <>
-                <div>
-                  <Label>Categorie</Label>
-                  {materialCats.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      Nog geen categorieën. Maak ze aan via{" "}
-                      <Link to="/instellingen" className="underline">
-                        Instellingen
-                      </Link>
-                      .
-                    </p>
-                  ) : (
-                    <Select
-                      value={selectedMaterialCategory}
-                      onValueChange={(v) => setForm({ ...form, subcategory: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Kies..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {materialCats.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {s}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-                <div>
-                  <Label>Naam</Label>
-                  <Input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="bv. Hoekprofiel 2m"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>BTW (%)</Label>
-                    <Input
-                      type="number"
-                      value={form.vat_rate}
-                      onChange={(e) => setForm({ ...form, vat_rate: Number(e.target.value) })}
-                    />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Standaard uit Bedrijfsgegevens, hier wijzigbaar.
-                    </p>
-                  </div>
-                  <div>
-                    <Label>Eenheid</Label>
-                    {unitOptions.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">
-                        Nog geen eenheden. Maak ze aan via{" "}
-                        <Link to="/instellingen" className="underline">
-                          Instellingen
-                        </Link>
-                        .
-                      </p>
-                    ) : (
-                      <Select
-                        value={selectedUnit}
-                        onValueChange={(v) => setForm({ ...form, unit: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Kies..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {unitOptions.map((u) => (
-                            <SelectItem key={u.code} value={u.code}>
-                              {u.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <Label>Omschrijving</Label>
-                  <Textarea
-                    rows={2}
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Verkoopprijs (€)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={form.price}
-                      onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Inkoopprijs (€) — optioneel</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={form.cost_price ?? ""}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          cost_price: e.target.value === "" ? null : Number(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Ruimte</Label>
-                    <Select
-                      value={selectedRoomCategory}
-                      onValueChange={(v) => setForm({ ...form, category: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Kies of typ..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roomCats.map((r) => (
-                          <SelectItem key={r} value={r}>
-                            {r}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      className="mt-2"
-                      placeholder="of vrije ruimtenaam"
-                      value={form.category}
-                      onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>BTW (%)</Label>
-                    <Input
-                      type="number"
-                      value={form.vat_rate}
-                      onChange={(e) => setForm({ ...form, vat_rate: Number(e.target.value) })}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label>Naam</Label>
-                  <Input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="bv. Stukadoren wanden"
-                  />
-                </div>
-
-                <div>
-                  <Label>Omschrijving</Label>
-                  <Textarea
-                    rows={2}
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <Label>Eenheid</Label>
-                  {unitOptions.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      Nog geen eenheden. Maak ze aan via{" "}
-                      <Link to="/instellingen" className="underline">
-                        Instellingen
-                      </Link>
-                      .
-                    </p>
-                  ) : (
-                    <Select
-                      value={selectedUnit}
-                      onValueChange={(v) => setForm({ ...form, unit: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Kies..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {unitOptions.map((u) => (
-                          <SelectItem key={u.code} value={u.code}>
-                            {u.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Verkoopprijs (€)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={form.price}
-                      onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Inkoopprijs (€) — optioneel</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={form.cost_price ?? ""}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          cost_price: e.target.value === "" ? null : Number(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                {form.article_type === "werkzaamheid" && (
-                  <div className="rounded-md border p-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <Label className="text-sm font-semibold">
-                        Extra invoervelden (bij offerte/calculatie)
-                      </Label>
-                      <Button type="button" size="sm" variant="outline" onClick={addField}>
-                        <Plus className="mr-1 h-3 w-3" /> Veld
-                      </Button>
-                    </div>
-                    {form.field_schema.length === 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Nog geen velden. Voeg bv. "Aantal wanden", "Hoogte (m)", "Kleur", "Type
-                        stucwerk" toe.
-                      </p>
-                    )}
-                    <div className="space-y-2">
-                      {form.field_schema.map((fd, i) => (
-                        <div
-                          key={i}
-                          className="grid grid-cols-12 items-end gap-2 rounded border p-2"
-                        >
-                          <div className="col-span-3">
-                            <Label className="text-xs">Label</Label>
-                            <Input
-                              value={fd.label}
-                              onChange={(e) => updateField(i, { label: e.target.value })}
-                              placeholder="Aantal wanden"
-                            />
-                          </div>
-                          <div className="col-span-3">
-                            <Label className="text-xs">Sleutel</Label>
-                            <Input
-                              value={fd.key}
-                              onChange={(e) =>
-                                updateField(i, {
-                                  key: e.target.value.replace(/\s+/g, "_").toLowerCase(),
-                                })
-                              }
-                              placeholder="aantal_wanden"
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <Label className="text-xs">Type</Label>
-                            <Select
-                              value={fd.type}
-                              onValueChange={(v) => updateField(i, { type: v as FieldType })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="number">Getal</SelectItem>
-                                <SelectItem value="text">Tekst</SelectItem>
-                                <SelectItem value="select">Keuzelijst</SelectItem>
-                                <SelectItem value="boolean">Ja/Nee</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="col-span-3">
-                            <Label className="text-xs">Opties (komma)</Label>
-                            <Input
-                              disabled={fd.type !== "select"}
-                              value={(fd.options ?? []).join(",")}
-                              onChange={(e) =>
-                                updateField(i, {
-                                  options: e.target.value
-                                    .split(",")
-                                    .map((s) => s.trim())
-                                    .filter(Boolean),
-                                })
-                              }
-                              placeholder="glad,structuur"
-                            />
-                          </div>
-                          <div className="col-span-1">
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => removeField(i)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
+            <div>
+              <Label>Categorie</Label>
+              {materialCats.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Nog geen categorieën. Maak ze aan via{" "}
+                  <Link to="/instellingen" className="underline">
+                    Instellingen
+                  </Link>
+                  .
+                </p>
+              ) : (
+                <Select
+                  value={selectedMatCat}
+                  onValueChange={(v) => setMatForm({ ...matForm, subcategory: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Kies..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {materialCats.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div>
+              <Label>Naam</Label>
+              <Input
+                value={matForm.name}
+                onChange={(e) => setMatForm({ ...matForm, name: e.target.value })}
+                placeholder="bv. Hoekprofiel 2m"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>BTW (%)</Label>
+                <Input
+                  type="number"
+                  value={matForm.vat_rate}
+                  onChange={(e) =>
+                    setMatForm({ ...matForm, vat_rate: Number(e.target.value) })
+                  }
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Standaard uit Bedrijfsgegevens, hier wijzigbaar.
+                </p>
+              </div>
+              <div>
+                <Label>Eenheid</Label>
+                {unitOptions.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Nog geen eenheden. Maak ze aan via{" "}
+                    <Link to="/instellingen" className="underline">
+                      Instellingen
+                    </Link>
+                    .
+                  </p>
+                ) : (
+                  <Select
+                    value={selectedUnit}
+                    onValueChange={(v) => setMatForm({ ...matForm, unit: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Kies..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {unitOptions.map((u) => (
+                        <SelectItem key={u.code} value={u.code}>
+                          {u.label}
+                        </SelectItem>
                       ))}
-                    </div>
-                  </div>
+                    </SelectContent>
+                  </Select>
                 )}
-              </>
-            )}
+              </div>
+            </div>
+            <div>
+              <Label>Omschrijving</Label>
+              <Textarea
+                rows={2}
+                value={matForm.description}
+                onChange={(e) => setMatForm({ ...matForm, description: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Verkoopprijs (€)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={matForm.price}
+                  onChange={(e) => setMatForm({ ...matForm, price: Number(e.target.value) })}
+                />
+              </div>
+              <div>
+                <Label>Inkoopprijs (€) — optioneel</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={matForm.cost_price ?? ""}
+                  onChange={(e) =>
+                    setMatForm({
+                      ...matForm,
+                      cost_price: e.target.value === "" ? null : Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+            </div>
           </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setMatDialog(false)}>
               Annuleren
             </Button>
-            <Button onClick={save}>Opslaan</Button>
+            <Button onClick={saveMat}>Opslaan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      {/* Ruimte dialog */}
+      <Dialog open={roomDialog} onOpenChange={setRoomDialog}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{roomEditing ? "Ruimte bewerken" : "Nieuwe ruimte"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div>
+              <Label>Naam</Label>
+              <Input
+                value={roomForm.name}
+                onChange={(e) => setRoomForm({ ...roomForm, name: e.target.value })}
+                placeholder="bv. Keuken, Woonkamer, Slaapkamer"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Standaard aantal wanden</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={roomForm.default_walls}
+                  onChange={(e) =>
+                    setRoomForm({ ...roomForm, default_walls: Number(e.target.value) })
+                  }
+                />
+              </div>
+              <div>
+                <Label>Standaard vierkante meters</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={roomForm.default_m2 ?? ""}
+                  onChange={(e) =>
+                    setRoomForm({
+                      ...roomForm,
+                      default_m2: e.target.value === "" ? null : Number(e.target.value),
+                    })
+                  }
+                  placeholder="optioneel"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div>
+                <Label>Plafond standaard meenemen</Label>
+                <p className="text-xs text-muted-foreground">
+                  Bij offerte aan/uit te zetten per ruimte.
+                </p>
+              </div>
+              <Switch
+                checked={roomForm.include_ceiling}
+                onCheckedChange={(v) => setRoomForm({ ...roomForm, include_ceiling: v })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Prijs per m² (€)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={roomForm.price_per_m2}
+                  onChange={(e) =>
+                    setRoomForm({ ...roomForm, price_per_m2: Number(e.target.value) })
+                  }
+                />
+              </div>
+              <div>
+                <Label>BTW (%)</Label>
+                <Input
+                  type="number"
+                  value={roomForm.vat_rate}
+                  onChange={(e) =>
+                    setRoomForm({ ...roomForm, vat_rate: Number(e.target.value) })
+                  }
+                />
+                <p className="mt-1 text-xs text-muted-foreground">Standaard 9% (laag tarief).</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <Label>Actief</Label>
+              <Switch
+                checked={roomForm.is_active}
+                onCheckedChange={(v) => setRoomForm({ ...roomForm, is_active: v })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRoomDialog(false)}>
+              Annuleren
+            </Button>
+            <Button onClick={saveRoom}>Opslaan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!delMat} onOpenChange={(o) => !o && setDelMat(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Artikel verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>Materiaal verwijderen?</AlertDialogTitle>
             <AlertDialogDescription>
               Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction onClick={remove}>Verwijderen</AlertDialogAction>
+            <AlertDialogAction onClick={removeMat}>Verwijderen</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!delRoom} onOpenChange={(o) => !o && setDelRoom(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ruimte verwijderen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deze actie kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={removeRoom}>Verwijderen</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </AppShell>
-  );
-}
-
-function ArticleTable({
-  loading,
-  rows,
-  type,
-  onEdit,
-  onDelete,
-}: {
-  loading: boolean;
-  rows: Article[];
-  type: "materiaal" | "werkzaamheid";
-  onEdit: (a: Article) => void;
-  onDelete: (id: string) => void;
-}) {
-  if (loading) return <p className="text-sm text-muted-foreground">Laden...</p>;
-  if (rows.length === 0)
-    return <p className="text-sm text-muted-foreground">Geen artikelen gevonden.</p>;
-
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>{type === "materiaal" ? "Categorie" : "Ruimte"}</TableHead>
-          <TableHead>Naam</TableHead>
-          <TableHead>Eenheid</TableHead>
-          <TableHead className="text-right">Prijs</TableHead>
-          <TableHead>BTW</TableHead>
-          <TableHead className="w-[100px]" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((a) => (
-          <TableRow key={a.id}>
-            <TableCell>{type === "materiaal" ? (a.subcategory ?? "—") : a.category}</TableCell>
-            <TableCell className="font-medium">
-              {a.name}
-              {!a.is_active && (
-                <Badge variant="outline" className="ml-2">
-                  inactief
-                </Badge>
-              )}
-            </TableCell>
-            <TableCell>{a.unit_label || a.unit}</TableCell>
-            <TableCell className="text-right">€ {Number(a.price).toFixed(2)}</TableCell>
-            <TableCell>{Number(a.vat_rate)}%</TableCell>
-            <TableCell className="text-right">
-              <Button size="icon" variant="ghost" onClick={() => onEdit(a)}>
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button size="icon" variant="ghost" onClick={() => onDelete(a.id)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
   );
 }
