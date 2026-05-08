@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Receipt, Users, Package, UserCog, Building2, LogOut } from "lucide-react";
+import { FileText, Receipt, Users, Package, UserCog, Building2, LogOut, Clock, CalendarDays } from "lucide-react";
 import logo from "@/assets/logo-derks.png";
 
 export const Route = createFileRoute("/")({
@@ -21,6 +21,8 @@ const menu: Array<{
   { title: "Klanten", desc: "Klantgegevens beheren", icon: Users, to: "/klanten" },
   { title: "Artikelen", desc: "Producten en diensten", icon: Package },
   { title: "Medewerkers", desc: "HR-dossier en personeelsgegevens", icon: UserCog, to: "/medewerkers" },
+  { title: "Urenregistratie", desc: "Gewerkte uren per medewerker", icon: Clock, to: "/uren" },
+  { title: "Verlof", desc: "Vakantie, ziekte en bijzonder verlof", icon: CalendarDays, to: "/verlof" },
   { title: "Bedrijfsgegevens", desc: "Eigen bedrijfsinformatie", icon: Building2, to: "/bedrijfsgegevens" },
 ];
 
