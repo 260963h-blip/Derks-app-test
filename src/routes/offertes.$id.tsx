@@ -20,6 +20,8 @@ type Quote = {
   id: string;
   quote_number: string;
   customer_id: string | null;
+  contact_id: string | null;
+  reference: string | null;
   status: string;
   quote_date: string;
   valid_until: string | null;
@@ -38,7 +40,8 @@ type Line = {
   sort_order: number;
 };
 
-type Customer = { id: string; name: string };
+type Customer = { id: string; name: string; customer_type: string };
+type Contact = { id: string; customer_id: string; name: string; email: string | null; phone: string | null };
 type Article = { id: string; name: string; price: number; vat_rate: number; unit: string | null; unit_label: string | null };
 type Employee = { id: string; first_name: string; last_name: string; role: string };
 type Rate = { id: string; employee_id: string; name: string; hourly_rate: number; is_default: boolean };
@@ -55,6 +58,7 @@ function OfferteEditor() {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [rates, setRates] = useState<Rate[]>([]);
@@ -82,7 +86,7 @@ function OfferteEditor() {
     const [{ data: q, error: qe }, { data: ls }, { data: cs }, { data: arts }, { data: emps }, { data: rs }, { data: rms }] = await Promise.all([
       supabase.from("quotes").select("*").eq("id", id).maybeSingle(),
       supabase.from("quote_lines").select("*").eq("quote_id", id).order("sort_order"),
-      supabase.from("customers").select("id,name").order("name"),
+      supabase.from("customers").select("id,name,customer_type").order("name"),
       supabase.from("articles").select("id,name,price,vat_rate,unit,unit_label").eq("is_active", true).order("name"),
       supabase.from("employees").select("id,first_name,last_name,role").order("first_name"),
       supabase.from("employee_rates").select("id,employee_id,name,hourly_rate,is_default").order("sort_order"),
@@ -96,10 +100,34 @@ function OfferteEditor() {
     setQuote(q as Quote);
     setLines((ls ?? []) as Line[]);
     setCustomers((cs ?? []) as Customer[]);
+    if ((q as Quote).customer_id) {
+      const { data: ctx } = await supabase
+        .from("customer_contacts")
+        .select("id,customer_id,name,email,phone")
+        .eq("customer_id", (q as Quote).customer_id!)
+        .order("name");
+      setContacts((ctx ?? []) as Contact[]);
+    }
     setArticles((arts ?? []) as Article[]);
     setEmployees((emps ?? []) as Employee[]);
     setRates((rs ?? []) as Rate[]);
     setRooms((rms ?? []) as Room[]);
+  };
+
+  const selectedCustomer = useMemo(
+    () => customers.find((c) => c.id === quote?.customer_id),
+    [customers, quote?.customer_id]
+  );
+
+  const onCustomerChange = async (v: string) => {
+    if (!quote) return;
+    setQuote({ ...quote, customer_id: v, contact_id: null });
+    const { data } = await supabase
+      .from("customer_contacts")
+      .select("id,customer_id,name,email,phone")
+      .eq("customer_id", v)
+      .order("name");
+    setContacts((data ?? []) as Contact[]);
   };
 
   const totals = useMemo(() => {
@@ -212,6 +240,8 @@ function OfferteEditor() {
         .from("quotes")
         .update({
           customer_id: quote.customer_id,
+          contact_id: quote.contact_id,
+          reference: quote.reference,
           status: quote.status,
           quote_date: quote.quote_date,
           valid_until: quote.valid_until,
