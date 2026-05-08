@@ -422,6 +422,7 @@ function MedewerkersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Naam</TableHead>
+                  <TableHead>Rol</TableHead>
                   <TableHead>Functie</TableHead>
                   <TableHead>E-mail</TableHead>
                   <TableHead>Mobiel</TableHead>
@@ -434,6 +435,11 @@ function MedewerkersPage() {
                   <TableRow key={e.id}>
                     <TableCell className="font-medium">
                       {[e.first_name, e.middle_name, e.last_name].filter(Boolean).join(" ")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={e.role === "eigenaar" ? "default" : "outline"}>
+                        {e.role === "eigenaar" ? "Eigenaar" : "Medewerker"}
+                      </Badge>
                     </TableCell>
                     <TableCell>{e.job_title ?? "—"}</TableCell>
                     <TableCell>{e.email ?? "—"}</TableCell>
@@ -482,15 +488,28 @@ function MedewerkersPage() {
           </DialogHeader>
 
           <Tabs defaultValue="persoonlijk" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="persoonlijk">Persoonlijk</TabsTrigger>
               <TabsTrigger value="arbeid">Arbeid</TabsTrigger>
               <TabsTrigger value="loon">Loon</TabsTrigger>
+              <TabsTrigger value="tarieven">Tarieven</TabsTrigger>
               <TabsTrigger value="arbo">Verzekering & Arbo</TabsTrigger>
             </TabsList>
 
             {/* PERSOONLIJK */}
             <TabsContent value="persoonlijk" className="space-y-4 pt-4">
+              <div>
+                <Label>Rol</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={form.role}
+                  onChange={(e) => set("role", e.target.value)}
+                >
+                  <option value="medewerker">Medewerker</option>
+                  <option value="eigenaar">Eigenaar</option>
+                </select>
+              </div>
+
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
                   <Label>Voornaam *</Label>
