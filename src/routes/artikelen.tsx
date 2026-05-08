@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -73,9 +73,8 @@ type Article = {
   is_active: boolean;
 };
 
-const MATERIAL_SUBCATS = ["Hoekstukken", "Zakken stuc", "Voorstrijk", "Verf", "Behang", "Overig"];
-const ROOMS = ["Keuken", "Woonkamer", "Slaapkamer", "Badkamer", "Hal/Gang", "Toilet", "Zolder", "Overig"];
-const UNITS = ["stuk", "zak", "liter", "rol", "m2", "m1", "wand", "uur", "ja_nee", "set"];
+type CategoryRow = { id: string; scope: "materiaal" | "werkzaamheid"; name: string };
+type UnitRow = { id: string; code: string; label: string };
 
 const emptyForm = (type: "materiaal" | "werkzaamheid") => ({
   article_type: type,
@@ -97,6 +96,8 @@ function ArtikelenPage() {
   const { user, loading: authLoading } = useAuth();
   const [tab, setTab] = useState<"materiaal" | "werkzaamheid">("materiaal");
   const [articles, setArticles] = useState<Article[]>([]);
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
+  const [units, setUnits] = useState<UnitRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState<string>("alle");
@@ -115,13 +116,15 @@ function ArtikelenPage() {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("articles")
-      .select("*")
-      .order("category", { ascending: true })
-      .order("name", { ascending: true });
-    if (error) toast.error("Laden mislukt: " + error.message);
-    else setArticles((data ?? []) as unknown as Article[]);
+    const [a, c, u] = await Promise.all([
+      supabase.from("articles").select("*").order("category").order("name"),
+      supabase.from("article_categories").select("id,scope,name").order("sort_order").order("name"),
+      supabase.from("article_units").select("id,code,label").order("sort_order").order("label"),
+    ]);
+    if (a.error) toast.error("Laden mislukt: " + a.error.message);
+    else setArticles((a.data ?? []) as unknown as Article[]);
+    if (!c.error) setCategories((c.data ?? []) as CategoryRow[]);
+    if (!u.error) setUnits((u.data ?? []) as UnitRow[]);
     setLoading(false);
   };
 
@@ -229,7 +232,10 @@ function ArtikelenPage() {
 
   if (authLoading || !user) return null;
 
-  const filterOptions = tab === "materiaal" ? MATERIAL_SUBCATS : ROOMS;
+  const materialCats = categories.filter((c) => c.scope === "materiaal").map((c) => c.name);
+  const roomCats = categories.filter((c) => c.scope === "werkzaamheid").map((c) => c.name);
+  const filterOptions = tab === "materiaal" ? materialCats : roomCats;
+  const unitOptions = units.length > 0 ? units : [];
 
   return (
     <AppShell title="Artikelen">
