@@ -76,15 +76,15 @@ type Article = {
 type CategoryRow = { id: string; scope: "materiaal" | "werkzaamheid"; name: string };
 type UnitRow = { id: string; code: string; label: string };
 
-const emptyForm = (type: "materiaal" | "werkzaamheid") => ({
+const emptyForm = (type: "materiaal" | "werkzaamheid", defaultVat = 21) => ({
   article_type: type,
   category: type === "materiaal" ? "Materialen" : "",
   subcategory: "",
   name: "",
   description: "",
-  unit: type === "materiaal" ? "stuk" : "m2",
+  unit: "",
   unit_label: "",
-  vat_rate: type === "materiaal" ? 21 : 9,
+  vat_rate: type === "materiaal" ? defaultVat : 9,
   price: 0,
   cost_price: null as number | null,
   field_schema: [] as FieldDef[],
@@ -98,6 +98,7 @@ function ArtikelenPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [units, setUnits] = useState<UnitRow[]>([]);
+  const [defaultVat, setDefaultVat] = useState<number>(21);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState<string>("alle");
@@ -116,15 +117,17 @@ function ArtikelenPage() {
 
   const load = async () => {
     setLoading(true);
-    const [a, c, u] = await Promise.all([
+    const [a, c, u, s] = await Promise.all([
       supabase.from("articles").select("*").order("category").order("name"),
       supabase.from("article_categories").select("id,scope,name").order("sort_order").order("name"),
       supabase.from("article_units").select("id,code,label").order("sort_order").order("label"),
+      supabase.from("company_settings").select("default_vat_rate").maybeSingle(),
     ]);
     if (a.error) toast.error("Laden mislukt: " + a.error.message);
     else setArticles((a.data ?? []) as unknown as Article[]);
     if (!c.error) setCategories((c.data ?? []) as CategoryRow[]);
     if (!u.error) setUnits((u.data ?? []) as UnitRow[]);
+    if (!s.error && s.data?.default_vat_rate != null) setDefaultVat(Number(s.data.default_vat_rate));
     setLoading(false);
   };
 
@@ -145,7 +148,7 @@ function ArtikelenPage() {
 
   const openNew = () => {
     setEditing(null);
-    setForm(emptyForm(tab));
+    setForm(emptyForm(tab, defaultVat));
     setDialogOpen(true);
   };
 
