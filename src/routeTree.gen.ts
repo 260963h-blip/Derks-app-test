@@ -14,6 +14,7 @@ import { Route as UrenRouteImport } from './routes/uren'
 import { Route as MedewerkersRouteImport } from './routes/medewerkers'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as KlantenRouteImport } from './routes/klanten'
+import { Route as InstellingenRouteImport } from './routes/instellingen'
 import { Route as BedrijfsgegevensRouteImport } from './routes/bedrijfsgegevens'
 import { Route as ArtikelenRouteImport } from './routes/artikelen'
 import { Route as IndexRouteImport } from './routes/index'
@@ -43,6 +44,11 @@ const KlantenRoute = KlantenRouteImport.update({
   path: '/klanten',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InstellingenRoute = InstellingenRouteImport.update({
+  id: '/instellingen',
+  path: '/instellingen',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BedrijfsgegevensRoute = BedrijfsgegevensRouteImport.update({
   id: '/bedrijfsgegevens',
   path: '/bedrijfsgegevens',
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/artikelen': typeof ArtikelenRoute
   '/bedrijfsgegevens': typeof BedrijfsgegevensRoute
+  '/instellingen': typeof InstellingenRoute
   '/klanten': typeof KlantenRoute
   '/login': typeof LoginRoute
   '/medewerkers': typeof MedewerkersRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/artikelen': typeof ArtikelenRoute
   '/bedrijfsgegevens': typeof BedrijfsgegevensRoute
+  '/instellingen': typeof InstellingenRoute
   '/klanten': typeof KlantenRoute
   '/login': typeof LoginRoute
   '/medewerkers': typeof MedewerkersRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/artikelen': typeof ArtikelenRoute
   '/bedrijfsgegevens': typeof BedrijfsgegevensRoute
+  '/instellingen': typeof InstellingenRoute
   '/klanten': typeof KlantenRoute
   '/login': typeof LoginRoute
   '/medewerkers': typeof MedewerkersRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/artikelen'
     | '/bedrijfsgegevens'
+    | '/instellingen'
     | '/klanten'
     | '/login'
     | '/medewerkers'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/artikelen'
     | '/bedrijfsgegevens'
+    | '/instellingen'
     | '/klanten'
     | '/login'
     | '/medewerkers'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/artikelen'
     | '/bedrijfsgegevens'
+    | '/instellingen'
     | '/klanten'
     | '/login'
     | '/medewerkers'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ArtikelenRoute: typeof ArtikelenRoute
   BedrijfsgegevensRoute: typeof BedrijfsgegevensRoute
+  InstellingenRoute: typeof InstellingenRoute
   KlantenRoute: typeof KlantenRoute
   LoginRoute: typeof LoginRoute
   MedewerkersRoute: typeof MedewerkersRoute
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KlantenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/instellingen': {
+      id: '/instellingen'
+      path: '/instellingen'
+      fullPath: '/instellingen'
+      preLoaderRoute: typeof InstellingenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bedrijfsgegevens': {
       id: '/bedrijfsgegevens'
       path: '/bedrijfsgegevens'
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ArtikelenRoute: ArtikelenRoute,
   BedrijfsgegevensRoute: BedrijfsgegevensRoute,
+  InstellingenRoute: InstellingenRoute,
   KlantenRoute: KlantenRoute,
   LoginRoute: LoginRoute,
   MedewerkersRoute: MedewerkersRoute,
