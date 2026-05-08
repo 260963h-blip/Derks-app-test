@@ -411,6 +411,42 @@ export type Database = {
           },
         ]
       }
+      employee_rates: {
+        Row: {
+          created_at: string
+          employee_id: string
+          hourly_rate: number
+          id: string
+          is_default: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          hourly_rate?: number
+          id?: string
+          is_default?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          hourly_rate?: number
+          id?: string
+          is_default?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           accident_policy_number: string | null
@@ -445,6 +481,7 @@ export type Database = {
           phone: string | null
           postal_code: string | null
           probation_end_date: string | null
+          role: string
           safety_instructions_signed: boolean | null
           special_arrangement: string | null
           start_date: string | null
@@ -488,6 +525,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           probation_end_date?: string | null
+          role?: string
           safety_instructions_signed?: boolean | null
           special_arrangement?: string | null
           start_date?: string | null
@@ -531,6 +569,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           probation_end_date?: string | null
+          role?: string
           safety_instructions_signed?: boolean | null
           special_arrangement?: string | null
           start_date?: string | null
