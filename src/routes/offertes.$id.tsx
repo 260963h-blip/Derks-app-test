@@ -291,8 +291,8 @@ function OfferteEditor() {
             <div className="sm:col-span-2 lg:col-span-4">
               <Label className="text-xs">Klant</Label>
               <Select
-                value={quote.customer_id ?? ""}
-                onValueChange={(v) => setQuote({ ...quote, customer_id: v || null })}
+                value={quote.customer_id ?? undefined}
+                onValueChange={(v) => setQuote({ ...quote, customer_id: v })}
               >
                 <SelectTrigger><SelectValue placeholder="Selecteer klant..." /></SelectTrigger>
                 <SelectContent>
@@ -310,7 +310,7 @@ function OfferteEditor() {
           <CardContent className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-2">
               <Label className="text-xs">Artikel</Label>
-              <Select value={pickArticle} onValueChange={setPickArticle}>
+              <Select value={pickArticle || undefined} onValueChange={setPickArticle}>
                 <SelectTrigger><SelectValue placeholder="Kies artikel..." /></SelectTrigger>
                 <SelectContent>
                   {articles.map((a) => (
@@ -327,7 +327,7 @@ function OfferteEditor() {
 
             <div className="space-y-2">
               <Label className="text-xs">Medewerker</Label>
-              <Select value={pickEmployee} onValueChange={setPickEmployee}>
+              <Select value={pickEmployee || undefined} onValueChange={setPickEmployee}>
                 <SelectTrigger><SelectValue placeholder="Kies medewerker..." /></SelectTrigger>
                 <SelectContent>
                   {employees.map((e) => (
@@ -338,7 +338,7 @@ function OfferteEditor() {
                 </SelectContent>
               </Select>
               {pickEmployee && (
-                <Select value={pickRate} onValueChange={setPickRate}>
+                <Select value={pickRate || undefined} onValueChange={setPickRate}>
                   <SelectTrigger><SelectValue placeholder="Kies tarief..." /></SelectTrigger>
                   <SelectContent>
                     {employeeRates.length === 0 ? (
@@ -366,7 +366,7 @@ function OfferteEditor() {
 
             <div className="space-y-2">
               <Label className="text-xs">Ruimte</Label>
-              <Select value={pickRoom} onValueChange={(v) => {
+              <Select value={pickRoom || undefined} onValueChange={(v) => {
                 setPickRoom(v);
                 const r = rooms.find((x) => x.id === v);
                 if (r?.default_m2) setRoomM2(String(r.default_m2));
