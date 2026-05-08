@@ -703,12 +703,14 @@ export type Database = {
       }
       quotes: {
         Row: {
+          contact_id: string | null
           created_at: string
           customer_id: string | null
           id: string
           notes: string | null
           quote_date: string
           quote_number: string
+          reference: string | null
           status: string
           subtotal: number
           total: number
@@ -718,12 +720,14 @@ export type Database = {
           vat_total: number
         }
         Insert: {
+          contact_id?: string | null
           created_at?: string
           customer_id?: string | null
           id?: string
           notes?: string | null
           quote_date?: string
           quote_number: string
+          reference?: string | null
           status?: string
           subtotal?: number
           total?: number
@@ -733,12 +737,14 @@ export type Database = {
           vat_total?: number
         }
         Update: {
+          contact_id?: string | null
           created_at?: string
           customer_id?: string | null
           id?: string
           notes?: string | null
           quote_date?: string
           quote_number?: string
+          reference?: string | null
           status?: string
           subtotal?: number
           total?: number
