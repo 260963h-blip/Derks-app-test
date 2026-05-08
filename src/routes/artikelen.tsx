@@ -150,14 +150,19 @@ function ArtikelenPage() {
     else setArticles((a.data ?? []) as unknown as Article[]);
     if (!c.error) setCategories((c.data ?? []) as CategoryRow[]);
     if (!u.error) setUnits((u.data ?? []) as UnitRow[]);
-    if (!s.error && s.data?.default_vat_rate != null) setDefaultVat(Number(s.data.default_vat_rate));
+    if (!s.error && s.data?.default_vat_rate != null)
+      setDefaultVat(Number(s.data.default_vat_rate));
     setLoading(false);
   };
 
   const filtered = useMemo(() => {
     return articles
       .filter((a) => a.article_type === tab)
-      .filter((a) => filterCat === "alle" || (tab === "materiaal" ? a.subcategory === filterCat : a.category === filterCat))
+      .filter(
+        (a) =>
+          filterCat === "alle" ||
+          (tab === "materiaal" ? a.subcategory === filterCat : a.category === filterCat),
+      )
       .filter((a) => {
         if (!search.trim()) return true;
         const q = search.toLowerCase();
@@ -197,9 +202,12 @@ function ArtikelenPage() {
   const save = async () => {
     if (!user) return;
     if (!form.name.trim()) return toast.error("Naam is verplicht");
-    const selectedCategory = form.article_type === "materiaal" ? form.subcategory.trim() : form.category.trim();
+    const selectedCategory =
+      form.article_type === "materiaal" ? form.subcategory.trim() : form.category.trim();
     if (!selectedCategory) {
-      return toast.error(form.article_type === "werkzaamheid" ? "Ruimte is verplicht" : "Categorie is verplicht");
+      return toast.error(
+        form.article_type === "werkzaamheid" ? "Ruimte is verplicht" : "Categorie is verplicht",
+      );
     }
 
     const payload = {
@@ -213,7 +221,8 @@ function ArtikelenPage() {
       unit_label: form.unit_label.trim() || null,
       vat_rate: Number(form.vat_rate),
       price: Number(form.price) || 0,
-      cost_price: form.cost_price !== null && !Number.isNaN(form.cost_price) ? Number(form.cost_price) : null,
+      cost_price:
+        form.cost_price !== null && !Number.isNaN(form.cost_price) ? Number(form.cost_price) : null,
       field_schema: form.field_schema as unknown as never,
       is_active: form.is_active,
     };
@@ -261,11 +270,17 @@ function ArtikelenPage() {
 
   if (authLoading || !user) return null;
 
-  const materialCats = uniqueOptionNames(categories.filter((c) => c.scope === "materiaal").map((c) => c.name));
-  const roomCats = uniqueOptionNames(categories.filter((c) => c.scope === "werkzaamheid").map((c) => c.name));
+  const materialCats = uniqueOptionNames(
+    categories.filter((c) => c.scope === "materiaal").map((c) => c.name),
+  );
+  const roomCats = uniqueOptionNames(
+    categories.filter((c) => c.scope === "werkzaamheid").map((c) => c.name),
+  );
   const filterOptions = tab === "materiaal" ? materialCats : roomCats;
   const unitOptions = normalizeUnits(units);
-  const selectedMaterialCategory = materialCats.includes(form.subcategory) ? form.subcategory : undefined;
+  const selectedMaterialCategory = materialCats.includes(form.subcategory)
+    ? form.subcategory
+    : undefined;
   const selectedRoomCategory = roomCats.includes(form.category) ? form.category : undefined;
   const selectedUnit = unitOptions.some((u) => u.code === form.unit) ? form.unit : undefined;
 
@@ -282,7 +297,13 @@ function ArtikelenPage() {
           </Button>
         </div>
 
-        <Tabs value={tab} onValueChange={(v) => { setTab(v as "materiaal" | "werkzaamheid"); setFilterCat("alle"); }}>
+        <Tabs
+          value={tab}
+          onValueChange={(v) => {
+            setTab(v as "materiaal" | "werkzaamheid");
+            setFilterCat("alle");
+          }}
+        >
           <TabsList>
             <TabsTrigger value="materiaal">Materialen</TabsTrigger>
             <TabsTrigger value="werkzaamheid">Werkzaamheden</TabsTrigger>
@@ -307,7 +328,9 @@ function ArtikelenPage() {
                   <SelectContent>
                     <SelectItem value="alle">Alle</SelectItem>
                     {filterOptions.map((o) => (
-                      <SelectItem key={o} value={o}>{o}</SelectItem>
+                      <SelectItem key={o} value={o}>
+                        {o}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -354,17 +377,24 @@ function ArtikelenPage() {
                   {materialCats.length === 0 ? (
                     <p className="text-xs text-muted-foreground">
                       Nog geen categorieën. Maak ze aan via{" "}
-                      <Link to="/instellingen" className="underline">Instellingen</Link>.
+                      <Link to="/instellingen" className="underline">
+                        Instellingen
+                      </Link>
+                      .
                     </p>
                   ) : (
                     <Select
                       value={selectedMaterialCategory}
                       onValueChange={(v) => setForm({ ...form, subcategory: v })}
                     >
-                      <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Kies..." />
+                      </SelectTrigger>
                       <SelectContent>
                         {materialCats.map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                          <SelectItem key={s} value={s}>
+                            {s}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -386,21 +416,33 @@ function ArtikelenPage() {
                       value={form.vat_rate}
                       onChange={(e) => setForm({ ...form, vat_rate: Number(e.target.value) })}
                     />
-                    <p className="mt-1 text-xs text-muted-foreground">Standaard uit Bedrijfsgegevens, hier wijzigbaar.</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Standaard uit Bedrijfsgegevens, hier wijzigbaar.
+                    </p>
                   </div>
                   <div>
                     <Label>Eenheid</Label>
                     {unitOptions.length === 0 ? (
                       <p className="text-xs text-muted-foreground">
                         Nog geen eenheden. Maak ze aan via{" "}
-                        <Link to="/instellingen" className="underline">Instellingen</Link>.
+                        <Link to="/instellingen" className="underline">
+                          Instellingen
+                        </Link>
+                        .
                       </p>
                     ) : (
-                      <Select value={selectedUnit} onValueChange={(v) => setForm({ ...form, unit: v })}>
-                        <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
+                      <Select
+                        value={selectedUnit}
+                        onValueChange={(v) => setForm({ ...form, unit: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Kies..." />
+                        </SelectTrigger>
                         <SelectContent>
                           {unitOptions.map((u) => (
-                            <SelectItem key={u.code} value={u.code}>{u.label}</SelectItem>
+                            <SelectItem key={u.code} value={u.code}>
+                              {u.label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -432,7 +474,10 @@ function ArtikelenPage() {
                       step="0.01"
                       value={form.cost_price ?? ""}
                       onChange={(e) =>
-                        setForm({ ...form, cost_price: e.target.value === "" ? null : Number(e.target.value) })
+                        setForm({
+                          ...form,
+                          cost_price: e.target.value === "" ? null : Number(e.target.value),
+                        })
                       }
                     />
                   </div>
@@ -440,175 +485,211 @@ function ArtikelenPage() {
               </>
             ) : (
               <>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Ruimte</Label>
-                  <Select
-                    value={selectedRoomCategory}
-                    onValueChange={(v) => setForm({ ...form, category: v })}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Kies of typ..." /></SelectTrigger>
-                    <SelectContent>
-                      {roomCats.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    className="mt-2"
-                    placeholder="of vrije ruimtenaam"
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Ruimte</Label>
+                    <Select
+                      value={selectedRoomCategory}
+                      onValueChange={(v) => setForm({ ...form, category: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Kies of typ..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roomCats.map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {r}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      className="mt-2"
+                      placeholder="of vrije ruimtenaam"
+                      value={form.category}
+                      onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>BTW (%)</Label>
+                    <Input
+                      type="number"
+                      value={form.vat_rate}
+                      onChange={(e) => setForm({ ...form, vat_rate: Number(e.target.value) })}
+                    />
+                  </div>
                 </div>
                 <div>
-                  <Label>BTW (%)</Label>
+                  <Label>Naam</Label>
                   <Input
-                    type="number"
-                    value={form.vat_rate}
-                    onChange={(e) => setForm({ ...form, vat_rate: Number(e.target.value) })}
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="bv. Stukadoren wanden"
                   />
                 </div>
-              </div>
-            <div>
-              <Label>Naam</Label>
-              <Input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="bv. Stukadoren wanden"
-              />
-            </div>
 
-            <div>
-              <Label>Omschrijving</Label>
-              <Textarea
-                rows={2}
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <Label>Eenheid</Label>
-              {unitOptions.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  Nog geen eenheden. Maak ze aan via{" "}
-                  <Link to="/instellingen" className="underline">Instellingen</Link>.
-                </p>
-              ) : (
-                <Select value={selectedUnit} onValueChange={(v) => setForm({ ...form, unit: v })}>
-                  <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
-                  <SelectContent>
-                    {unitOptions.map((u) => (
-                      <SelectItem key={u.code} value={u.code}>{u.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Verkoopprijs (€)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={form.price}
-                  onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
-                />
-              </div>
-              <div>
-                <Label>Inkoopprijs (€) — optioneel</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={form.cost_price ?? ""}
-                  onChange={(e) =>
-                    setForm({ ...form, cost_price: e.target.value === "" ? null : Number(e.target.value) })
-                  }
-                />
-              </div>
-            </div>
-
-            {form.article_type === "werkzaamheid" && (
-              <div className="rounded-md border p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <Label className="text-sm font-semibold">Extra invoervelden (bij offerte/calculatie)</Label>
-                  <Button type="button" size="sm" variant="outline" onClick={addField}>
-                    <Plus className="mr-1 h-3 w-3" /> Veld
-                  </Button>
+                <div>
+                  <Label>Omschrijving</Label>
+                  <Textarea
+                    rows={2}
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  />
                 </div>
-                {form.field_schema.length === 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Nog geen velden. Voeg bv. "Aantal wanden", "Hoogte (m)", "Kleur", "Type stucwerk" toe.
-                  </p>
-                )}
-                <div className="space-y-2">
-                  {form.field_schema.map((fd, i) => (
-                    <div key={i} className="grid grid-cols-12 items-end gap-2 rounded border p-2">
-                      <div className="col-span-3">
-                        <Label className="text-xs">Label</Label>
-                        <Input
-                          value={fd.label}
-                          onChange={(e) => updateField(i, { label: e.target.value })}
-                          placeholder="Aantal wanden"
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <Label className="text-xs">Sleutel</Label>
-                        <Input
-                          value={fd.key}
-                          onChange={(e) => updateField(i, { key: e.target.value.replace(/\s+/g, "_").toLowerCase() })}
-                          placeholder="aantal_wanden"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-xs">Type</Label>
-                        <Select
-                          value={fd.type}
-                          onValueChange={(v) => updateField(i, { type: v as FieldType })}
-                        >
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="number">Getal</SelectItem>
-                            <SelectItem value="text">Tekst</SelectItem>
-                            <SelectItem value="select">Keuzelijst</SelectItem>
-                            <SelectItem value="boolean">Ja/Nee</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="col-span-3">
-                        <Label className="text-xs">Opties (komma)</Label>
-                        <Input
-                          disabled={fd.type !== "select"}
-                          value={(fd.options ?? []).join(",")}
-                          onChange={(e) =>
-                            updateField(i, {
-                              options: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                            })
-                          }
-                          placeholder="glad,structuur"
-                        />
-                      </div>
-                      <div className="col-span-1">
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => removeField(i)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
+
+                <div>
+                  <Label>Eenheid</Label>
+                  {unitOptions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Nog geen eenheden. Maak ze aan via{" "}
+                      <Link to="/instellingen" className="underline">
+                        Instellingen
+                      </Link>
+                      .
+                    </p>
+                  ) : (
+                    <Select
+                      value={selectedUnit}
+                      onValueChange={(v) => setForm({ ...form, unit: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Kies..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {unitOptions.map((u) => (
+                          <SelectItem key={u.code} value={u.code}>
+                            {u.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Verkoopprijs (€)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.price}
+                      onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Inkoopprijs (€) — optioneel</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.cost_price ?? ""}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          cost_price: e.target.value === "" ? null : Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                {form.article_type === "werkzaamheid" && (
+                  <div className="rounded-md border p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <Label className="text-sm font-semibold">
+                        Extra invoervelden (bij offerte/calculatie)
+                      </Label>
+                      <Button type="button" size="sm" variant="outline" onClick={addField}>
+                        <Plus className="mr-1 h-3 w-3" /> Veld
+                      </Button>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            </>
+                    {form.field_schema.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Nog geen velden. Voeg bv. "Aantal wanden", "Hoogte (m)", "Kleur", "Type
+                        stucwerk" toe.
+                      </p>
+                    )}
+                    <div className="space-y-2">
+                      {form.field_schema.map((fd, i) => (
+                        <div
+                          key={i}
+                          className="grid grid-cols-12 items-end gap-2 rounded border p-2"
+                        >
+                          <div className="col-span-3">
+                            <Label className="text-xs">Label</Label>
+                            <Input
+                              value={fd.label}
+                              onChange={(e) => updateField(i, { label: e.target.value })}
+                              placeholder="Aantal wanden"
+                            />
+                          </div>
+                          <div className="col-span-3">
+                            <Label className="text-xs">Sleutel</Label>
+                            <Input
+                              value={fd.key}
+                              onChange={(e) =>
+                                updateField(i, {
+                                  key: e.target.value.replace(/\s+/g, "_").toLowerCase(),
+                                })
+                              }
+                              placeholder="aantal_wanden"
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Label className="text-xs">Type</Label>
+                            <Select
+                              value={fd.type}
+                              onValueChange={(v) => updateField(i, { type: v as FieldType })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="number">Getal</SelectItem>
+                                <SelectItem value="text">Tekst</SelectItem>
+                                <SelectItem value="select">Keuzelijst</SelectItem>
+                                <SelectItem value="boolean">Ja/Nee</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-3">
+                            <Label className="text-xs">Opties (komma)</Label>
+                            <Input
+                              disabled={fd.type !== "select"}
+                              value={(fd.options ?? []).join(",")}
+                              onChange={(e) =>
+                                updateField(i, {
+                                  options: e.target.value
+                                    .split(",")
+                                    .map((s) => s.trim())
+                                    .filter(Boolean),
+                                })
+                              }
+                              placeholder="glad,structuur"
+                            />
+                          </div>
+                          <div className="col-span-1">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => removeField(i)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuleren</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Annuleren
+            </Button>
             <Button onClick={save}>Opslaan</Button>
           </DialogFooter>
         </DialogContent>
@@ -618,7 +699,9 @@ function ArtikelenPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Artikel verwijderen?</AlertDialogTitle>
-            <AlertDialogDescription>Deze actie kan niet ongedaan worden gemaakt.</AlertDialogDescription>
+            <AlertDialogDescription>
+              Deze actie kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuleren</AlertDialogCancel>
@@ -665,7 +748,11 @@ function ArticleTable({
             <TableCell>{type === "materiaal" ? (a.subcategory ?? "—") : a.category}</TableCell>
             <TableCell className="font-medium">
               {a.name}
-              {!a.is_active && <Badge variant="outline" className="ml-2">inactief</Badge>}
+              {!a.is_active && (
+                <Badge variant="outline" className="ml-2">
+                  inactief
+                </Badge>
+              )}
             </TableCell>
             <TableCell>{a.unit_label || a.unit}</TableCell>
             <TableCell className="text-right">€ {Number(a.price).toFixed(2)}</TableCell>
