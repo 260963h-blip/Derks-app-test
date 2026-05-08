@@ -76,15 +76,15 @@ type Article = {
 type CategoryRow = { id: string; scope: "materiaal" | "werkzaamheid"; name: string };
 type UnitRow = { id: string; code: string; label: string };
 
-const emptyForm = (type: "materiaal" | "werkzaamheid") => ({
+const emptyForm = (type: "materiaal" | "werkzaamheid", defaultVat = 21) => ({
   article_type: type,
   category: type === "materiaal" ? "Materialen" : "",
   subcategory: "",
   name: "",
   description: "",
-  unit: type === "materiaal" ? "stuk" : "m2",
+  unit: "",
   unit_label: "",
-  vat_rate: type === "materiaal" ? 21 : 9,
+  vat_rate: type === "materiaal" ? defaultVat : 9,
   price: 0,
   cost_price: null as number | null,
   field_schema: [] as FieldDef[],
@@ -98,6 +98,7 @@ function ArtikelenPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [units, setUnits] = useState<UnitRow[]>([]);
+  const [defaultVat, setDefaultVat] = useState<number>(21);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState<string>("alle");
@@ -116,15 +117,17 @@ function ArtikelenPage() {
 
   const load = async () => {
     setLoading(true);
-    const [a, c, u] = await Promise.all([
+    const [a, c, u, s] = await Promise.all([
       supabase.from("articles").select("*").order("category").order("name"),
       supabase.from("article_categories").select("id,scope,name").order("sort_order").order("name"),
       supabase.from("article_units").select("id,code,label").order("sort_order").order("label"),
+      supabase.from("company_settings").select("default_vat_rate").maybeSingle(),
     ]);
     if (a.error) toast.error("Laden mislukt: " + a.error.message);
     else setArticles((a.data ?? []) as unknown as Article[]);
     if (!c.error) setCategories((c.data ?? []) as CategoryRow[]);
     if (!u.error) setUnits((u.data ?? []) as UnitRow[]);
+    if (!s.error && s.data?.default_vat_rate != null) setDefaultVat(Number(s.data.default_vat_rate));
     setLoading(false);
   };
 
@@ -145,7 +148,7 @@ function ArtikelenPage() {
 
   const openNew = () => {
     setEditing(null);
-    setForm(emptyForm(tab));
+    setForm(emptyForm(tab, defaultVat));
     setDialogOpen(true);
   };
 
@@ -270,7 +273,7 @@ function ArtikelenPage() {
                 </div>
                 <Select value={filterCat} onValueChange={setFilterCat}>
                   <SelectTrigger className="w-[220px]">
-                    <SelectValue placeholder={tab === "materiaal" ? "Subcategorie" : "Ruimte"} />
+                    <SelectValue placeholder={tab === "materiaal" ? "Categorie" : "Ruimte"} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="alle">Alle</SelectItem>
@@ -316,7 +319,7 @@ function ArtikelenPage() {
 
           <div className="grid gap-4">
             {form.article_type === "materiaal" ? (
-              <div className="grid grid-cols-2 gap-3">
+              <>
                 <div>
                   <Label>Categorie</Label>
                   {materialCats.length === 0 ? (
@@ -339,15 +342,75 @@ function ArtikelenPage() {
                   )}
                 </div>
                 <div>
-                  <Label>BTW (%)</Label>
+                  <Label>Naam</Label>
                   <Input
-                    type="number"
-                    value={form.vat_rate}
-                    onChange={(e) => setForm({ ...form, vat_rate: Number(e.target.value) })}
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="bv. Hoekprofiel 2m"
                   />
                 </div>
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>BTW (%)</Label>
+                    <Input
+                      type="number"
+                      value={form.vat_rate}
+                      onChange={(e) => setForm({ ...form, vat_rate: Number(e.target.value) })}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">Standaard uit Bedrijfsgegevens, hier wijzigbaar.</p>
+                  </div>
+                  <div>
+                    <Label>Eenheid</Label>
+                    {unitOptions.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        Nog geen eenheden. Maak ze aan via{" "}
+                        <Link to="/instellingen" className="underline">Instellingen</Link>.
+                      </p>
+                    ) : (
+                      <Select value={form.unit || undefined} onValueChange={(v) => setForm({ ...form, unit: v })}>
+                        <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
+                        <SelectContent>
+                          {unitOptions.map((u) => (
+                            <SelectItem key={u.code} value={u.code}>{u.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label>Omschrijving</Label>
+                  <Textarea
+                    rows={2}
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Verkoopprijs (€)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.price}
+                      onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Inkoopprijs (€) — optioneel</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.cost_price ?? ""}
+                      onChange={(e) =>
+                        setForm({ ...form, cost_price: e.target.value === "" ? null : Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                </div>
+              </>
             ) : (
+              <>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Ruimte</Label>
@@ -376,14 +439,12 @@ function ArtikelenPage() {
                   />
                 </div>
               </div>
-            )}
-
             <div>
               <Label>Naam</Label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder={form.article_type === "materiaal" ? "bv. Hoekprofiel 2m" : "bv. Stukadoren wanden"}
+                placeholder="bv. Stukadoren wanden"
               />
             </div>
 
@@ -408,7 +469,7 @@ function ArtikelenPage() {
                   <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
                   <SelectContent>
                     {unitOptions.map((u) => (
-                      <SelectItem key={u.code} value={u.code}>{u.label} ({u.code})</SelectItem>
+                      <SelectItem key={u.code} value={u.code}>{u.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -513,6 +574,8 @@ function ArtikelenPage() {
                 </div>
               </div>
             )}
+            </>
+            )}
           </div>
 
           <DialogFooter>
@@ -559,7 +622,7 @@ function ArticleTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>{type === "materiaal" ? "Subcategorie" : "Ruimte"}</TableHead>
+          <TableHead>{type === "materiaal" ? "Categorie" : "Ruimte"}</TableHead>
           <TableHead>Naam</TableHead>
           <TableHead>Eenheid</TableHead>
           <TableHead className="text-right">Prijs</TableHead>
