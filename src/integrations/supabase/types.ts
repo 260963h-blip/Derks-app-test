@@ -390,6 +390,105 @@ export type Database = {
         }
         Relationships: []
       }
+      leave_requests: {
+        Row: {
+          created_at: string
+          days: number
+          employee_id: string
+          end_date: string
+          id: string
+          leave_type: string
+          notes: string | null
+          reason: string | null
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          days?: number
+          employee_id: string
+          end_date: string
+          id?: string
+          leave_type?: string
+          notes?: string | null
+          reason?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          days?: number
+          employee_id?: string
+          end_date?: string
+          id?: string
+          leave_type?: string
+          notes?: string | null
+          reason?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      time_entries: {
+        Row: {
+          break_minutes: number
+          created_at: string
+          customer_id: string | null
+          description: string | null
+          employee_id: string
+          end_time: string | null
+          entry_type: string
+          hours: number
+          id: string
+          project: string | null
+          start_time: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          work_date: string
+        }
+        Insert: {
+          break_minutes?: number
+          created_at?: string
+          customer_id?: string | null
+          description?: string | null
+          employee_id: string
+          end_time?: string | null
+          entry_type?: string
+          hours?: number
+          id?: string
+          project?: string | null
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          work_date: string
+        }
+        Update: {
+          break_minutes?: number
+          created_at?: string
+          customer_id?: string | null
+          description?: string | null
+          employee_id?: string
+          end_time?: string | null
+          entry_type?: string
+          hours?: number
+          id?: string
+          project?: string | null
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          work_date?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
