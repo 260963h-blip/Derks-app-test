@@ -35,7 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, FolderOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FolderOpen, Save } from "lucide-react";
 import { toast } from "sonner";
 import { EmployeeDocumentsDialog } from "@/components/employee-documents-dialog";
 
