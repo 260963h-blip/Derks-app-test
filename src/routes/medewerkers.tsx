@@ -238,6 +238,12 @@ function MedewerkersPage() {
       return;
     }
     setRates((data ?? []) as EmployeeRate[]);
+    const first = (data ?? [])[0] as EmployeeRate | undefined;
+    setNewRate({
+      name: "",
+      hourly_rate: first ? String(first.hourly_rate) : "",
+      is_default: true,
+    });
   }
 
   async function addRate() {
@@ -254,25 +260,21 @@ function MedewerkersPage() {
       toast.error("Vul eerst de naam van de medewerker en een uurtarief in");
       return;
     }
-    if (newRate.is_default) {
-      await supabase
-        .from("employee_rates")
-        .update({ is_default: false })
-        .eq("employee_id", editing.id);
-    }
+    // Eén tarief per medewerker: bestaande tarieven verwijderen en nieuwe opslaan.
+    await supabase.from("employee_rates").delete().eq("employee_id", editing.id);
     const { error } = await supabase.from("employee_rates").insert({
       user_id: user.id,
       employee_id: editing.id,
       name: naam,
       hourly_rate: tarief,
-      is_default: newRate.is_default,
-      sort_order: rates.length,
+      is_default: true,
+      sort_order: 0,
     });
     if (error) {
-      toast.error("Toevoegen mislukt: " + error.message);
+      toast.error("Opslaan mislukt: " + error.message);
       return;
     }
-    setNewRate({ name: "", hourly_rate: "", is_default: false });
+    toast.success("Tarief opgeslagen");
     loadRates(editing.id);
   }
 
