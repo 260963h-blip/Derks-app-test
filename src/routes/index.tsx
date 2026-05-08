@@ -16,7 +16,7 @@ const menu: Array<{
   icon: typeof FileText;
   to?: string;
 }> = [
-  { title: "Offertes", desc: "Offertes maken en beheren", icon: FileText },
+  { title: "Offertes", desc: "Offertes maken en beheren", icon: FileText, to: "/offertes" },
   { title: "Facturen", desc: "Facturen en UBL/XML-export", icon: Receipt },
   { title: "Klanten", desc: "Klantgegevens beheren", icon: Users, to: "/klanten" },
   { title: "Artikelen", desc: "Materialen en werkzaamheden", icon: Package, to: "/artikelen" },
