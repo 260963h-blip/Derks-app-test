@@ -20,7 +20,7 @@ const menu: Array<{
   { title: "Facturen", desc: "Facturen en UBL/XML-export", icon: Receipt },
   { title: "Klanten", desc: "Klantgegevens beheren", icon: Users, to: "/klanten" },
   { title: "Artikelen", desc: "Producten en diensten", icon: Package },
-  { title: "Medewerkers", desc: "Medewerkers en uurtarieven", icon: UserCog },
+  { title: "Medewerkers", desc: "HR-dossier en personeelsgegevens", icon: UserCog, to: "/medewerkers" },
   { title: "Bedrijfsgegevens", desc: "Eigen bedrijfsinformatie", icon: Building2, to: "/bedrijfsgegevens" },
 ];
 

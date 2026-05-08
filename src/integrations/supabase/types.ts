@@ -205,6 +205,78 @@ export type Database = {
         }
         Relationships: []
       }
+      employees: {
+        Row: {
+          bsn: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          date_of_birth: string | null
+          email: string | null
+          first_name: string
+          house_number: string | null
+          house_number_addition: string | null
+          id: string
+          job_title: string | null
+          last_name: string
+          middle_name: string | null
+          mobile: string | null
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          status: string
+          street: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bsn?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          first_name: string
+          house_number?: string | null
+          house_number_addition?: string | null
+          id?: string
+          job_title?: string | null
+          last_name: string
+          middle_name?: string | null
+          mobile?: string | null
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          status?: string
+          street?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bsn?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          first_name?: string
+          house_number?: string | null
+          house_number_addition?: string | null
+          id?: string
+          job_title?: string | null
+          last_name?: string
+          middle_name?: string | null
+          mobile?: string | null
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          status?: string
+          street?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
