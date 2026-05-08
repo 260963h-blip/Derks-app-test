@@ -245,10 +245,13 @@ function MedewerkersPage() {
       toast.error("Sla eerst de medewerker op voordat je tarieven toevoegt");
       return;
     }
-    const naam = newRate.name.trim();
+    const naam = [form.first_name, form.middle_name, form.last_name]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
     const tarief = num(newRate.hourly_rate);
     if (!naam || tarief == null) {
-      toast.error("Vul naam en uurtarief in");
+      toast.error("Vul eerst de naam van de medewerker en een uurtarief in");
       return;
     }
     if (newRate.is_default) {
@@ -793,14 +796,17 @@ function MedewerkersPage() {
                   <div className="rounded-md border p-3">
                     <h4 className="mb-2 text-sm font-semibold">Tarief toevoegen</h4>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr_auto]">
-                      <div>
-                        <Label>Naam</Label>
-                        <Input
-                          value={newRate.name}
-                          onChange={(e) => setNewRate({ ...newRate, name: e.target.value })}
-                          placeholder="bv. Stucwerk"
-                        />
-                      </div>
+                       <div>
+                         <Label>Naam</Label>
+                         <Input
+                           value={[form.first_name, form.middle_name, form.last_name]
+                             .filter(Boolean)
+                             .join(" ")
+                             .trim()}
+                           readOnly
+                           className="bg-muted"
+                         />
+                       </div>
                       <div>
                         <Label>Uurtarief (€)</Label>
                         <Input
