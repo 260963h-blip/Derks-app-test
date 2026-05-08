@@ -19,7 +19,7 @@ const menu: Array<{
   { title: "Offertes", desc: "Offertes maken en beheren", icon: FileText },
   { title: "Facturen", desc: "Facturen en UBL/XML-export", icon: Receipt },
   { title: "Klanten", desc: "Klantgegevens beheren", icon: Users, to: "/klanten" },
-  { title: "Artikelen", desc: "Producten en diensten", icon: Package },
+  { title: "Artikelen", desc: "Materialen en werkzaamheden", icon: Package, to: "/artikelen" },
   { title: "Medewerkers", desc: "HR-dossier en personeelsgegevens", icon: UserCog, to: "/medewerkers" },
   { title: "Urenregistratie", desc: "Gewerkte uren per medewerker", icon: Clock, to: "/uren" },
   { title: "Verlof", desc: "Vakantie, ziekte en bijzonder verlof", icon: CalendarDays, to: "/verlof" },
