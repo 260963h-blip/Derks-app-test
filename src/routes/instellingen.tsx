@@ -18,6 +18,12 @@ export const Route = createFileRoute("/instellingen")({
 
 type Category = { id: string; scope: "materiaal" | "werkzaamheid"; name: string; sort_order: number };
 type Unit = { id: string; code: string; label: string; sort_order: number };
+type Numbering = {
+  quote_number_year: number;
+  quote_number_next: number;
+  invoice_number_year: number;
+  invoice_number_next: number;
+};
 
 function InstellingenPage() {
   const navigate = useNavigate();
@@ -26,6 +32,13 @@ function InstellingenPage() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [newCat, setNewCat] = useState<{ materiaal: string; werkzaamheid: string }>({ materiaal: "", werkzaamheid: "" });
   const [newUnit, setNewUnit] = useState<{ code: string; label: string }>({ code: "", label: "" });
+  const [numbering, setNumbering] = useState<Numbering>({
+    quote_number_year: new Date().getFullYear(),
+    quote_number_next: 1,
+    invoice_number_year: new Date().getFullYear(),
+    invoice_number_next: 1,
+  });
+  const [savingNum, setSavingNum] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -42,6 +55,21 @@ function InstellingenPage() {
     else setCats((c.data ?? []) as Category[]);
     if (u.error) toast.error("Eenheden laden mislukt: " + u.error.message);
     else setUnits((u.data ?? []) as Unit[]);
+    if (user) {
+      const { data } = await supabase
+        .from("company_settings")
+        .select("quote_number_year,quote_number_next,invoice_number_year,invoice_number_next")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        setNumbering({
+          quote_number_year: data.quote_number_year ?? new Date().getFullYear(),
+          quote_number_next: data.quote_number_next ?? 1,
+          invoice_number_year: data.invoice_number_year ?? new Date().getFullYear(),
+          invoice_number_next: data.invoice_number_next ?? 1,
+        });
+      }
+    }
   };
 
   const addCat = async (scope: "materiaal" | "werkzaamheid") => {
@@ -77,6 +105,32 @@ function InstellingenPage() {
     load();
   };
 
+  const saveNumbering = async () => {
+    if (!user) return;
+    setSavingNum(true);
+    const { data: existing } = await supabase
+      .from("company_settings")
+      .select("id, company_name")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const payload = {
+      user_id: user.id,
+      company_name: existing?.company_name ?? "",
+      quote_number_year: numbering.quote_number_year,
+      quote_number_next: numbering.quote_number_next,
+      invoice_number_year: numbering.invoice_number_year,
+      invoice_number_next: numbering.invoice_number_next,
+    };
+    const { error } = await supabase
+      .from("company_settings")
+      .upsert(payload, { onConflict: "user_id" });
+    setSavingNum(false);
+    if (error) toast.error("Opslaan mislukt: " + error.message);
+    else toast.success("Nummering opgeslagen");
+  };
+
+  const pad4 = (n: number) => String(Math.max(0, n)).padStart(4, "0");
+
   if (authLoading || !user) return null;
 
   return (
@@ -91,6 +145,7 @@ function InstellingenPage() {
           <TabsList>
             <TabsTrigger value="categories">Categorieën</TabsTrigger>
             <TabsTrigger value="units">Eenheden</TabsTrigger>
+            <TabsTrigger value="numbering">Nummering</TabsTrigger>
           </TabsList>
 
           <TabsContent value="categories" className="mt-4 space-y-4">
@@ -198,6 +253,80 @@ function InstellingenPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="numbering" className="mt-4 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Offertenummering</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Jaar</Label>
+                    <Input
+                      type="number"
+                      value={numbering.quote_number_year}
+                      onChange={(e) =>
+                        setNumbering({ ...numbering, quote_number_year: Number(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Volgend nummer</Label>
+                    <Input
+                      type="number"
+                      value={numbering.quote_number_next}
+                      onChange={(e) =>
+                        setNumbering({ ...numbering, quote_number_next: Number(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Volgende offerte: <span className="font-mono">{numbering.quote_number_year}-{pad4(numbering.quote_number_next)}</span>
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Factuurnummering</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Jaar</Label>
+                    <Input
+                      type="number"
+                      value={numbering.invoice_number_year}
+                      onChange={(e) =>
+                        setNumbering({ ...numbering, invoice_number_year: Number(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Volgend nummer</Label>
+                    <Input
+                      type="number"
+                      value={numbering.invoice_number_next}
+                      onChange={(e) =>
+                        setNumbering({ ...numbering, invoice_number_next: Number(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Volgende factuur: <span className="font-mono">{numbering.invoice_number_year}-{pad4(numbering.invoice_number_next)}</span>
+                </p>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end">
+              <Button onClick={saveNumbering} disabled={savingNum}>
+                {savingNum ? "Opslaan..." : "Opslaan"}
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
