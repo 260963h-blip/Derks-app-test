@@ -465,7 +465,7 @@ function ArtikelenPage() {
                   <Link to="/instellingen" className="underline">Instellingen</Link>.
                 </p>
               ) : (
-                <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
+                <Select value={form.unit || undefined} onValueChange={(v) => setForm({ ...form, unit: v })}>
                   <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
                   <SelectContent>
                     {unitOptions.map((u) => (
