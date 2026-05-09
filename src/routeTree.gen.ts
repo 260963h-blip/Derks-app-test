@@ -18,7 +18,9 @@ import { Route as InstellingenRouteImport } from './routes/instellingen'
 import { Route as BedrijfsgegevensRouteImport } from './routes/bedrijfsgegevens'
 import { Route as ArtikelenRouteImport } from './routes/artikelen'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProjectenIndexRouteImport } from './routes/projecten.index'
 import { Route as OffertesIndexRouteImport } from './routes/offertes.index'
+import { Route as ProjectenIdRouteImport } from './routes/projecten.$id'
 import { Route as OffertesIdRouteImport } from './routes/offertes.$id'
 
 const VerlofRoute = VerlofRouteImport.update({
@@ -66,9 +68,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectenIndexRoute = ProjectenIndexRouteImport.update({
+  id: '/projecten/',
+  path: '/projecten/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OffertesIndexRoute = OffertesIndexRouteImport.update({
   id: '/offertes/',
   path: '/offertes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectenIdRoute = ProjectenIdRouteImport.update({
+  id: '/projecten/$id',
+  path: '/projecten/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OffertesIdRoute = OffertesIdRouteImport.update({
@@ -88,7 +100,9 @@ export interface FileRoutesByFullPath {
   '/uren': typeof UrenRoute
   '/verlof': typeof VerlofRoute
   '/offertes/$id': typeof OffertesIdRoute
+  '/projecten/$id': typeof ProjectenIdRoute
   '/offertes/': typeof OffertesIndexRoute
+  '/projecten/': typeof ProjectenIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -101,7 +115,9 @@ export interface FileRoutesByTo {
   '/uren': typeof UrenRoute
   '/verlof': typeof VerlofRoute
   '/offertes/$id': typeof OffertesIdRoute
+  '/projecten/$id': typeof ProjectenIdRoute
   '/offertes': typeof OffertesIndexRoute
+  '/projecten': typeof ProjectenIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -115,7 +131,9 @@ export interface FileRoutesById {
   '/uren': typeof UrenRoute
   '/verlof': typeof VerlofRoute
   '/offertes/$id': typeof OffertesIdRoute
+  '/projecten/$id': typeof ProjectenIdRoute
   '/offertes/': typeof OffertesIndexRoute
+  '/projecten/': typeof ProjectenIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -130,7 +148,9 @@ export interface FileRouteTypes {
     | '/uren'
     | '/verlof'
     | '/offertes/$id'
+    | '/projecten/$id'
     | '/offertes/'
+    | '/projecten/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -143,7 +163,9 @@ export interface FileRouteTypes {
     | '/uren'
     | '/verlof'
     | '/offertes/$id'
+    | '/projecten/$id'
     | '/offertes'
+    | '/projecten'
   id:
     | '__root__'
     | '/'
@@ -156,7 +178,9 @@ export interface FileRouteTypes {
     | '/uren'
     | '/verlof'
     | '/offertes/$id'
+    | '/projecten/$id'
     | '/offertes/'
+    | '/projecten/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -170,7 +194,9 @@ export interface RootRouteChildren {
   UrenRoute: typeof UrenRoute
   VerlofRoute: typeof VerlofRoute
   OffertesIdRoute: typeof OffertesIdRoute
+  ProjectenIdRoute: typeof ProjectenIdRoute
   OffertesIndexRoute: typeof OffertesIndexRoute
+  ProjectenIndexRoute: typeof ProjectenIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -238,11 +264,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projecten/': {
+      id: '/projecten/'
+      path: '/projecten'
+      fullPath: '/projecten/'
+      preLoaderRoute: typeof ProjectenIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/offertes/': {
       id: '/offertes/'
       path: '/offertes'
       fullPath: '/offertes/'
       preLoaderRoute: typeof OffertesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projecten/$id': {
+      id: '/projecten/$id'
+      path: '/projecten/$id'
+      fullPath: '/projecten/$id'
+      preLoaderRoute: typeof ProjectenIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/offertes/$id': {
@@ -266,8 +306,20 @@ const rootRouteChildren: RootRouteChildren = {
   UrenRoute: UrenRoute,
   VerlofRoute: VerlofRoute,
   OffertesIdRoute: OffertesIdRoute,
+  ProjectenIdRoute: ProjectenIdRoute,
   OffertesIndexRoute: OffertesIndexRoute,
+  ProjectenIndexRoute: ProjectenIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
