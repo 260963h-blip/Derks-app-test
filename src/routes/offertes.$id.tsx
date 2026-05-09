@@ -645,10 +645,24 @@ function OfferteEditor() {
                 <span className="text-muted-foreground">Subtotaal</span>
                 <span>{fmt(totals.sub)}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">BTW</span>
-                <span>{fmt(totals.vat)}</span>
-              </div>
+              {quote.vat_mode === "verlegd" ? (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">BTW verlegd</span>
+                  <span>—</span>
+                </div>
+              ) : totals.vatBreakdown.length === 0 ? (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">BTW</span>
+                  <span>{fmt(0)}</span>
+                </div>
+              ) : (
+                totals.vatBreakdown.map((b) => (
+                  <div key={b.rate} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">BTW {b.rate}%</span>
+                    <span>{fmt(b.amount)}</span>
+                  </div>
+                ))
+              )}
               <div className="flex justify-between border-t pt-2 text-lg font-semibold">
                 <span>Totaal</span>
                 <span>{fmt(totals.total)}</span>
