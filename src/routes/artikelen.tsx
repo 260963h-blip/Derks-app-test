@@ -461,10 +461,11 @@ function ArtikelenPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Naam</TableHead>
-                        <TableHead className="text-right">Standaard wanden</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Wanden</TableHead>
                         <TableHead>Plafond</TableHead>
-                        <TableHead className="text-right">Standaard m²</TableHead>
-                        <TableHead className="text-right">Prijs / m²</TableHead>
+                        <TableHead className="text-right">m²</TableHead>
+                        <TableHead className="text-right">Prijs</TableHead>
                         <TableHead>BTW</TableHead>
                         <TableHead className="w-[100px]" />
                       </TableRow>
@@ -480,13 +481,22 @@ function ArtikelenPage() {
                               </Badge>
                             )}
                           </TableCell>
+                          <TableCell>
+                            {r.pricing_type === "fixed" ? "Vast" : "Per m²"}
+                          </TableCell>
                           <TableCell className="text-right">{r.default_walls}</TableCell>
                           <TableCell>{r.include_ceiling ? "Ja" : "Nee"}</TableCell>
                           <TableCell className="text-right">
-                            {r.default_m2 !== null ? Number(r.default_m2).toFixed(2) : "—"}
+                            {r.pricing_type === "fixed"
+                              ? "—"
+                              : r.default_m2 !== null
+                                ? Number(r.default_m2).toFixed(2)
+                                : "—"}
                           </TableCell>
                           <TableCell className="text-right">
-                            € {Number(r.price_per_m2).toFixed(2)}
+                            {r.pricing_type === "fixed"
+                              ? `€ ${Number(r.fixed_price).toFixed(2)}`
+                              : `€ ${Number(r.price_per_m2).toFixed(2)} / m²`}
                           </TableCell>
                           <TableCell>{Number(r.vat_rate)}%</TableCell>
                           <TableCell className="text-right">
