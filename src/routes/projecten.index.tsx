@@ -16,7 +16,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Search, Trash2, Pencil } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Search, Trash2, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/projecten/")({
@@ -37,6 +39,33 @@ type Project = {
 
 type Customer = { id: string; name: string; customer_type: string };
 
+type VatType = "verlegd" | "laag" | "hoog";
+type Contact = { name: string; phone: string; email: string };
+
+const VAT_OPTIONS: { value: VatType; rate: number; label: string }[] = [
+  { value: "verlegd", rate: 0, label: "0% – BTW verlegd" },
+  { value: "laag", rate: 9, label: "9% – Laag (woning > 2 jaar)" },
+  { value: "hoog", rate: 21, label: "21% – Hoog (nieuwbouw)" },
+];
+
+const emptyNewCust = {
+  customer_type: "particulier" as "particulier" | "zakelijk",
+  name: "",
+  street: "",
+  house_number: "",
+  house_number_addition: "",
+  postal_code: "",
+  city: "",
+  country: "Nederland",
+  phone: "",
+  email: "",
+  email_invoice: "",
+  kvk_number: "",
+  vat_number: "",
+  default_vat_type: "hoog" as VatType,
+  notes: "",
+};
+
 function ProjectenPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -49,16 +78,8 @@ function ProjectenPage() {
   // wizard state
   const [mode, setMode] = useState<"existing" | "new">("existing");
   const [pickedCustomer, setPickedCustomer] = useState<string>("");
-  const [newCust, setNewCust] = useState({
-    name: "",
-    customer_type: "particulier",
-    email: "",
-    phone: "",
-    street: "",
-    house_number: "",
-    postal_code: "",
-    city: "",
-  });
+  const [newCust, setNewCust] = useState(emptyNewCust);
+  const [newContacts, setNewContacts] = useState<Contact[]>([]);
   const [title, setTitle] = useState("");
   const [reference, setReference] = useState("");
 
@@ -95,10 +116,8 @@ function ProjectenPage() {
   const resetWizard = () => {
     setMode("existing");
     setPickedCustomer("");
-    setNewCust({
-      name: "", customer_type: "particulier", email: "", phone: "",
-      street: "", house_number: "", postal_code: "", city: "",
-    });
+    setNewCust(emptyNewCust);
+    setNewContacts([]);
     setTitle("");
     setReference("");
   };
@@ -111,29 +130,50 @@ function ProjectenPage() {
       let customerId = pickedCustomer || null;
       if (mode === "new") {
         if (!newCust.name.trim()) {
-          toast.error("Klantnaam is verplicht");
+          toast.error(newCust.customer_type === "zakelijk" ? "Bedrijfsnaam is verplicht" : "Naam is verplicht");
           setCreating(false);
           return;
         }
+        const isZak = newCust.customer_type === "zakelijk";
+        const vatRate = VAT_OPTIONS.find((v) => v.value === newCust.default_vat_type)?.rate ?? 21;
         const { data: c, error: ce } = await supabase
           .from("customers")
           .insert({
             user_id: user.id,
-            name: newCust.name,
+            name: newCust.name.trim(),
             customer_type: newCust.customer_type,
             email: newCust.email || null,
+            email_invoice: isZak ? newCust.email_invoice || null : null,
             phone: newCust.phone || null,
             street: newCust.street || null,
             house_number: newCust.house_number || null,
+            house_number_addition: newCust.house_number_addition || null,
             postal_code: newCust.postal_code || null,
             city: newCust.city || null,
-            default_vat_type: newCust.customer_type === "zakelijk" ? "hoog" : "hoog",
-            default_vat_rate: 21,
+            country: newCust.country || null,
+            kvk_number: isZak ? newCust.kvk_number || null : null,
+            vat_number: isZak ? newCust.vat_number || null : null,
+            default_vat_type: newCust.default_vat_type,
+            default_vat_rate: vatRate,
+            notes: newCust.notes || null,
           })
           .select("id")
           .single();
         if (ce) throw ce;
         customerId = c.id;
+
+        if (isZak && newContacts.length) {
+          const rows = newContacts
+            .filter((ct) => ct.name.trim())
+            .map((ct) => ({
+              user_id: user.id,
+              customer_id: customerId,
+              name: ct.name.trim(),
+              phone: ct.phone || null,
+              email: ct.email || null,
+            }));
+          if (rows.length) await supabase.from("customer_contacts").insert(rows);
+        }
       } else if (!customerId) {
         toast.error("Selecteer een klant");
         setCreating(false);
