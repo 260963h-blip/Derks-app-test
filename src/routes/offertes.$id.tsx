@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 
@@ -54,6 +55,8 @@ type Room = {
   default_m2: number | null;
   pricing_type: "per_m2" | "fixed";
   fixed_price: number;
+  default_walls: number;
+  include_ceiling: boolean;
 };
 
 const fmt = (n: number) =>
@@ -98,6 +101,8 @@ function OfferteEditor() {
   const [empHours, setEmpHours] = useState<string>("1");
   const [pickRoom, setPickRoom] = useState<string>("");
   const [roomM2, setRoomM2] = useState<string>("");
+  const [roomWalls, setRoomWalls] = useState<string>("");
+  const [roomCeiling, setRoomCeiling] = useState<boolean>(false);
 
   const [saving, setSaving] = useState(false);
 
@@ -118,7 +123,7 @@ function OfferteEditor() {
       supabase.from("articles").select("id,name,price,vat_rate,unit,unit_label").eq("is_active", true).order("name"),
       supabase.from("employees").select("id,first_name,last_name,role").order("first_name"),
       supabase.from("employee_rates").select("id,employee_id,name,hourly_rate,is_default").order("sort_order"),
-      supabase.from("rooms").select("id,name,price_per_m2,vat_rate,default_m2,pricing_type,fixed_price").eq("is_active", true).order("sort_order").order("name"),
+      supabase.from("rooms").select("id,name,price_per_m2,vat_rate,default_m2,pricing_type,fixed_price,default_walls,include_ceiling").eq("is_active", true).order("sort_order").order("name"),
     ]);
     if (qe || !q) {
       toast.error("Offerte niet gevonden");
