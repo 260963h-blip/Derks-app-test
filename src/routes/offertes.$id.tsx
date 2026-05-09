@@ -462,8 +462,8 @@ function OfferteEditor() {
             r.onerror = rej;
             r.readAsDataURL(blob);
           });
-          const fmt = (blob.type.includes("png") ? "PNG" : "JPEG") as "PNG" | "JPEG";
-          doc.addImage(dataUrl, fmt, W - 55, y - 5, 40, 20, undefined, "FAST");
+          const imgFmt = (blob.type.includes("png") ? "PNG" : "JPEG") as "PNG" | "JPEG";
+          doc.addImage(dataUrl, imgFmt, W - 55, y - 5, 40, 20, undefined, "FAST");
         } catch {
           // logo niet geladen, ga door zonder
         }
