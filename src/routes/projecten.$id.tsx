@@ -123,6 +123,7 @@ function ProjectDossier() {
 
     let toEmail = "";
     let toName = "";
+    let custName = "";
     if (p.contact_id) {
       const { data: ct } = await supabase
         .from("customer_contacts")
@@ -140,6 +141,15 @@ function ProjectDossier() {
         .maybeSingle();
       toEmail = (cust?.email as string) ?? "";
       toName = (cust?.contact_person as string) || (cust?.name as string) || "";
+      custName = (cust?.name as string) || "";
+    }
+    if (!custName && p.customer_id) {
+      const { data: cust2 } = await supabase
+        .from("customers")
+        .select("name")
+        .eq("id", p.customer_id)
+        .maybeSingle();
+      custName = (cust2?.name as string) || "";
     }
     setSendTo(toEmail);
     setContactName(toName);
@@ -148,12 +158,15 @@ function ProjectDossier() {
       .from("quotes").select("quote_number").eq("project_id", id).maybeSingle();
     const qNum = (q2?.quote_number as string) ?? p.project_number;
     const cName = (comp as any)?.company_name ?? "";
-    const subjTpl = ((comp as any)?.quote_email_subject as string) ?? `Offerte ${qNum}`;
+    const subjTpl =
+      ((comp as any)?.quote_email_subject as string) ??
+      `Offerte {{quote_number}} - {{customer_name}}`;
     const bodyTpl = ((comp as any)?.quote_email_body as string) ?? "";
     const fill = (s: string) =>
       s
         .replaceAll("{{quote_number}}", qNum)
         .replaceAll("{{contact_name}}", toName || "klant")
+        .replaceAll("{{customer_name}}", custName || toName || "klant")
         .replaceAll("{{company_name}}", cName);
     setSendSubject(fill(subjTpl));
     setSendBody(fill(bodyTpl));
