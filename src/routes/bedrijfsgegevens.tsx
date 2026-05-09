@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { LogoUploadCard, ExtraImagesCard } from "@/components/company-images-card";
 
 export const Route = createFileRoute("/bedrijfsgegevens")({
   component: BedrijfsgegevensPage,
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/bedrijfsgegevens")({
 
 type Form = {
   company_name: string;
+  logo_url: string;
   address: string;
   postal_code: string;
   city: string;
@@ -48,6 +50,7 @@ type Form = {
 
 const empty: Form = {
   company_name: "",
+  logo_url: "",
   address: "",
   postal_code: "",
   city: "",
@@ -97,6 +100,7 @@ function BedrijfsgegevensPage() {
       } else if (data) {
         setForm({
           company_name: data.company_name ?? "",
+          logo_url: data.logo_url ?? "",
           address: data.address ?? "",
           postal_code: data.postal_code ?? "",
           city: data.city ?? "",
@@ -160,6 +164,7 @@ function BedrijfsgegevensPage() {
       default_quote_validity_days: Number(form.default_quote_validity_days) || 30,
       quote_footer: form.quote_footer || null,
       invoice_footer: form.invoice_footer || null,
+      logo_url: form.logo_url || null,
       owner_first_name: form.owner_first_name || null,
       owner_middle_name: form.owner_middle_name || null,
       owner_last_name: form.owner_last_name || null,
@@ -187,6 +192,7 @@ function BedrijfsgegevensPage() {
         <p className="text-muted-foreground">Laden...</p>
       ) : (
         <form onSubmit={handleSave} className="space-y-6">
+          <LogoUploadCard logoUrl={form.logo_url} onChange={(v) => set("logo_url", v)} />
           <Card>
             <CardContent className="grid gap-4 pt-6 sm:grid-cols-2">
               <Field label="Bedrijfsnaam *" v={form.company_name} on={(v) => set("company_name", v)} />
@@ -260,6 +266,7 @@ function BedrijfsgegevensPage() {
           </div>
         </form>
       )}
+      {!loading && <div className="mt-6"><ExtraImagesCard /></div>}
     </AppShell>
   );
 }
