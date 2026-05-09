@@ -906,6 +906,34 @@ function OfferteEditor() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Offertetekst</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Genereer een conceptbeschrijving op basis van de regels. Pas hem naar wens aan.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleGenerateText}
+                disabled={generatingText || lines.length === 0 || !selectedCustomer}
+              >
+                <Sparkles className="mr-1 h-4 w-4" />
+                {generatingText ? "Genereren..." : quoteText ? "Opnieuw genereren" : "Genereer tekst"}
+              </Button>
+            </div>
+            <Textarea
+              rows={10}
+              value={quoteText}
+              onChange={(e) => setQuoteText(e.target.value)}
+              placeholder="Klik op 'Genereer tekst' of typ hier zelf de offertetekst..."
+            />
+          </CardContent>
+        </Card>
+
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => navigate({ to: "/offertes" })}>Terug</Button>
           <Button variant="secondary" onClick={generatePdf} disabled={generatingPdf || !quoteText.trim()}>
