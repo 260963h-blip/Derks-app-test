@@ -202,6 +202,8 @@ export type Database = {
           owner_street: string | null
           phone: string | null
           postal_code: string | null
+          quote_email_body: string | null
+          quote_email_subject: string | null
           quote_footer: string | null
           quote_number_next: number
           quote_number_year: number
@@ -247,6 +249,8 @@ export type Database = {
           owner_street?: string | null
           phone?: string | null
           postal_code?: string | null
+          quote_email_body?: string | null
+          quote_email_subject?: string | null
           quote_footer?: string | null
           quote_number_next?: number
           quote_number_year?: number
@@ -292,6 +296,8 @@ export type Database = {
           owner_street?: string | null
           phone?: string | null
           postal_code?: string | null
+          quote_email_body?: string | null
+          quote_email_subject?: string | null
           quote_footer?: string | null
           quote_number_next?: number
           quote_number_year?: number
