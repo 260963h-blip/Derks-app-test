@@ -45,7 +45,15 @@ type Contact = { id: string; customer_id: string; name: string; email: string | 
 type Article = { id: string; name: string; price: number; vat_rate: number; unit: string | null; unit_label: string | null };
 type Employee = { id: string; first_name: string; last_name: string; role: string };
 type Rate = { id: string; employee_id: string; name: string; hourly_rate: number; is_default: boolean };
-type Room = { id: string; name: string; price_per_m2: number; vat_rate: number; default_m2: number | null };
+type Room = {
+  id: string;
+  name: string;
+  price_per_m2: number;
+  vat_rate: number;
+  default_m2: number | null;
+  pricing_type: "per_m2" | "fixed";
+  fixed_price: number;
+};
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n || 0);
@@ -90,7 +98,7 @@ function OfferteEditor() {
       supabase.from("articles").select("id,name,price,vat_rate,unit,unit_label").eq("is_active", true).order("name"),
       supabase.from("employees").select("id,first_name,last_name,role").order("first_name"),
       supabase.from("employee_rates").select("id,employee_id,name,hourly_rate,is_default").order("sort_order"),
-      supabase.from("rooms").select("id,name,price_per_m2,vat_rate,default_m2").eq("is_active", true).order("sort_order").order("name"),
+      supabase.from("rooms").select("id,name,price_per_m2,vat_rate,default_m2,pricing_type,fixed_price").eq("is_active", true).order("sort_order").order("name"),
     ]);
     if (qe || !q) {
       toast.error("Offerte niet gevonden");
@@ -212,22 +220,41 @@ function OfferteEditor() {
 
   const addRoomLine = () => {
     const r = rooms.find((x) => x.id === pickRoom);
-    const m2 = Number(roomM2) || 0;
-    if (!r || m2 <= 0) return;
-    setLines((prev) => [
-      ...prev,
-      {
-        id: `tmp-${crypto.randomUUID()}`,
-        line_type: "ruimte",
-        description: r.name,
-        quantity: m2,
-        unit: "m²",
-        unit_price: Number(r.price_per_m2),
-        vat_rate: Number(r.vat_rate),
-        line_total: m2 * Number(r.price_per_m2),
-        sort_order: prev.length,
-      },
-    ]);
+    if (!r) return;
+    if (r.pricing_type === "fixed") {
+      const price = Number(r.fixed_price);
+      setLines((prev) => [
+        ...prev,
+        {
+          id: `tmp-${crypto.randomUUID()}`,
+          line_type: "ruimte",
+          description: r.name,
+          quantity: 1,
+          unit: "stuk",
+          unit_price: price,
+          vat_rate: Number(r.vat_rate),
+          line_total: price,
+          sort_order: prev.length,
+        },
+      ]);
+    } else {
+      const m2 = Number(roomM2) || 0;
+      if (m2 <= 0) return;
+      setLines((prev) => [
+        ...prev,
+        {
+          id: `tmp-${crypto.randomUUID()}`,
+          line_type: "ruimte",
+          description: r.name,
+          quantity: m2,
+          unit: "m²",
+          unit_price: Number(r.price_per_m2),
+          vat_rate: Number(r.vat_rate),
+          line_total: m2 * Number(r.price_per_m2),
+          sort_order: prev.length,
+        },
+      ]);
+    }
     setPickRoom("");
     setRoomM2("");
   };
