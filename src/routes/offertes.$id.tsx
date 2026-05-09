@@ -444,6 +444,27 @@ function OfferteEditor() {
                 </div>
               </>
             )}
+            {selectedCustomer && (
+              <div className="sm:col-span-2 lg:col-span-4">
+                <Label className="text-xs">BTW-toepassing</Label>
+                <Select value={quote.vat_mode} onValueChange={onVatModeChange}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {selectedCustomer.customer_type === "zakelijk" ? (
+                      <>
+                        <SelectItem value="hoog">BTW hoog 21%</SelectItem>
+                        <SelectItem value="verlegd">BTW verlegd 0%</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="hoog">BTW hoog 21%</SelectItem>
+                        <SelectItem value="laag">BTW laag 9% (alleen op uren — materiaal/ruimten 21%)</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </CardContent>
         </Card>
 
