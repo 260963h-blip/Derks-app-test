@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -10,8 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, Plus, Save } from "lucide-react";
+import { Trash2, Plus, Save, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { generateQuoteText } from "@/lib/quote-text.functions";
 
 export const Route = createFileRoute("/offertes/$id")({
   component: OfferteEditor,
@@ -105,6 +107,8 @@ function OfferteEditor() {
   const [roomCeiling, setRoomCeiling] = useState<boolean>(false);
 
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const genQuoteText = useServerFn(generateQuoteText);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -383,6 +387,157 @@ function OfferteEditor() {
   };
 
   if (authLoading || !user || !quote) return null;
+
+  const generatePdf = async () => {
+    if (!quote || !selectedCustomer) {
+      toast.error("Selecteer eerst een klant");
+      return;
+    }
+    setGenerating(true);
+    try {
+      const [{ data: company }, { data: cust }, contactRes] = await Promise.all([
+        supabase.from("company_settings").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("customers").select("*").eq("id", quote.customer_id!).maybeSingle(),
+        quote.contact_id
+          ? supabase.from("customer_contacts").select("*").eq("id", quote.contact_id).maybeSingle()
+          : Promise.resolve({ data: null } as { data: null }),
+      ]);
+
+      const { text } = await genQuoteText({
+        data: {
+          customer_name: selectedCustomer.name,
+          customer_type: selectedCustomer.customer_type,
+          reference: quote.reference,
+          lines: lines.map((l) => ({
+            line_type: l.line_type,
+            description: l.description,
+            quantity: l.quantity,
+            unit: l.unit,
+          })),
+        },
+      });
+
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+      const W = 210;
+      let y = 15;
+
+      // Header — bedrijfsgegevens
+      doc.setFontSize(16).setFont("helvetica", "bold");
+      doc.text(company?.company_name ?? "Bedrijf", 15, y);
+      doc.setFontSize(9).setFont("helvetica", "normal");
+      const compLines = [
+        company?.address,
+        [company?.postal_code, company?.city].filter(Boolean).join(" "),
+        company?.country,
+        company?.phone ? `Tel: ${company.phone}` : null,
+        company?.email,
+        company?.website,
+        company?.kvk_number ? `KvK: ${company.kvk_number}` : null,
+        company?.vat_number ? `BTW: ${company.vat_number}` : null,
+        company?.iban ? `IBAN: ${company.iban}` : null,
+      ].filter(Boolean) as string[];
+      compLines.forEach((line, i) => doc.text(line, 15, y + 6 + i * 4));
+
+      // Klantblok rechts
+      doc.setFontSize(10).setFont("helvetica", "bold");
+      doc.text("Aan:", W - 80, y);
+      doc.setFont("helvetica", "normal").setFontSize(9);
+      const custLines = [
+        cust?.name,
+        contactRes.data?.name ? `T.a.v. ${contactRes.data.name}` : null,
+        [cust?.street, cust?.house_number, cust?.house_number_addition].filter(Boolean).join(" ") || cust?.address,
+        [cust?.postal_code, cust?.city].filter(Boolean).join(" "),
+        cust?.country,
+        cust?.customer_type === "zakelijk" && cust?.vat_number ? `BTW: ${cust.vat_number}` : null,
+        cust?.customer_type === "zakelijk" && cust?.kvk_number ? `KvK: ${cust.kvk_number}` : null,
+      ].filter(Boolean) as string[];
+      custLines.forEach((line, i) => doc.text(line, W - 80, y + 6 + i * 4));
+
+      y = Math.max(y + 6 + compLines.length * 4, y + 6 + custLines.length * 4) + 10;
+
+      // Titel + meta
+      doc.setFontSize(14).setFont("helvetica", "bold");
+      doc.text(`Offerte ${quote.quote_number}`, 15, y);
+      doc.setFontSize(9).setFont("helvetica", "normal");
+      doc.text(`Datum: ${quote.quote_date}`, W - 15, y, { align: "right" });
+      if (quote.valid_until) doc.text(`Geldig tot: ${quote.valid_until}`, W - 15, y + 5, { align: "right" });
+      if (quote.reference) doc.text(`Referentie: ${quote.reference}`, 15, y + 5);
+      y += 12;
+
+      // Gegenereerde tekst
+      const wrapped = doc.splitTextToSize(text, W - 30);
+      doc.setFontSize(10);
+      doc.text(wrapped, 15, y);
+      y += wrapped.length * 5 + 6;
+
+      // Regels tabel
+      autoTable(doc, {
+        startY: y,
+        head: [["Omschrijving", "Aantal", "Eenh.", "Prijs", "BTW%", "Totaal"]],
+        body: lines.map((l) => [
+          l.description,
+          String(l.quantity),
+          l.unit ?? "",
+          fmt(Number(l.unit_price)),
+          `${l.vat_rate}%`,
+          fmt(Number(l.quantity) * Number(l.unit_price)),
+        ]),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [40, 40, 40] },
+        columnStyles: {
+          1: { halign: "right" },
+          3: { halign: "right" },
+          4: { halign: "right" },
+          5: { halign: "right" },
+        },
+      });
+      // @ts-ignore lastAutoTable
+      y = (doc as any).lastAutoTable.finalY + 6;
+
+      // Totalen
+      const xLabel = W - 80;
+      const xVal = W - 15;
+      doc.setFontSize(10);
+      doc.text("Subtotaal", xLabel, y);
+      doc.text(fmt(totals.sub), xVal, y, { align: "right" });
+      y += 5;
+      if (quote.vat_mode === "verlegd") {
+        doc.text("BTW verlegd", xLabel, y);
+        doc.text("—", xVal, y, { align: "right" });
+        y += 5;
+      } else if (totals.vatBreakdown.length === 0) {
+        doc.text("BTW", xLabel, y);
+        doc.text(fmt(0), xVal, y, { align: "right" });
+        y += 5;
+      } else {
+        for (const b of totals.vatBreakdown) {
+          doc.text(`BTW ${b.rate}%`, xLabel, y);
+          doc.text(fmt(b.amount), xVal, y, { align: "right" });
+          y += 5;
+        }
+      }
+      doc.setFont("helvetica", "bold");
+      doc.text("Totaal", xLabel, y + 1);
+      doc.text(fmt(totals.total), xVal, y + 1, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      y += 10;
+
+      if (company?.quote_footer) {
+        const footer = doc.splitTextToSize(company.quote_footer, W - 30);
+        doc.setFontSize(8).setTextColor(100);
+        doc.text(footer, 15, 285);
+      }
+
+      doc.save(`Offerte-${quote.quote_number}.pdf`);
+      toast.success("Offerte PDF gegenereerd");
+    } catch (e: any) {
+      toast.error("Genereren mislukt: " + (e?.message ?? e));
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   return (
     <AppShell title={`Offerte ${quote.quote_number}`} subtitle="Stel de offerte samen" back>
@@ -725,6 +880,9 @@ function OfferteEditor() {
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => navigate({ to: "/offertes" })}>Terug</Button>
+          <Button variant="secondary" onClick={generatePdf} disabled={generating || lines.length === 0}>
+            <FileText className="mr-1 h-4 w-4" /> {generating ? "Genereren..." : "Genereer offerte (PDF)"}
+          </Button>
           <Button onClick={save} disabled={saving}>
             <Save className="mr-1 h-4 w-4" /> {saving ? "Opslaan..." : "Opslaan"}
           </Button>
