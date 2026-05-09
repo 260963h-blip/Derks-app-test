@@ -402,6 +402,15 @@ function OfferteEditor() {
     }
     setGeneratingText(true);
     try {
+      const { data: comp } = await supabase
+        .from("company_settings")
+        .select("company_name, owner_first_name, owner_middle_name, owner_last_name")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      const ownerName = [comp?.owner_first_name, comp?.owner_middle_name, comp?.owner_last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
       const { text } = await genQuoteText({
         data: {
           customer_name: selectedCustomer.name,
@@ -413,6 +422,8 @@ function OfferteEditor() {
             quantity: l.quantity,
             unit: l.unit,
           })),
+          company_name: comp?.company_name ?? null,
+          owner_name: ownerName || null,
         },
       });
       setQuoteText(text);
