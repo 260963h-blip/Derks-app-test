@@ -22,10 +22,13 @@ export const generateQuoteText = createServerFn({ method: "POST" })
       .map((l) => `- [${l.line_type}] ${l.description} (${l.quantity} ${l.unit ?? ""})`)
       .join("\n");
 
-    const prompt = `Je bent een professionele schilder/stukadoor die een offerte schrijft in het Nederlands.
+    const prompt = `Je bent een professionele stukadoor die een offerte schrijft in het Nederlands.
+Het bedrijf voert UITSLUITEND stucwerk uit. Geen schilderwerk, geen sauswerk, geen behang, geen tegelwerk, geen andere disciplines.
 Schrijf een korte, professionele inleidende offertetekst (max ~150 woorden) gericht aan de klant.
-Beschrijf duidelijk welke werkzaamheden worden uitgevoerd op basis van onderstaande regels.
-Vat ruimtes samen (bv. "Toilet en keuken: beide 4 wanden en plafond schilderen").
+Beschrijf duidelijk welke stucwerkzaamheden worden uitgevoerd op basis van onderstaande regels.
+Vat ruimtes samen (bv. "Toilet en keuken: beide 4 wanden en plafond stucen").
+Gebruik uitsluitend stucwerk-terminologie (bv. stucen, pleisteren, uitvlakken, glad afwerken, sausklaar opleveren).
+Noem nooit schilderen, sauzen, behangen of andere niet-stucwerk werkzaamheden, ook niet als de regelteksten dat lijken te suggereren.
 Noem geen prijzen. Gebruik een vriendelijke, zakelijke toon. Sluit af met een uitnodiging tot akkoord.
 
 Klant: ${data.customer_name} (${data.customer_type})
@@ -42,7 +45,7 @@ ${summary}`;
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "Je schrijft duidelijke Nederlandse offerteteksten." },
+          { role: "system", content: "Je schrijft duidelijke Nederlandse offerteteksten voor een stukadoorsbedrijf dat uitsluitend stucwerk uitvoert. Vermeld nooit schilderwerk, sauswerk, behang of andere disciplines." },
           { role: "user", content: prompt },
         ],
       }),
