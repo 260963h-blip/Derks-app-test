@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { Upload, Trash2, ImagePlus } from "lucide-react";
 
 export const Route = createFileRoute("/bedrijfsgegevens")({
   component: BedrijfsgegevensPage,
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/bedrijfsgegevens")({
 
 type Form = {
   company_name: string;
+  logo_url: string;
   address: string;
   postal_code: string;
   city: string;
@@ -48,6 +50,7 @@ type Form = {
 
 const empty: Form = {
   company_name: "",
+  logo_url: "",
   address: "",
   postal_code: "",
   city: "",
