@@ -11,7 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, Plus, Save, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Trash2, Plus, Save, FileText, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { generateQuoteText } from "@/lib/quote-text.functions";
 
@@ -107,7 +108,9 @@ function OfferteEditor() {
   const [roomCeiling, setRoomCeiling] = useState<boolean>(false);
 
   const [saving, setSaving] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const [generatingText, setGeneratingText] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [quoteText, setQuoteText] = useState("");
   const genQuoteText = useServerFn(generateQuoteText);
 
   useEffect(() => {
@@ -388,21 +391,17 @@ function OfferteEditor() {
 
   if (authLoading || !user || !quote) return null;
 
-  const generatePdf = async () => {
+  const handleGenerateText = async () => {
     if (!quote || !selectedCustomer) {
       toast.error("Selecteer eerst een klant");
       return;
     }
-    setGenerating(true);
+    if (lines.length === 0) {
+      toast.error("Voeg eerst regels toe");
+      return;
+    }
+    setGeneratingText(true);
     try {
-      const [{ data: company }, { data: cust }, contactRes] = await Promise.all([
-        supabase.from("company_settings").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("customers").select("*").eq("id", quote.customer_id!).maybeSingle(),
-        quote.contact_id
-          ? supabase.from("customer_contacts").select("*").eq("id", quote.contact_id).maybeSingle()
-          : Promise.resolve({ data: null } as { data: null }),
-      ]);
-
       const { text } = await genQuoteText({
         data: {
           customer_name: selectedCustomer.name,
@@ -416,6 +415,35 @@ function OfferteEditor() {
           })),
         },
       });
+      setQuoteText(text);
+      toast.success("Tekst gegenereerd — pas aan en klik 'Genereer offerte definitief'");
+    } catch (e: any) {
+      toast.error("Genereren mislukt: " + (e?.message ?? e));
+    } finally {
+      setGeneratingText(false);
+    }
+  };
+
+  const generatePdf = async () => {
+    if (!quote || !selectedCustomer) {
+      toast.error("Selecteer eerst een klant");
+      return;
+    }
+    if (!quoteText.trim()) {
+      toast.error("Genereer of typ eerst de offertetekst");
+      return;
+    }
+    setGeneratingPdf(true);
+    try {
+      const [{ data: company }, { data: cust }, contactRes] = await Promise.all([
+        supabase.from("company_settings").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("customers").select("*").eq("id", quote.customer_id!).maybeSingle(),
+        quote.contact_id
+          ? supabase.from("customer_contacts").select("*").eq("id", quote.contact_id).maybeSingle()
+          : Promise.resolve({ data: null } as { data: null }),
+      ]);
+
+      const text = quoteText;
 
       const { jsPDF } = await import("jspdf");
       const autoTable = (await import("jspdf-autotable")).default;
@@ -535,7 +563,7 @@ function OfferteEditor() {
     } catch (e: any) {
       toast.error("Genereren mislukt: " + (e?.message ?? e));
     } finally {
-      setGenerating(false);
+      setGeneratingPdf(false);
     }
   };
 
@@ -880,8 +908,8 @@ function OfferteEditor() {
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => navigate({ to: "/offertes" })}>Terug</Button>
-          <Button variant="secondary" onClick={generatePdf} disabled={generating || lines.length === 0}>
-            <FileText className="mr-1 h-4 w-4" /> {generating ? "Genereren..." : "Genereer offerte (PDF)"}
+          <Button variant="secondary" onClick={generatePdf} disabled={generatingPdf || !quoteText.trim()}>
+            <FileText className="mr-1 h-4 w-4" /> {generatingPdf ? "Genereren..." : "Genereer offerte definitief"}
           </Button>
           <Button onClick={save} disabled={saving}>
             <Save className="mr-1 h-4 w-4" /> {saving ? "Opslaan..." : "Opslaan"}
