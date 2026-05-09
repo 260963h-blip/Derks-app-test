@@ -92,6 +92,8 @@ type Room = {
   price_per_m2: number;
   vat_rate: number;
   is_active: boolean;
+  pricing_type: "per_m2" | "fixed";
+  fixed_price: number;
 };
 
 type CategoryRow = { id: string; scope: "materiaal" | "werkzaamheid"; name: string };
@@ -132,6 +134,8 @@ const emptyRoom = () => ({
   price_per_m2: 0,
   vat_rate: 9,
   is_active: true,
+  pricing_type: "per_m2" as "per_m2" | "fixed",
+  fixed_price: 0,
 });
 
 function ArtikelenPage() {
@@ -292,6 +296,8 @@ function ArtikelenPage() {
       price_per_m2: Number(r.price_per_m2),
       vat_rate: Number(r.vat_rate),
       is_active: r.is_active,
+      pricing_type: (r.pricing_type ?? "per_m2") as "per_m2" | "fixed",
+      fixed_price: Number(r.fixed_price ?? 0),
     });
     setRoomDialog(true);
   };
@@ -310,6 +316,8 @@ function ArtikelenPage() {
       price_per_m2: Number(roomForm.price_per_m2) || 0,
       vat_rate: Number(roomForm.vat_rate),
       is_active: roomForm.is_active,
+      pricing_type: roomForm.pricing_type,
+      fixed_price: Number(roomForm.fixed_price) || 0,
     };
     const res = roomEditing
       ? await supabase.from("rooms").update(payload).eq("id", roomEditing.id)
@@ -453,10 +461,11 @@ function ArtikelenPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Naam</TableHead>
-                        <TableHead className="text-right">Standaard wanden</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Wanden</TableHead>
                         <TableHead>Plafond</TableHead>
-                        <TableHead className="text-right">Standaard m²</TableHead>
-                        <TableHead className="text-right">Prijs / m²</TableHead>
+                        <TableHead className="text-right">m²</TableHead>
+                        <TableHead className="text-right">Prijs</TableHead>
                         <TableHead>BTW</TableHead>
                         <TableHead className="w-[100px]" />
                       </TableRow>
@@ -472,13 +481,22 @@ function ArtikelenPage() {
                               </Badge>
                             )}
                           </TableCell>
+                          <TableCell>
+                            {r.pricing_type === "fixed" ? "Vast" : "Per m²"}
+                          </TableCell>
                           <TableCell className="text-right">{r.default_walls}</TableCell>
                           <TableCell>{r.include_ceiling ? "Ja" : "Nee"}</TableCell>
                           <TableCell className="text-right">
-                            {r.default_m2 !== null ? Number(r.default_m2).toFixed(2) : "—"}
+                            {r.pricing_type === "fixed"
+                              ? "—"
+                              : r.default_m2 !== null
+                                ? Number(r.default_m2).toFixed(2)
+                                : "—"}
                           </TableCell>
                           <TableCell className="text-right">
-                            € {Number(r.price_per_m2).toFixed(2)}
+                            {r.pricing_type === "fixed"
+                              ? `€ ${Number(r.fixed_price).toFixed(2)}`
+                              : `€ ${Number(r.price_per_m2).toFixed(2)} / m²`}
                           </TableCell>
                           <TableCell>{Number(r.vat_rate)}%</TableCell>
                           <TableCell className="text-right">
@@ -650,6 +668,26 @@ function ArtikelenPage() {
                 placeholder="bv. Keuken, Woonkamer, Slaapkamer"
               />
             </div>
+            <div>
+              <Label>Prijstype</Label>
+              <Select
+                value={roomForm.pricing_type}
+                onValueChange={(v) =>
+                  setRoomForm({ ...roomForm, pricing_type: v as "per_m2" | "fixed" })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="per_m2">Per m²</SelectItem>
+                  <SelectItem value="fixed">Vast bedrag</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Kies "Vast bedrag" voor ruimten zoals een toilet met een vaste prijs.
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Standaard aantal wanden</Label>
@@ -662,21 +700,23 @@ function ArtikelenPage() {
                   }
                 />
               </div>
-              <div>
-                <Label>Standaard vierkante meters</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={roomForm.default_m2 ?? ""}
-                  onChange={(e) =>
-                    setRoomForm({
-                      ...roomForm,
-                      default_m2: e.target.value === "" ? null : Number(e.target.value),
-                    })
-                  }
-                  placeholder="optioneel"
-                />
-              </div>
+              {roomForm.pricing_type === "per_m2" && (
+                <div>
+                  <Label>Standaard vierkante meters</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={roomForm.default_m2 ?? ""}
+                    onChange={(e) =>
+                      setRoomForm({
+                        ...roomForm,
+                        default_m2: e.target.value === "" ? null : Number(e.target.value),
+                      })
+                    }
+                    placeholder="optioneel"
+                  />
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-between rounded-md border p-3">
               <div>
@@ -691,17 +731,32 @@ function ArtikelenPage() {
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Prijs per m² (€)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={roomForm.price_per_m2}
-                  onChange={(e) =>
-                    setRoomForm({ ...roomForm, price_per_m2: Number(e.target.value) })
-                  }
-                />
-              </div>
+              {roomForm.pricing_type === "per_m2" ? (
+                <div>
+                  <Label>Prijs per m² (€)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={roomForm.price_per_m2}
+                    onChange={(e) =>
+                      setRoomForm({ ...roomForm, price_per_m2: Number(e.target.value) })
+                    }
+                  />
+                </div>
+              ) : (
+                <div>
+                  <Label>Vast bedrag (€)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={roomForm.fixed_price}
+                    onChange={(e) =>
+                      setRoomForm({ ...roomForm, fixed_price: Number(e.target.value) })
+                    }
+                    placeholder="bv. 275.00"
+                  />
+                </div>
+              )}
               <div>
                 <Label>BTW (%)</Label>
                 <Select

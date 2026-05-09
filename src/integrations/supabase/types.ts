@@ -760,11 +760,13 @@ export type Database = {
           created_at: string
           default_m2: number | null
           default_walls: number
+          fixed_price: number
           id: string
           include_ceiling: boolean
           is_active: boolean
           name: string
           price_per_m2: number
+          pricing_type: string
           sort_order: number
           updated_at: string
           user_id: string
@@ -774,11 +776,13 @@ export type Database = {
           created_at?: string
           default_m2?: number | null
           default_walls?: number
+          fixed_price?: number
           id?: string
           include_ceiling?: boolean
           is_active?: boolean
           name: string
           price_per_m2?: number
+          pricing_type?: string
           sort_order?: number
           updated_at?: string
           user_id: string
@@ -788,11 +792,13 @@ export type Database = {
           created_at?: string
           default_m2?: number | null
           default_walls?: number
+          fixed_price?: number
           id?: string
           include_ceiling?: boolean
           is_active?: boolean
           name?: string
           price_per_m2?: number
+          pricing_type?: string
           sort_order?: number
           updated_at?: string
           user_id?: string
