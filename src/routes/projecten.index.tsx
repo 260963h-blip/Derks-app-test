@@ -41,6 +41,7 @@ type Customer = { id: string; name: string; customer_type: string };
 
 type VatType = "verlegd" | "laag" | "hoog";
 type Contact = { name: string; phone: string; email: string };
+type ExistingContact = { id: string; name: string; phone: string | null; email: string | null };
 
 const VAT_OPTIONS: { value: VatType; rate: number; label: string }[] = [
   { value: "verlegd", rate: 0, label: "0% – BTW verlegd" },
@@ -91,6 +92,28 @@ function ProjectenPage() {
   const [newContacts, setNewContacts] = useState<Contact[]>([]);
   const [title, setTitle] = useState("");
   const [reference, setReference] = useState("");
+  // contactpersonen voor bestaande zakelijke klant
+  const [existingContacts, setExistingContacts] = useState<ExistingContact[]>([]);
+  const [pickedContactId, setPickedContactId] = useState<string>("");
+  const [extraContacts, setExtraContacts] = useState<Contact[]>([]);
+
+  const pickedCustomerObj = customers.find((c) => c.id === pickedCustomer);
+  const pickedIsZakelijk = pickedCustomerObj?.customer_type === "zakelijk";
+
+  useEffect(() => {
+    setPickedContactId("");
+    setExtraContacts([]);
+    setExistingContacts([]);
+    if (!pickedCustomer || !pickedIsZakelijk) return;
+    (async () => {
+      const { data } = await supabase
+        .from("customer_contacts")
+        .select("id,name,phone,email")
+        .eq("customer_id", pickedCustomer)
+        .order("created_at", { ascending: true });
+      setExistingContacts((data ?? []) as ExistingContact[]);
+    })();
+  }, [pickedCustomer, pickedIsZakelijk]);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -129,6 +152,9 @@ function ProjectenPage() {
     setNewContacts([]);
     setTitle("");
     setReference("");
+    setPickedContactId("");
+    setExtraContacts([]);
+    setExistingContacts([]);
   };
 
   const createProject = async () => {
@@ -190,6 +216,30 @@ function ProjectenPage() {
         return;
       }
 
+      // Extra contactpersonen toevoegen voor bestaande zakelijke klant
+      let contactIdForProject: string | null = null;
+      if (mode === "existing" && customerId && pickedIsZakelijk) {
+        const toInsert = extraContacts
+          .filter((ct) => ct.name.trim())
+          .map((ct) => ({
+            user_id: user.id,
+            customer_id: customerId as string,
+            name: ct.name.trim(),
+            phone: ct.phone || null,
+            email: ct.email || null,
+          }));
+        let insertedIds: string[] = [];
+        if (toInsert.length) {
+          const { data: ins, error: ie } = await supabase
+            .from("customer_contacts")
+            .insert(toInsert)
+            .select("id");
+          if (ie) throw ie;
+          insertedIds = (ins ?? []).map((r: any) => r.id);
+        }
+        contactIdForProject = pickedContactId || insertedIds[0] || null;
+      }
+
       // 2) Nummer ophalen
       const { data: cs } = await supabase
         .from("company_settings")
@@ -211,6 +261,7 @@ function ProjectenPage() {
           project_number: number,
           title: title || number,
           customer_id: customerId,
+          contact_id: contactIdForProject,
           reference: reference || null,
           status: "nieuw",
         })
@@ -224,6 +275,7 @@ function ProjectenPage() {
         project_id: p.id,
         quote_number: number,
         customer_id: customerId,
+        contact_id: contactIdForProject,
         reference: reference || null,
         quote_date: new Date().toISOString().slice(0, 10),
         valid_until: validUntil.toISOString().slice(0, 10),
@@ -301,6 +353,74 @@ function ProjectenPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {pickedCustomer && pickedIsZakelijk && (
+                  <div className="space-y-3 rounded-md border p-3">
+                    <div>
+                      <Label className="text-xs">Contactpersoon voor dit project</Label>
+                      {existingContacts.length === 0 ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Nog geen contactpersonen bij deze klant. Voeg er hieronder een toe.
+                        </p>
+                      ) : (
+                        <Select value={pickedContactId || undefined} onValueChange={setPickedContactId}>
+                          <SelectTrigger><SelectValue placeholder="Kies contactpersoon (optioneel)" /></SelectTrigger>
+                          <SelectContent>
+                            {existingContacts.map((ct) => (
+                              <SelectItem key={ct.id} value={ct.id}>
+                                {ct.name}{ct.email ? ` · ${ct.email}` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">Nieuwe contactpersoon toevoegen</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setExtraContacts([...extraContacts, { name: "", phone: "", email: "" }])}
+                        >
+                          <Plus className="mr-1 h-4 w-4" /> Toevoegen
+                        </Button>
+                      </div>
+                      {extraContacts.map((c, i) => (
+                        <div key={i} className="grid grid-cols-12 items-end gap-2">
+                          <div className="col-span-12 sm:col-span-4">
+                            <Label className="text-xs">Naam</Label>
+                            <Input value={c.name} onChange={(e) => {
+                              const n = [...extraContacts]; n[i] = { ...n[i], name: e.target.value }; setExtraContacts(n);
+                            }} />
+                          </div>
+                          <div className="col-span-6 sm:col-span-3">
+                            <Label className="text-xs">GSM</Label>
+                            <Input value={c.phone} onChange={(e) => {
+                              const n = [...extraContacts]; n[i] = { ...n[i], phone: e.target.value }; setExtraContacts(n);
+                            }} />
+                          </div>
+                          <div className="col-span-6 sm:col-span-4">
+                            <Label className="text-xs">E-mail</Label>
+                            <Input type="email" value={c.email} onChange={(e) => {
+                              const n = [...extraContacts]; n[i] = { ...n[i], email: e.target.value }; setExtraContacts(n);
+                            }} />
+                          </div>
+                          <div className="col-span-12 sm:col-span-1">
+                            <Button type="button" variant="ghost" size="icon" onClick={() => {
+                              const n = [...extraContacts]; n.splice(i, 1); setExtraContacts(n);
+                            }}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      <p className="text-xs text-muted-foreground">
+                        Nieuwe contactpersonen worden direct opgeslagen bij de klant.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
               <TabsContent value="new" className="space-y-4 pt-3">
                 <div className="space-y-2">
