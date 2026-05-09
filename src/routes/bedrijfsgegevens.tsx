@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { LogoUploadCard, ExtraImagesCard } from "@/components/company-images-card";
+import { HeaderFooterCard } from "@/components/header-footer-card";
 
 export const Route = createFileRoute("/bedrijfsgegevens")({
   component: BedrijfsgegevensPage,
@@ -34,6 +35,10 @@ type Form = {
   default_quote_validity_days: string;
   quote_footer: string;
   invoice_footer: string;
+  header_text: string;
+  header_image_url: string;
+  footer_text: string;
+  footer_image_url: string;
   owner_first_name: string;
   owner_middle_name: string;
   owner_last_name: string;
@@ -67,6 +72,10 @@ const empty: Form = {
   default_quote_validity_days: "30",
   quote_footer: "",
   invoice_footer: "",
+  header_text: "",
+  header_image_url: "",
+  footer_text: "",
+  footer_image_url: "",
   owner_first_name: "",
   owner_middle_name: "",
   owner_last_name: "",
@@ -117,6 +126,10 @@ function BedrijfsgegevensPage() {
           default_quote_validity_days: String(data.default_quote_validity_days ?? 30),
           quote_footer: data.quote_footer ?? "",
           invoice_footer: data.invoice_footer ?? "",
+          header_text: (data as any).header_text ?? "",
+          header_image_url: (data as any).header_image_url ?? "",
+          footer_text: (data as any).footer_text ?? "",
+          footer_image_url: (data as any).footer_image_url ?? "",
           owner_first_name: data.owner_first_name ?? "",
           owner_middle_name: data.owner_middle_name ?? "",
           owner_last_name: data.owner_last_name ?? "",
@@ -164,6 +177,10 @@ function BedrijfsgegevensPage() {
       default_quote_validity_days: Number(form.default_quote_validity_days) || 30,
       quote_footer: form.quote_footer || null,
       invoice_footer: form.invoice_footer || null,
+      header_text: form.header_text || null,
+      header_image_url: form.header_image_url || null,
+      footer_text: form.footer_text || null,
+      footer_image_url: form.footer_image_url || null,
       logo_url: form.logo_url || null,
       owner_first_name: form.owner_first_name || null,
       owner_middle_name: form.owner_middle_name || null,
@@ -246,18 +263,24 @@ function BedrijfsgegevensPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="grid gap-4 pt-6">
-              <div className="space-y-2">
-                <Label>Voettekst offerte</Label>
-                <Textarea rows={3} value={form.quote_footer} onChange={(e) => set("quote_footer", e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Voettekst factuur</Label>
-                <Textarea rows={3} value={form.invoice_footer} onChange={(e) => set("invoice_footer", e.target.value)} />
-              </div>
-            </CardContent>
-          </Card>
+          <HeaderFooterCard
+            title="Koptekst"
+            description="Wordt bovenaan offertes en facturen geplaatst."
+            text={form.header_text}
+            imageUrl={form.header_image_url}
+            logoUrl={form.logo_url}
+            onTextChange={(v) => set("header_text", v)}
+            onImageChange={(v) => set("header_image_url", v)}
+          />
+          <HeaderFooterCard
+            title="Voettekst"
+            description="Wordt onderaan offertes en facturen geplaatst."
+            text={form.footer_text}
+            imageUrl={form.footer_image_url}
+            logoUrl={form.logo_url}
+            onTextChange={(v) => set("footer_text", v)}
+            onImageChange={(v) => set("footer_image_url", v)}
+          />
 
           <div className="flex justify-end">
             <Button type="submit" disabled={saving}>

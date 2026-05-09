@@ -176,6 +176,10 @@ export type Database = {
           default_quote_validity_days: number
           default_vat_rate: number
           email: string | null
+          footer_image_url: string | null
+          footer_text: string | null
+          header_image_url: string | null
+          header_text: string | null
           iban: string | null
           id: string
           invoice_footer: string | null
@@ -216,6 +220,10 @@ export type Database = {
           default_quote_validity_days?: number
           default_vat_rate?: number
           email?: string | null
+          footer_image_url?: string | null
+          footer_text?: string | null
+          header_image_url?: string | null
+          header_text?: string | null
           iban?: string | null
           id?: string
           invoice_footer?: string | null
@@ -256,6 +264,10 @@ export type Database = {
           default_quote_validity_days?: number
           default_vat_rate?: number
           email?: string | null
+          footer_image_url?: string | null
+          footer_text?: string | null
+          header_image_url?: string | null
+          header_text?: string | null
           iban?: string | null
           id?: string
           invoice_footer?: string | null
