@@ -588,7 +588,7 @@ function ProjectDossier() {
             <CardHeader><CardTitle className="text-base">Offerte</CardTitle></CardHeader>
             <CardContent>
               {quote ? (
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <p className="font-mono text-lg">{quote.quote_number}</p>
                     <p className="text-sm text-muted-foreground">
@@ -596,9 +596,16 @@ function ProjectDossier() {
                       Totaal: <span className="font-medium">{fmt(Number(quote.total))}</span>
                     </p>
                   </div>
-                  <Button onClick={() => navigate({ to: "/offertes/$id", params: { id: quote.id } })}>
-                    <Pencil className="mr-1 h-4 w-4" /> Offerte bewerken
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    {quote.status !== "akkoord" && (
+                      <Button variant="outline" onClick={markeerAkkoord}>
+                        <CheckCircle2 className="mr-1 h-4 w-4" /> Markeer als akkoord
+                      </Button>
+                    )}
+                    <Button onClick={() => navigate({ to: "/offertes/$id", params: { id: quote.id } })}>
+                      <Pencil className="mr-1 h-4 w-4" /> Offerte bewerken
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">Geen offerte gekoppeld.</p>
