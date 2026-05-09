@@ -531,17 +531,18 @@ function OfferteEditor() {
       if (quote.valid_until) doc.text(`Geldig tot: ${quote.valid_until}`, W - 15, y + 5, { align: "right" });
       if (quote.reference) doc.text(`Referentie: ${quote.reference}`, 15, y + 5);
       y += 10;
-      // Blauwe scheidingslijn onder referentie/geldigheidsduur
-      doc.setDrawColor(37, 99, 235);
-      doc.setLineWidth(0.4);
+      // Donkerblauwe scheidingslijn onder referentie/geldigheidsduur
+      doc.setDrawColor(10, 36, 99);
+      doc.setLineWidth(0.5);
       doc.line(15, y, W - 15, y);
       doc.setDrawColor(0);
       y += 5;
 
-      // Gegenereerde tekst
-      const wrapped = doc.splitTextToSize(text, W - 30);
+      // Gegenereerde tekst — strikt binnen de marges van 15 mm
       doc.setFontSize(10);
-      doc.text(wrapped, 15, y);
+      const maxTextWidth = W - 30; // 210 - 2*15 = 180 mm
+      const wrapped = doc.splitTextToSize(text, maxTextWidth);
+      doc.text(wrapped, 15, y, { maxWidth: maxTextWidth });
       y += wrapped.length * 5 + 6;
 
       // Totalen (zonder regeloverzicht)
