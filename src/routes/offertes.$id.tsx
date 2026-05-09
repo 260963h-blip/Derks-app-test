@@ -457,7 +457,7 @@ function OfferteEditor() {
       const text = quoteText;
 
       const { jsPDF } = await import("jspdf");
-      const autoTable = (await import("jspdf-autotable")).default;
+      // jspdf-autotable niet meer nodig: regeloverzicht is verwijderd uit PDF
       const doc = new jsPDF({ unit: "mm", format: "a4" });
       const W = 210;
       let y = 15;
