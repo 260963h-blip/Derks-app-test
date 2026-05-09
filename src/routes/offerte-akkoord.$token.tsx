@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { getQuoteByToken, approveQuoteByToken } from "@/lib/offerte-akkoord.functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -24,39 +25,34 @@ function OfferteAkkoordPage() {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fetchQuote = useServerFn(getQuoteByToken);
+  const doApprove = useServerFn(approveQuoteByToken);
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase
-        .from("quotes")
-        .select("id,quote_number,status,total,approved_at,project_id")
-        .eq("approval_token", token)
-        .maybeSingle();
-      if (error || !data) setError("Deze akkoordlink is niet (meer) geldig.");
-      else setQuote(data as Quote);
-      setLoading(false);
+      try {
+        const data = await fetchQuote({ data: { token } });
+        if (!data) setError("Deze akkoordlink is niet (meer) geldig.");
+        else setQuote(data as Quote);
+      } catch (e: any) {
+        setError("Deze akkoordlink is niet (meer) geldig.");
+      } finally {
+        setLoading(false);
+      }
     })();
-  }, [token]);
+  }, [token, fetchQuote]);
 
   const approve = async () => {
     if (!quote) return;
     setSubmitting(true);
-    const now = new Date().toISOString();
-    const { error: qe } = await supabase
-      .from("quotes")
-      .update({ status: "akkoord", approved_at: now })
-      .eq("approval_token", token)
-      .is("approved_at", null);
-    if (qe) {
-      setError("Akkoord geven mislukt: " + qe.message);
+    try {
+      const res = await doApprove({ data: { token } });
+      setQuote({ ...quote, status: "akkoord", approved_at: res.approved_at });
+    } catch (e: any) {
+      setError("Akkoord geven mislukt: " + (e?.message ?? "onbekende fout"));
+    } finally {
       setSubmitting(false);
-      return;
     }
-    if (quote.project_id) {
-      await supabase.from("projects").update({ status: "akkoord" }).eq("id", quote.project_id);
-    }
-    setQuote({ ...quote, status: "akkoord", approved_at: now });
-    setSubmitting(false);
   };
 
   const fmt = (n: number) =>
