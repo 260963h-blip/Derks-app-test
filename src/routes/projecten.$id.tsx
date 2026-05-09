@@ -245,9 +245,8 @@ function ProjectDossier() {
           token = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
           await supabase.from("quotes").update({ approval_token: token }).eq("id", q2.id);
         }
-        // Gebruik de stabiele publieke URL van de gepubliceerde app, zodat de
-        // klant de link zonder login kan openen. Preview-URL's vereisen login.
-        const publicBase = "https://project--e4992d85-d4c7-4d9d-8b92-2b576b28432f.lovable.app";
+        // Gebruik de gepubliceerde URL zodat de klant de link zonder login kan openen.
+        const publicBase = "https://klus-kameraad.lovable.app";
         approvalUrl = `${publicBase}/offerte-akkoord/${token}`;
       }
 
