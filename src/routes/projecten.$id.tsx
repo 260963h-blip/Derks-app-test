@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Save, Pencil, Trash2 } from "lucide-react";
+import { FileText, Download, Save, Pencil, Trash2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
 import { sendTransactionalEmail } from "@/lib/email/send";
@@ -289,6 +289,20 @@ function ProjectDossier() {
     } finally {
       setSending(false);
     }
+  };
+
+  const markeerAkkoord = async () => {
+    if (!project || !quote) return;
+    if (!confirm("Offerte handmatig op 'Akkoord' zetten?")) return;
+    const now = new Date().toISOString();
+    const { error: qe } = await supabase
+      .from("quotes")
+      .update({ status: "akkoord", approved_at: now })
+      .eq("id", quote.id);
+    if (qe) return toast.error("Bijwerken mislukt: " + qe.message);
+    await supabase.from("projects").update({ status: "akkoord" }).eq("id", project.id);
+    toast.success("Offerte gemarkeerd als akkoord");
+    load();
   };
 
   const generateWerkorderPdf = async () => {
