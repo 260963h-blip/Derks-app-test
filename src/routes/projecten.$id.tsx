@@ -441,6 +441,59 @@ function ProjectDossier() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="werkorder">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Werkorder</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {!akkoordOrLater ? (
+                <p className="text-sm text-muted-foreground">
+                  Werkorder kan worden aangemaakt zodra de project­status op <strong>Akkoord</strong> staat.
+                </p>
+              ) : (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label className="text-xs">Project- / offertenummer</Label>
+                      <Input value={project.project_number} readOnly className="font-mono" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Datum</Label>
+                      <Input value={new Date().toLocaleDateString("nl-NL")} readOnly />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Uitgevoerde werkzaamheden</Label>
+                    <Textarea
+                      rows={6}
+                      value={woWerkzaamheden}
+                      onChange={(e) => setWoWerkzaamheden(e.target.value)}
+                      placeholder="Beschrijf wat er is uitgevoerd..."
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Naam ondertekenaar (klant)</Label>
+                    <Input
+                      value={woSignerName}
+                      onChange={(e) => setWoSignerName(e.target.value)}
+                      placeholder="Naam klant"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Handtekening klant</Label>
+                    <SignaturePad ref={sigRef} />
+                  </div>
+                  <div className="flex justify-end">
+                    <Button onClick={generateWerkorderPdf} disabled={woSaving}>
+                      <Save className="mr-1 h-4 w-4" />
+                      {woSaving ? "Opslaan..." : "Werkorder opslaan & afronden"}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="documents">
           <Card>
             <CardHeader><CardTitle className="text-base">Documenten</CardTitle></CardHeader>
