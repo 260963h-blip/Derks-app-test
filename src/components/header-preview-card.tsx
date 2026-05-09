@@ -22,7 +22,7 @@ export function HeaderPreviewCard({
   phone: string;
 }) {
   const Row = ({ label, value }: { label: string; value: string }) => (
-    <div className="flex justify-end gap-2 text-sm leading-tight">
+    <div className="flex justify-end gap-2 text-[11px] leading-tight">
       <span className="font-medium">{label}:</span>
       <span>{value || "-"}</span>
     </div>
@@ -39,8 +39,8 @@ export function HeaderPreviewCard({
         </div>
 
         <div className="rounded-md border p-4">
-          <div className="flex items-stretch justify-between gap-4">
-            <div className="flex w-40 items-center justify-start">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex h-32 w-40 items-center justify-start">
               {logoUrl ? (
                 <img src={logoUrl} alt="Logo" className="max-h-32 max-w-full object-contain" />
               ) : (
@@ -49,10 +49,10 @@ export function HeaderPreviewCard({
                 </div>
               )}
             </div>
-            <div className="flex flex-1 flex-col items-end justify-center text-right">
-              <div className="text-base font-semibold leading-tight">{companyName || "Bedrijfsnaam"}</div>
-              <div className="text-sm leading-tight">{address || "-"}</div>
-              <div className="text-sm leading-tight">
+            <div className="flex h-32 flex-1 flex-col items-end justify-center text-right">
+              <div className="text-xs font-semibold leading-tight">{companyName || "Bedrijfsnaam"}</div>
+              <div className="text-[11px] leading-tight">{address || "-"}</div>
+              <div className="text-[11px] leading-tight">
                 {postalCode} {city}
               </div>
               <div className="mt-1 space-y-0.5">
