@@ -131,6 +131,39 @@ export type Database = {
         }
         Relationships: []
       }
+      company_images: {
+        Row: {
+          created_at: string
+          file_path: string
+          id: string
+          image_url: string
+          label: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          id?: string
+          image_url: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          id?: string
+          image_url?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           address: string | null
