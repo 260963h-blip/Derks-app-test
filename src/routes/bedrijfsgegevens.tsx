@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Upload, Trash2, ImagePlus } from "lucide-react";
+import { LogoUploadCard, ExtraImagesCard } from "@/components/company-images-card";
 
 export const Route = createFileRoute("/bedrijfsgegevens")({
   component: BedrijfsgegevensPage,
@@ -192,6 +192,7 @@ function BedrijfsgegevensPage() {
         <p className="text-muted-foreground">Laden...</p>
       ) : (
         <form onSubmit={handleSave} className="space-y-6">
+          <LogoUploadCard logoUrl={form.logo_url} onChange={(v) => set("logo_url", v)} />
           <Card>
             <CardContent className="grid gap-4 pt-6 sm:grid-cols-2">
               <Field label="Bedrijfsnaam *" v={form.company_name} on={(v) => set("company_name", v)} />
@@ -265,6 +266,7 @@ function BedrijfsgegevensPage() {
           </div>
         </form>
       )}
+      {!loading && <div className="mt-6"><ExtraImagesCard /></div>}
     </AppShell>
   );
 }
