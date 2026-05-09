@@ -541,7 +541,11 @@ function OfferteEditor() {
       // Gegenereerde tekst — strikt binnen de marges van 15 mm
       doc.setFontSize(10);
       const maxTextWidth = W - 30; // 210 - 2*15 = 180 mm
-      const wrapped = doc.splitTextToSize(text, maxTextWidth);
+      // Breek extreem lange "woorden"/URLs zodat splitTextToSize ze ook kan wikkelen
+      const breakLong = (s: string, max = 80) =>
+        s.split(/(\s+)/).map((w) => (w.length > max ? w.replace(new RegExp(`(.{${max}})`, "g"), "$1\u200B") : w)).join("");
+      const safeText = breakLong(text).replace(/\u200B/g, " ");
+      const wrapped = doc.splitTextToSize(safeText, maxTextWidth);
       doc.text(wrapped, 15, y, { maxWidth: maxTextWidth });
       y += wrapped.length * 5 + 6;
 
