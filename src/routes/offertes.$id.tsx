@@ -26,6 +26,7 @@ type Quote = {
   quote_date: string;
   valid_until: string | null;
   notes: string | null;
+  vat_mode: string;
 };
 
 type Line = {
@@ -57,6 +58,24 @@ type Room = {
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n || 0);
+
+// Bepaal het BTW-tarief voor een regel op basis van klanttype, gekozen vat_mode
+// en het regeltype. Materiaal/ruimten blijven bij particulier-laag op 21%,
+// alleen uren van medewerkers krijgen 9%.
+function vatForLine(
+  customerType: string | undefined,
+  vatMode: string,
+  lineType: "artikel" | "medewerker" | "ruimte"
+): number {
+  if (customerType === "zakelijk") {
+    return vatMode === "verlegd" ? 0 : 21;
+  }
+  // particulier
+  if (vatMode === "laag") {
+    return lineType === "medewerker" ? 9 : 21;
+  }
+  return 21;
+}
 
 function OfferteEditor() {
   const { id } = Route.useParams();
@@ -129,13 +148,43 @@ function OfferteEditor() {
 
   const onCustomerChange = async (v: string) => {
     if (!quote) return;
-    setQuote({ ...quote, customer_id: v, contact_id: null });
+    const { data: cust } = await supabase
+      .from("customers")
+      .select("customer_type")
+      .eq("id", v)
+      .maybeSingle();
+    const newType = (cust?.customer_type as string) ?? "particulier";
+    // reset vat_mode naar standaard 'hoog' bij andere klantsoort
+    const nextMode =
+      newType === "zakelijk"
+        ? quote.vat_mode === "verlegd" || quote.vat_mode === "hoog"
+          ? quote.vat_mode
+          : "hoog"
+        : quote.vat_mode === "laag" || quote.vat_mode === "hoog"
+          ? quote.vat_mode
+          : "hoog";
+    setQuote({ ...quote, customer_id: v, contact_id: null, vat_mode: nextMode });
+    setLines((prev) =>
+      prev.map((l) => ({
+        ...l,
+        vat_rate: vatForLine(newType, nextMode, l.line_type),
+      }))
+    );
     const { data } = await supabase
       .from("customer_contacts")
       .select("id,customer_id,name,email,phone")
       .eq("customer_id", v)
       .order("name");
     setContacts((data ?? []) as Contact[]);
+  };
+
+  const onVatModeChange = (mode: string) => {
+    if (!quote) return;
+    setQuote({ ...quote, vat_mode: mode });
+    const ct = selectedCustomer?.customer_type;
+    setLines((prev) =>
+      prev.map((l) => ({ ...l, vat_rate: vatForLine(ct, mode, l.line_type) }))
+    );
   };
 
   const totals = useMemo(() => {
@@ -166,6 +215,7 @@ function OfferteEditor() {
   const addArticleLine = () => {
     const a = articles.find((x) => x.id === pickArticle);
     if (!a) return;
+    const vr = vatForLine(selectedCustomer?.customer_type, quote!.vat_mode, "artikel");
     setLines((prev) => [
       ...prev,
       {
@@ -175,7 +225,7 @@ function OfferteEditor() {
         quantity: 1,
         unit: a.unit_label || a.unit,
         unit_price: Number(a.price),
-        vat_rate: Number(a.vat_rate),
+        vat_rate: vr,
         line_total: Number(a.price),
         sort_order: prev.length,
       },
@@ -199,6 +249,7 @@ function OfferteEditor() {
     const hrs = Number(empHours) || 0;
     if (!e || !r || hrs <= 0) return;
     const desc = `${e.first_name} ${e.last_name} — ${r.name}`;
+    const vr = vatForLine(selectedCustomer?.customer_type, quote!.vat_mode, "medewerker");
     setLines((prev) => [
       ...prev,
       {
@@ -208,7 +259,7 @@ function OfferteEditor() {
         quantity: hrs,
         unit: "uur",
         unit_price: Number(r.hourly_rate),
-        vat_rate: 21,
+        vat_rate: vr,
         line_total: hrs * Number(r.hourly_rate),
         sort_order: prev.length,
       },
@@ -221,6 +272,7 @@ function OfferteEditor() {
   const addRoomLine = () => {
     const r = rooms.find((x) => x.id === pickRoom);
     if (!r) return;
+    const vr = vatForLine(selectedCustomer?.customer_type, quote!.vat_mode, "ruimte");
     if (r.pricing_type === "fixed") {
       const price = Number(r.fixed_price);
       setLines((prev) => [
@@ -232,7 +284,7 @@ function OfferteEditor() {
           quantity: 1,
           unit: "stuk",
           unit_price: price,
-          vat_rate: Number(r.vat_rate),
+          vat_rate: vr,
           line_total: price,
           sort_order: prev.length,
         },
@@ -249,7 +301,7 @@ function OfferteEditor() {
           quantity: m2,
           unit: "m²",
           unit_price: Number(r.price_per_m2),
-          vat_rate: Number(r.vat_rate),
+          vat_rate: vr,
           line_total: m2 * Number(r.price_per_m2),
           sort_order: prev.length,
         },
@@ -269,6 +321,7 @@ function OfferteEditor() {
           customer_id: quote.customer_id,
           contact_id: quote.contact_id,
           reference: quote.reference,
+          vat_mode: quote.vat_mode,
           status: quote.status,
           quote_date: quote.quote_date,
           valid_until: quote.valid_until,
