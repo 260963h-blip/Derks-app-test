@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/offertes/")({
@@ -129,7 +129,7 @@ function OffertesPage() {
                   <TableHead>Klant</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Totaal</TableHead>
-                  <TableHead className="w-[80px]" />
+                  <TableHead className="w-[120px]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -145,9 +145,19 @@ function OffertesPage() {
                     <TableCell><Badge variant="secondary">{q.status}</Badge></TableCell>
                     <TableCell className="text-right font-medium">{fmt(Number(q.total))}</TableCell>
                     <TableCell className="text-right">
-                      <Button size="icon" variant="ghost" onClick={() => removeQuote(q.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => navigate({ to: "/offertes/$id", params: { id: q.id } })}
+                          title="Bewerken"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => removeQuote(q.id)} title="Verwijderen">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
