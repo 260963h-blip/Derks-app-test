@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { LogoUploadCard, ExtraImagesCard } from "@/components/company-images-card";
 import { HeaderFooterCard } from "@/components/header-footer-card";
+import { HeaderPreviewCard } from "@/components/header-preview-card";
 
 export const Route = createFileRoute("/bedrijfsgegevens")({
   component: BedrijfsgegevensPage,
@@ -263,14 +264,16 @@ function BedrijfsgegevensPage() {
             </CardContent>
           </Card>
 
-          <HeaderFooterCard
-            title="Koptekst"
-            description="Wordt bovenaan offertes en facturen geplaatst."
-            text={form.header_text}
-            imageUrl={form.header_image_url}
+          <HeaderPreviewCard
             logoUrl={form.logo_url}
-            onTextChange={(v) => set("header_text", v)}
-            onImageChange={(v) => set("header_image_url", v)}
+            companyName={form.company_name}
+            address={form.address}
+            postalCode={form.postal_code}
+            city={form.city}
+            email={form.email}
+            kvk={form.kvk_number}
+            vat={form.vat_number}
+            phone={form.phone}
           />
           <HeaderFooterCard
             title="Voettekst"
