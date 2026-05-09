@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Save, Pencil, Trash2 } from "lucide-react";
+import { FileText, Download, Save, Pencil, Trash2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
 import { sendTransactionalEmail } from "@/lib/email/send";
@@ -229,11 +229,24 @@ function ProjectDossier() {
       const downloadUrl = signed.signedUrl;
 
       const { data: q2 } = await supabase
-        .from("quotes").select("quote_number,valid_until").eq("project_id", project.id).maybeSingle();
+        .from("quotes").select("id,quote_number,valid_until,approval_token,approved_at").eq("project_id", project.id).maybeSingle();
       const quoteNumber = (q2?.quote_number as string) ?? project.project_number;
       const validUntil = q2?.valid_until
         ? new Date(q2.valid_until as string).toLocaleDateString("nl-NL")
         : undefined;
+
+      // Zorg voor een approval-token (alleen als nog niet akkoord)
+      let approvalUrl: string | undefined;
+      if (q2?.id && !q2.approved_at) {
+        let token = (q2 as any).approval_token as string | null;
+        if (!token) {
+          const bytes = new Uint8Array(24);
+          crypto.getRandomValues(bytes);
+          token = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+          await supabase.from("quotes").update({ approval_token: token }).eq("id", q2.id);
+        }
+        approvalUrl = `${window.location.origin}/offerte-akkoord/${token}`;
+      }
 
       const { data: comp } = await supabase
         .from("company_settings").select("company_name").eq("user_id", user.id).maybeSingle();
@@ -246,6 +259,7 @@ function ProjectDossier() {
         bodyText: sendBody,
         downloadUrl,
         validUntil,
+        approvalUrl,
         subject: sendSubject,
       };
 
@@ -275,6 +289,20 @@ function ProjectDossier() {
     } finally {
       setSending(false);
     }
+  };
+
+  const markeerAkkoord = async () => {
+    if (!project || !quote) return;
+    if (!confirm("Offerte handmatig op 'Akkoord' zetten?")) return;
+    const now = new Date().toISOString();
+    const { error: qe } = await supabase
+      .from("quotes")
+      .update({ status: "akkoord", approved_at: now })
+      .eq("id", quote.id);
+    if (qe) return toast.error("Bijwerken mislukt: " + qe.message);
+    await supabase.from("projects").update({ status: "akkoord" }).eq("id", project.id);
+    toast.success("Offerte gemarkeerd als akkoord");
+    load();
   };
 
   const generateWerkorderPdf = async () => {
@@ -560,7 +588,7 @@ function ProjectDossier() {
             <CardHeader><CardTitle className="text-base">Offerte</CardTitle></CardHeader>
             <CardContent>
               {quote ? (
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <p className="font-mono text-lg">{quote.quote_number}</p>
                     <p className="text-sm text-muted-foreground">
@@ -568,9 +596,16 @@ function ProjectDossier() {
                       Totaal: <span className="font-medium">{fmt(Number(quote.total))}</span>
                     </p>
                   </div>
-                  <Button onClick={() => navigate({ to: "/offertes/$id", params: { id: quote.id } })}>
-                    <Pencil className="mr-1 h-4 w-4" /> Offerte bewerken
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    {quote.status !== "akkoord" && (
+                      <Button variant="outline" onClick={markeerAkkoord}>
+                        <CheckCircle2 className="mr-1 h-4 w-4" /> Markeer als akkoord
+                      </Button>
+                    )}
+                    <Button onClick={() => navigate({ to: "/offertes/$id", params: { id: quote.id } })}>
+                      <Pencil className="mr-1 h-4 w-4" /> Offerte bewerken
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">Geen offerte gekoppeld.</p>
