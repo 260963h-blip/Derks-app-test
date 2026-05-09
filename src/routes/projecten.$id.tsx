@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { FileText, Download, Save, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
+import { sendTransactionalEmail } from "@/lib/email/send";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/projecten/$id")({
   component: ProjectDossier,
@@ -65,6 +67,16 @@ function ProjectDossier() {
   const [woSaving, setWoSaving] = useState(false);
   const sigRef = useRef<SignaturePadHandle>(null);
 
+  // Verzenden offerte
+  const [sendTo, setSendTo] = useState("");
+  const [sendSubject, setSendSubject] = useState("");
+  const [sendBody, setSendBody] = useState("");
+  const [sendBcc, setSendBcc] = useState(true);
+  const [sendDocId, setSendDocId] = useState<string>("");
+  const [sending, setSending] = useState(false);
+  const [companyEmail, setCompanyEmail] = useState("");
+  const [contactName, setContactName] = useState("");
+
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
   }, [user, authLoading, navigate]);
@@ -100,6 +112,55 @@ function ProjectDossier() {
       .eq("project_id", id)
       .order("created_at", { ascending: false });
     setDocs((d ?? []) as Doc[]);
+
+    // Load company settings + contact for verzendtab
+    const { data: comp } = await supabase
+      .from("company_settings")
+      .select("company_name,email,quote_email_subject,quote_email_body")
+      .eq("user_id", user!.id)
+      .maybeSingle();
+    setCompanyEmail(((comp as any)?.email as string) ?? "");
+
+    let toEmail = "";
+    let toName = "";
+    if (p.contact_id) {
+      const { data: ct } = await supabase
+        .from("customer_contacts")
+        .select("name,email")
+        .eq("id", p.contact_id)
+        .maybeSingle();
+      toEmail = (ct?.email as string) ?? "";
+      toName = (ct?.name as string) ?? "";
+    }
+    if (!toEmail && p.customer_id) {
+      const { data: cust } = await supabase
+        .from("customers")
+        .select("email,name,contact_person")
+        .eq("id", p.customer_id)
+        .maybeSingle();
+      toEmail = (cust?.email as string) ?? "";
+      toName = (cust?.contact_person as string) || (cust?.name as string) || "";
+    }
+    setSendTo(toEmail);
+    setContactName(toName);
+
+    const { data: q2 } = await supabase
+      .from("quotes").select("quote_number").eq("project_id", id).maybeSingle();
+    const qNum = (q2?.quote_number as string) ?? p.project_number;
+    const cName = (comp as any)?.company_name ?? "";
+    const subjTpl = ((comp as any)?.quote_email_subject as string) ?? `Offerte ${qNum}`;
+    const bodyTpl = ((comp as any)?.quote_email_body as string) ?? "";
+    const fill = (s: string) =>
+      s
+        .replaceAll("{{quote_number}}", qNum)
+        .replaceAll("{{contact_name}}", toName || "klant")
+        .replaceAll("{{company_name}}", cName);
+    setSendSubject(fill(subjTpl));
+    setSendBody(fill(bodyTpl));
+
+    // Default selected doc = latest offerte pdf
+    const latestOfferte = (d ?? []).find((x: any) => x.doc_type === "offerte");
+    if (latestOfferte) setSendDocId((latestOfferte as any).id);
   };
 
   const saveProject = async () => {
@@ -139,6 +200,69 @@ function ProjectDossier() {
   const akkoordOrLater = ["akkoord", "in_uitvoering", "afgerond", "gefactureerd"].includes(
     project?.status ?? "",
   );
+
+  const sendOfferte = async () => {
+    if (!project || !user) return;
+    if (!sendTo.trim()) return toast.error("Vul een e-mailadres van de ontvanger in");
+    if (!sendDocId) return toast.error("Selecteer een offerte (pdf) om te versturen");
+    const doc = docs.find((d) => d.id === sendDocId);
+    if (!doc) return toast.error("Document niet gevonden");
+    setSending(true);
+    try {
+      const { data: signed, error: sErr } = await supabase.storage
+        .from("project-documents")
+        .createSignedUrl(doc.file_path, 60 * 60 * 24 * 30); // 30 dagen
+      if (sErr || !signed) throw sErr ?? new Error("Geen downloadlink");
+      const downloadUrl = signed.signedUrl;
+
+      const { data: q2 } = await supabase
+        .from("quotes").select("quote_number,valid_until").eq("project_id", project.id).maybeSingle();
+      const quoteNumber = (q2?.quote_number as string) ?? project.project_number;
+      const validUntil = q2?.valid_until
+        ? new Date(q2.valid_until as string).toLocaleDateString("nl-NL")
+        : undefined;
+
+      const { data: comp } = await supabase
+        .from("company_settings").select("company_name").eq("user_id", user.id).maybeSingle();
+      const companyName = (comp as any)?.company_name ?? "";
+
+      const data = {
+        contactName: contactName || "klant",
+        quoteNumber,
+        companyName,
+        bodyText: sendBody,
+        downloadUrl,
+        validUntil,
+        subject: sendSubject,
+      };
+
+      await sendTransactionalEmail({
+        templateName: "offerte-verzonden",
+        recipientEmail: sendTo.trim(),
+        idempotencyKey: `offerte-${project.id}-${doc.id}-${Date.now()}`,
+        templateData: data,
+      });
+
+      if (sendBcc && companyEmail) {
+        await sendTransactionalEmail({
+          templateName: "offerte-verzonden",
+          recipientEmail: companyEmail,
+          idempotencyKey: `offerte-bcc-${project.id}-${doc.id}-${Date.now()}`,
+          templateData: { ...data, subject: `[Kopie] ${sendSubject}` },
+        });
+      }
+
+      if (project.status === "nieuw") {
+        await supabase.from("projects").update({ status: "offerte" }).eq("id", project.id);
+      }
+      toast.success("Offerte verzonden");
+      load();
+    } catch (e: any) {
+      toast.error("Versturen mislukt: " + (e?.message ?? e));
+    } finally {
+      setSending(false);
+    }
+  };
 
   const generateWerkorderPdf = async () => {
     if (!project || !user) return;
@@ -345,6 +469,7 @@ function ProjectDossier() {
         <TabsList>
           <TabsTrigger value="overview">Overzicht</TabsTrigger>
           <TabsTrigger value="quote">Offerte</TabsTrigger>
+          <TabsTrigger value="verzenden">Verzenden</TabsTrigger>
           <TabsTrigger value="werkorder">Werkorder</TabsTrigger>
           <TabsTrigger value="documents">Documenten ({docs.length})</TabsTrigger>
         </TabsList>
@@ -436,6 +561,86 @@ function ProjectDossier() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">Geen offerte gekoppeld.</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="verzenden">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Offerte verzenden</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {docs.filter((d) => d.doc_type === "offerte").length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Er is nog geen offerte-pdf in het dossier. Genereer eerst een definitieve offerte.
+                </p>
+              ) : (
+                <>
+                  <div>
+                    <Label className="text-xs">Bijlage (offerte-pdf)</Label>
+                    <Select value={sendDocId} onValueChange={setSendDocId}>
+                      <SelectTrigger><SelectValue placeholder="Kies offerte-pdf" /></SelectTrigger>
+                      <SelectContent>
+                        {docs
+                          .filter((d) => d.doc_type === "offerte")
+                          .map((d) => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.file_name} (v{d.version})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Standaard: laatste versie. De ontvanger krijgt een downloadlink (30 dagen geldig).
+                    </p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label className="text-xs">Aan (e-mailadres)</Label>
+                      <Input
+                        type="email"
+                        value={sendTo}
+                        onChange={(e) => setSendTo(e.target.value)}
+                        placeholder="klant@voorbeeld.nl"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Naam ontvanger</Label>
+                      <Input
+                        value={contactName}
+                        onChange={(e) => setContactName(e.target.value)}
+                        placeholder="Naam contactpersoon"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Onderwerp</Label>
+                    <Input value={sendSubject} onChange={(e) => setSendSubject(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Mailtekst</Label>
+                    <Textarea
+                      rows={8}
+                      value={sendBody}
+                      onChange={(e) => setSendBody(e.target.value)}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Standaardtekst komt uit Bedrijfsgegevens. Placeholders: <code>{"{{quote_number}}"}</code>, <code>{"{{contact_name}}"}</code>, <code>{"{{company_name}}"}</code>.
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={sendBcc}
+                      onCheckedChange={(v) => setSendBcc(Boolean(v))}
+                    />
+                    Stuur kopie naar mijzelf{companyEmail ? ` (${companyEmail})` : ""}
+                  </label>
+                  <div className="flex justify-end">
+                    <Button onClick={sendOfferte} disabled={sending}>
+                      {sending ? "Verzenden..." : "Offerte verzenden"}
+                    </Button>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
