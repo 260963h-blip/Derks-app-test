@@ -31,6 +31,7 @@ type Quote = {
   valid_until: string | null;
   notes: string | null;
   vat_mode: string;
+  project_id: string | null;
 };
 
 type Line = {
