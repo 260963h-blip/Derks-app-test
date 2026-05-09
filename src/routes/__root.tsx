@@ -81,6 +81,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Offertes en facturen maken voor Stucadoorsbedrijf Derks" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Stucadoorsbedrijf Derks – Offertes & Facturen" },
+      { name: "twitter:description", content: "Offertes en facturen maken voor Stucadoorsbedrijf Derks" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b356c562-8f73-4198-ba22-771b30aa1c58/id-preview-250d1ed7--e4992d85-d4c7-4d9d-8b92-2b576b28432f.lovable.app-1778319955876.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b356c562-8f73-4198-ba22-771b30aa1c58/id-preview-250d1ed7--e4992d85-d4c7-4d9d-8b92-2b576b28432f.lovable.app-1778319955876.png" },
     ],
     links: [
       {
