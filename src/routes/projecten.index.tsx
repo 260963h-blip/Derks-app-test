@@ -163,11 +163,12 @@ function ProjectenPage() {
         customerId = c.id;
 
         if (isZak && newContacts.length) {
+          const cid = customerId as string;
           const rows = newContacts
             .filter((ct) => ct.name.trim())
             .map((ct) => ({
               user_id: user.id,
-              customer_id: customerId,
+              customer_id: cid,
               name: ct.name.trim(),
               phone: ct.phone || null,
               email: ct.email || null,
