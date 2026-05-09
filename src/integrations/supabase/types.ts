@@ -184,6 +184,7 @@ export type Database = {
           id: string
           invoice_footer: string | null
           invoice_number_next: number
+          invoice_number_prefix: string
           invoice_number_year: number
           kvk_number: string | null
           logo_url: string | null
@@ -228,6 +229,7 @@ export type Database = {
           id?: string
           invoice_footer?: string | null
           invoice_number_next?: number
+          invoice_number_prefix?: string
           invoice_number_year?: number
           kvk_number?: string | null
           logo_url?: string | null
@@ -272,6 +274,7 @@ export type Database = {
           id?: string
           invoice_footer?: string | null
           invoice_number_next?: number
+          invoice_number_prefix?: string
           invoice_number_year?: number
           kvk_number?: string | null
           logo_url?: string | null
@@ -639,6 +642,54 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          created_at: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string
+          notes: string | null
+          project_id: string
+          status: string
+          subtotal: number
+          total: number
+          updated_at: string
+          user_id: string
+          vat_total: number
+        }
+        Insert: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          notes?: string | null
+          project_id: string
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id: string
+          vat_total?: number
+        }
+        Update: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          notes?: string | null
+          project_id?: string
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id?: string
+          vat_total?: number
+        }
+        Relationships: []
+      }
       leave_requests: {
         Row: {
           created_at: string
@@ -679,6 +730,87 @@ export type Database = {
           reason?: string | null
           start_date?: string
           status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      project_documents: {
+        Row: {
+          created_at: string
+          doc_type: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          project_id: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          doc_type?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          project_id: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          doc_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          project_id?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          customer_id: string | null
+          id: string
+          notes: string | null
+          project_number: string
+          reference: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          notes?: string | null
+          project_number: string
+          reference?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          notes?: string | null
+          project_number?: string
+          reference?: string | null
+          status?: string
+          title?: string
           updated_at?: string
           user_id?: string
         }
@@ -753,6 +885,7 @@ export type Database = {
           customer_id: string | null
           id: string
           notes: string | null
+          project_id: string | null
           quote_date: string
           quote_number: string
           reference: string | null
@@ -771,6 +904,7 @@ export type Database = {
           customer_id?: string | null
           id?: string
           notes?: string | null
+          project_id?: string | null
           quote_date?: string
           quote_number: string
           reference?: string | null
@@ -789,6 +923,7 @@ export type Database = {
           customer_id?: string | null
           id?: string
           notes?: string | null
+          project_id?: string | null
           quote_date?: string
           quote_number?: string
           reference?: string | null
@@ -905,6 +1040,42 @@ export type Database = {
           updated_at?: string
           user_id?: string
           work_date?: string
+        }
+        Relationships: []
+      }
+      work_orders: {
+        Row: {
+          created_at: string
+          executor: string | null
+          id: string
+          notes: string | null
+          project_id: string
+          status: string
+          updated_at: string
+          user_id: string
+          work_date: string | null
+        }
+        Insert: {
+          created_at?: string
+          executor?: string | null
+          id?: string
+          notes?: string | null
+          project_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          work_date?: string | null
+        }
+        Update: {
+          created_at?: string
+          executor?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          work_date?: string | null
         }
         Relationships: []
       }
