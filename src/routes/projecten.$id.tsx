@@ -1,11 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -15,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download, Save, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
 
 export const Route = createFileRoute("/projecten/$id")({
   component: ProjectDossier,
@@ -56,6 +58,12 @@ function ProjectDossier() {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [docs, setDocs] = useState<Doc[]>([]);
   const [saving, setSaving] = useState(false);
+
+  // Werkorder
+  const [woWerkzaamheden, setWoWerkzaamheden] = useState("");
+  const [woSignerName, setWoSignerName] = useState("");
+  const [woSaving, setWoSaving] = useState(false);
+  const sigRef = useRef<SignaturePadHandle>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -128,6 +136,207 @@ function ProjectDossier() {
     load();
   };
 
+  const akkoordOrLater = ["akkoord", "in_uitvoering", "afgerond", "gefactureerd"].includes(
+    project?.status ?? "",
+  );
+
+  const generateWerkorderPdf = async () => {
+    if (!project || !user) return;
+    if (!akkoordOrLater) {
+      toast.error("Werkorder kan pas vanaf status 'Akkoord' worden gegenereerd");
+      return;
+    }
+    if (!woWerkzaamheden.trim()) {
+      toast.error("Vul de uitgevoerde werkzaamheden in");
+      return;
+    }
+    if (!sigRef.current || sigRef.current.isEmpty()) {
+      toast.error("Laat de klant ondertekenen");
+      return;
+    }
+    if (!woSignerName.trim()) {
+      toast.error("Vul de naam van de ondertekenaar in");
+      return;
+    }
+    setWoSaving(true);
+    try {
+      const sigData = sigRef.current.toDataURL();
+      const [{ data: company }, { data: cust }] = await Promise.all([
+        supabase.from("company_settings").select("*").eq("user_id", user.id).maybeSingle(),
+        project.customer_id
+          ? supabase.from("customers").select("*").eq("id", project.customer_id).maybeSingle()
+          : Promise.resolve({ data: null } as { data: null }),
+      ]);
+
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+      const W = 210;
+      let y = 15;
+
+      // Logo
+      const logoTop = y;
+      const logoH = 28;
+      if (company?.logo_url) {
+        try {
+          const resp = await fetch(company.logo_url);
+          const blob = await resp.blob();
+          const dataUrl: string = await new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result as string);
+            r.onerror = rej;
+            r.readAsDataURL(blob);
+          });
+          const imgFmt = (blob.type.includes("png") ? "PNG" : "JPEG") as "PNG" | "JPEG";
+          doc.addImage(dataUrl, imgFmt, 15, logoTop, 50, logoH, undefined, "FAST");
+        } catch {}
+      }
+
+      // Bedrijfsgegevens rechts
+      const rightX = W - 15;
+      doc.setFontSize(13).setFont("helvetica", "bold");
+      doc.text(company?.company_name ?? "Bedrijf", rightX, y + 4, { align: "right" });
+      doc.setFontSize(9).setFont("helvetica", "normal");
+      const addrLines = [
+        company?.address,
+        [company?.postal_code, company?.city].filter(Boolean).join(" "),
+      ].filter(Boolean) as string[];
+      addrLines.forEach((line, i) => doc.text(line, rightX, y + 9 + i * 4, { align: "right" }));
+      const labeled: { label: string; value?: string | null }[] = [
+        { label: "E-Mail", value: company?.email },
+        { label: "KvK-nummer", value: company?.kvk_number },
+        { label: "BTW-nummer", value: company?.vat_number },
+        { label: "Telefoon", value: company?.phone },
+      ];
+      let ly = y + 9 + addrLines.length * 4 + 2;
+      for (const row of labeled) {
+        if (!row.value) continue;
+        doc.text(`${row.label}: ${row.value}`, rightX, ly, { align: "right" });
+        ly += 4;
+      }
+      y = Math.max(logoTop + logoH, ly) + 6;
+
+      // Klant
+      doc.setFontSize(10).setFont("helvetica", "bold");
+      doc.text("Aan:", 15, y);
+      doc.setFont("helvetica", "normal").setFontSize(9);
+      const custLines = [
+        cust?.name,
+        [cust?.street, cust?.house_number, cust?.house_number_addition].filter(Boolean).join(" ") || cust?.address,
+        [cust?.postal_code, cust?.city].filter(Boolean).join(" "),
+        cust?.country,
+      ].filter(Boolean) as string[];
+      custLines.forEach((line, i) => doc.text(line, 15, y + 5 + i * 4));
+      y += 5 + custLines.length * 4 + 8;
+
+      // Titel
+      doc.setFontSize(14).setFont("helvetica", "bold");
+      doc.text(`Werkorder ${project.project_number}`, 15, y);
+      doc.setFontSize(9).setFont("helvetica", "normal");
+      doc.text(`Datum: ${new Date().toLocaleDateString("nl-NL")}`, W - 15, y, { align: "right" });
+      if (project.title) doc.text(project.title, 15, y + 5);
+      y += 10;
+      doc.setDrawColor(10, 36, 99);
+      doc.setLineWidth(0.5);
+      doc.line(15, y, W - 15, y);
+      doc.setDrawColor(0);
+      y += 6;
+
+      // Werkzaamheden
+      doc.setFontSize(11).setFont("helvetica", "bold");
+      doc.text("Uitgevoerde werkzaamheden", 15, y);
+      y += 6;
+      doc.setFontSize(10).setFont("helvetica", "normal");
+      const wrapped = doc.splitTextToSize(woWerkzaamheden, W - 30);
+      doc.text(wrapped, 15, y);
+      y += wrapped.length * 5 + 10;
+
+      // Ondertekening
+      doc.setFontSize(11).setFont("helvetica", "bold");
+      doc.text("Akkoord klant na uitvoering", 15, y);
+      y += 6;
+      doc.setFontSize(9).setFont("helvetica", "normal");
+      doc.text(`Naam: ${woSignerName}`, 15, y);
+      doc.text(`Datum: ${new Date().toLocaleDateString("nl-NL")}`, 15, y + 5);
+      try {
+        doc.addImage(sigData, "PNG", 90, y - 4, 80, 30, undefined, "FAST");
+      } catch {}
+      doc.setDrawColor(150);
+      doc.line(90, y + 28, 170, y + 28);
+      doc.setFontSize(8).setTextColor(100);
+      doc.text("Handtekening", 90, y + 32);
+      doc.setTextColor(0);
+
+      // Footer
+      const footerY = 280;
+      if ((company as any)?.footer_image_url) {
+        try {
+          const resp = await fetch((company as any).footer_image_url);
+          const blob = await resp.blob();
+          const dataUrl: string = await new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result as string);
+            r.onerror = rej;
+            r.readAsDataURL(blob);
+          });
+          const fmtImg = (blob.type.includes("png") ? "PNG" : "JPEG") as "PNG" | "JPEG";
+          doc.addImage(dataUrl, fmtImg, 15, footerY - 12, 30, 12, undefined, "FAST");
+        } catch {}
+      }
+      const footerText = (company as any)?.footer_text || (company as any)?.quote_footer;
+      if (footerText) {
+        const footer = doc.splitTextToSize(footerText, W - 60);
+        doc.setFontSize(8).setTextColor(100);
+        doc.text(footer, W - 15, footerY - 6, { align: "right" });
+        doc.setTextColor(0);
+      }
+
+      const blob = doc.output("blob");
+      const { data: existing } = await supabase
+        .from("project_documents")
+        .select("version")
+        .eq("project_id", project.id)
+        .eq("doc_type", "werkorder")
+        .order("version", { ascending: false })
+        .limit(1);
+      const nextVersion = ((existing?.[0]?.version as number) ?? 0) + 1;
+      const path = `${user.id}/${project.id}/werkorder-v${nextVersion}-${project.project_number}.pdf`;
+      const { error: upErr } = await supabase.storage
+        .from("project-documents")
+        .upload(path, blob, { contentType: "application/pdf", upsert: false });
+      if (upErr) throw upErr;
+      await supabase.from("project_documents").insert({
+        user_id: user.id,
+        project_id: project.id,
+        doc_type: "werkorder",
+        file_name: `Werkorder-${project.project_number}-v${nextVersion}.pdf`,
+        file_path: path,
+        version: nextVersion,
+        mime_type: "application/pdf",
+        file_size: blob.size,
+      });
+      await supabase.from("work_orders").insert({
+        user_id: user.id,
+        project_id: project.id,
+        work_date: new Date().toISOString().slice(0, 10),
+        executor: woSignerName,
+        notes: woWerkzaamheden,
+        status: "uitgevoerd",
+      });
+      await supabase.from("projects").update({ status: "afgerond" }).eq("id", project.id);
+
+      doc.save(`Werkorder-${project.project_number}.pdf`);
+      toast.success(`Werkorder opgeslagen (v${nextVersion}). Project op 'Afgerond'.`);
+      setWoWerkzaamheden("");
+      setWoSignerName("");
+      sigRef.current?.clear();
+      load();
+    } catch (e: any) {
+      toast.error("Werkorder mislukt: " + (e?.message ?? e));
+    } finally {
+      setWoSaving(false);
+    }
+  };
+
   if (authLoading || !user || !project) return null;
 
   return (
@@ -136,6 +345,7 @@ function ProjectDossier() {
         <TabsList>
           <TabsTrigger value="overview">Overzicht</TabsTrigger>
           <TabsTrigger value="quote">Offerte</TabsTrigger>
+          <TabsTrigger value="werkorder">Werkorder</TabsTrigger>
           <TabsTrigger value="documents">Documenten ({docs.length})</TabsTrigger>
         </TabsList>
 
