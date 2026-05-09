@@ -48,6 +48,15 @@ const VAT_OPTIONS: { value: VatType; rate: number; label: string }[] = [
   { value: "hoog", rate: 21, label: "21% – Hoog (nieuwbouw)" },
 ];
 
+const STATUS_LABELS: Record<string, string> = {
+  nieuw: "Nieuw",
+  offerte: "Offerte verzonden",
+  akkoord: "Akkoord",
+  in_uitvoering: "In uitvoering",
+  afgerond: "Afgerond",
+  gefactureerd: "Gefactureerd",
+};
+
 const emptyNewCust = {
   customer_type: "particulier" as "particulier" | "zakelijk",
   name: "",
@@ -496,7 +505,7 @@ function ProjectenPage() {
                     </TableCell>
                     <TableCell>{p.title || <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>{p.customer_name ?? <span className="text-muted-foreground">—</span>}</TableCell>
-                    <TableCell><Badge variant="secondary">{p.status}</Badge></TableCell>
+                    <TableCell><Badge variant="secondary">{STATUS_LABELS[p.status] ?? p.status}</Badge></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button size="icon" variant="ghost" onClick={() => navigate({ to: "/projecten/$id", params: { id: p.id } })} title="Openen">
