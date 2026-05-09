@@ -17,7 +17,6 @@ const menu: Array<{
   to?: string;
 }> = [
   { title: "Projecten", desc: "Projecten met offerte, werkorder en factuur", icon: FolderKanban, to: "/projecten" },
-  { title: "Offertes (oud)", desc: "Bestaande offertenlijst", icon: FileText, to: "/offertes" },
   { title: "Facturen", desc: "Facturen en UBL/XML-export", icon: Receipt },
   { title: "Klanten", desc: "Klantgegevens beheren", icon: Users, to: "/klanten" },
   { title: "Artikelen", desc: "Materialen en werkzaamheden", icon: Package, to: "/artikelen" },
