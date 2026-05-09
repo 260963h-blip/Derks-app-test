@@ -13,6 +13,8 @@ export const generateQuoteText = createServerFn({ method: "POST" })
     customer_type: string;
     lines: LineInput[];
     reference?: string | null;
+    company_name?: string | null;
+    owner_name?: string | null;
   })
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
@@ -30,6 +32,7 @@ Vat ruimtes samen (bv. "Toilet en keuken: beide 4 wanden en plafond stucen").
 Gebruik uitsluitend stucwerk-terminologie (bv. stucen, pleisteren, uitvlakken, glad afwerken, sausklaar opleveren).
 Noem nooit schilderen, sauzen, behangen of andere niet-stucwerk werkzaamheden, ook niet als de regelteksten dat lijken te suggereren.
 Noem geen prijzen. Gebruik een vriendelijke, zakelijke toon. Sluit af met een uitnodiging tot akkoord.
+BELANGRIJK: Voeg ZELF GEEN ondertekening, groet of afsluitende naamregel toe — die wordt apart toegevoegd.
 
 Klant: ${data.customer_name} (${data.customer_type})
 ${data.reference ? `Referentie: ${data.reference}\n` : ""}
@@ -59,6 +62,11 @@ ${summary}`;
     }
 
     const json = await res.json();
-    const text: string = json?.choices?.[0]?.message?.content ?? "";
+    let text: string = json?.choices?.[0]?.message?.content ?? "";
+    text = text.replace(/\s*$/, "");
+    const signLines = ["Met vriendelijke groet,", ""];
+    if (data.company_name) signLines.push(data.company_name);
+    if (data.owner_name) signLines.push(data.owner_name);
+    text = `${text}\n\n${signLines.join("\n")}`;
     return { text };
   });
