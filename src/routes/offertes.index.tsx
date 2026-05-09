@@ -1,13 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, Search } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/offertes/")({
@@ -21,7 +22,9 @@ type Quote = {
   status: string;
   total: number;
   customer_id: string | null;
+  contact_id: string | null;
   customer_name?: string | null;
+  contact_name?: string | null;
 };
 
 const fmt = (n: number) =>
@@ -32,6 +35,7 @@ function OffertesPage() {
   const navigate = useNavigate();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [creating, setCreating] = useState(false);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -45,7 +49,7 @@ function OffertesPage() {
   const load = async () => {
     const { data, error } = await supabase
       .from("quotes")
-      .select("id,quote_number,quote_date,status,total,customer_id")
+      .select("id,quote_number,quote_date,status,total,customer_id,contact_id")
       .order("created_at", { ascending: false });
     if (error) return toast.error("Laden mislukt: " + error.message);
     const rows = (data ?? []) as Quote[];
@@ -54,6 +58,15 @@ function OffertesPage() {
       const { data: cs } = await supabase.from("customers").select("id,name").in("id", ids);
       const map = new Map((cs ?? []).map((c) => [c.id, c.name]));
       rows.forEach((r) => (r.customer_name = r.customer_id ? map.get(r.customer_id) ?? null : null));
+    }
+    const cIds = Array.from(new Set(rows.map((r) => r.contact_id).filter(Boolean))) as string[];
+    if (cIds.length) {
+      const { data: cts } = await supabase
+        .from("customer_contacts")
+        .select("id,name")
+        .in("id", cIds);
+      const map = new Map((cts ?? []).map((c) => [c.id, c.name]));
+      rows.forEach((r) => (r.contact_name = r.contact_id ? map.get(r.contact_id) ?? null : null));
     }
     setQuotes(rows);
   };
@@ -109,9 +122,28 @@ function OffertesPage() {
 
   if (authLoading || !user) return null;
 
+  const filtered = quotes.filter((q) => {
+    const s = search.trim().toLowerCase();
+    if (!s) return true;
+    return (
+      q.quote_number.toLowerCase().includes(s) ||
+      (q.customer_name ?? "").toLowerCase().includes(s) ||
+      (q.contact_name ?? "").toLowerCase().includes(s)
+    );
+  });
+
   return (
     <AppShell title="Offertes" subtitle="Offertes aanmaken en beheren" back>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Zoek op offertenummer, klant of contactpersoon..."
+            className="pl-8"
+          />
+        </div>
         <Button onClick={newQuote} disabled={creating}>
           <Plus className="mr-1 h-4 w-4" /> {creating ? "Aanmaken..." : "Nieuwe offerte"}
         </Button>
@@ -120,6 +152,8 @@ function OffertesPage() {
         <CardContent className="pt-6">
           {quotes.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nog geen offertes.</p>
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Geen offertes gevonden voor "{search}".</p>
           ) : (
             <Table>
               <TableHeader>
@@ -127,13 +161,14 @@ function OffertesPage() {
                   <TableHead>Nummer</TableHead>
                   <TableHead>Datum</TableHead>
                   <TableHead>Klant</TableHead>
+                  <TableHead>Contactpersoon</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Totaal</TableHead>
                   <TableHead className="w-[120px]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {quotes.map((q) => (
+                {filtered.map((q) => (
                   <TableRow key={q.id}>
                     <TableCell className="font-mono">
                       <Link to="/offertes/$id" params={{ id: q.id }} className="text-primary hover:underline">
@@ -142,6 +177,7 @@ function OffertesPage() {
                     </TableCell>
                     <TableCell>{q.quote_date}</TableCell>
                     <TableCell>{q.customer_name ?? <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell>{q.contact_name ?? <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell><Badge variant="secondary">{q.status}</Badge></TableCell>
                     <TableCell className="text-right font-medium">{fmt(Number(q.total))}</TableCell>
                     <TableCell className="text-right">
