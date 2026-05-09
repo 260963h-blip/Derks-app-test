@@ -189,13 +189,20 @@ function OfferteEditor() {
 
   const totals = useMemo(() => {
     let sub = 0;
-    let vat = 0;
+    const byRate = new Map<number, number>();
     for (const l of lines) {
       const lt = Number(l.quantity) * Number(l.unit_price);
       sub += lt;
-      vat += (lt * Number(l.vat_rate)) / 100;
+      const rate = Number(l.vat_rate) || 0;
+      const v = (lt * rate) / 100;
+      byRate.set(rate, (byRate.get(rate) ?? 0) + v);
     }
-    return { sub, vat, total: sub + vat };
+    const vatBreakdown = Array.from(byRate.entries())
+      .filter(([rate, amount]) => rate > 0 && amount !== 0)
+      .sort((a, b) => a[0] - b[0])
+      .map(([rate, amount]) => ({ rate, amount }));
+    const vat = vatBreakdown.reduce((s, b) => s + b.amount, 0);
+    return { sub, vat, total: sub + vat, vatBreakdown };
   }, [lines]);
 
   const updateLine = (idx: number, patch: Partial<Line>) => {
