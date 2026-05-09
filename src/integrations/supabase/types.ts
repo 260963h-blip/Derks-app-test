@@ -973,6 +973,8 @@ export type Database = {
       }
       quotes: {
         Row: {
+          approval_token: string | null
+          approved_at: string | null
           contact_id: string | null
           created_at: string
           customer_id: string | null
@@ -992,6 +994,8 @@ export type Database = {
           vat_total: number
         }
         Insert: {
+          approval_token?: string | null
+          approved_at?: string | null
           contact_id?: string | null
           created_at?: string
           customer_id?: string | null
@@ -1011,6 +1015,8 @@ export type Database = {
           vat_total?: number
         }
         Update: {
+          approval_token?: string | null
+          approved_at?: string | null
           contact_id?: string | null
           created_at?: string
           customer_id?: string | null
