@@ -458,25 +458,30 @@ function OfferteEditor() {
               <Select value={pickRoom || undefined} onValueChange={(v) => {
                 setPickRoom(v);
                 const r = rooms.find((x) => x.id === v);
-                if (r?.default_m2) setRoomM2(String(r.default_m2));
+                if (r?.pricing_type !== "fixed" && r?.default_m2) setRoomM2(String(r.default_m2));
+                else setRoomM2("");
               }}>
                 <SelectTrigger><SelectValue placeholder="Kies ruimte..." /></SelectTrigger>
                 <SelectContent>
                   {rooms.map((r) => (
                     <SelectItem key={r.id} value={r.id}>
-                      {r.name} — {fmt(Number(r.price_per_m2))}/m²
+                      {r.name} — {r.pricing_type === "fixed"
+                        ? `${fmt(Number(r.fixed_price))} vast`
+                        : `${fmt(Number(r.price_per_m2))}/m²`}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <div className="flex gap-2">
-                <Input
-                  type="number"
-                  placeholder="m²"
-                  value={roomM2}
-                  onChange={(e) => setRoomM2(e.target.value)}
-                />
-                <Button size="sm" onClick={addRoomLine} disabled={!pickRoom}>
+                {rooms.find((x) => x.id === pickRoom)?.pricing_type !== "fixed" && (
+                  <Input
+                    type="number"
+                    placeholder="m²"
+                    value={roomM2}
+                    onChange={(e) => setRoomM2(e.target.value)}
+                  />
+                )}
+                <Button size="sm" onClick={addRoomLine} disabled={!pickRoom} className="ml-auto">
                   <Plus className="mr-1 h-4 w-4" /> Toevoegen
                 </Button>
               </div>
