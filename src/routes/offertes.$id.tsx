@@ -92,6 +92,7 @@ function OfferteEditor() {
   const [rooms, setRooms] = useState<Room[]>([]);
 
   const [pickArticle, setPickArticle] = useState<string>("");
+  const [artQty, setArtQty] = useState<string>("1");
   const [pickEmployee, setPickEmployee] = useState<string>("");
   const [pickRate, setPickRate] = useState<string>("");
   const [empHours, setEmpHours] = useState<string>("1");
@@ -222,6 +223,8 @@ function OfferteEditor() {
   const addArticleLine = () => {
     const a = articles.find((x) => x.id === pickArticle);
     if (!a) return;
+    const qty = Number(artQty) || 0;
+    if (qty <= 0) return;
     const vr = vatForLine(selectedCustomer?.customer_type, quote!.vat_mode, "artikel");
     setLines((prev) => [
       ...prev,
@@ -229,15 +232,16 @@ function OfferteEditor() {
         id: `tmp-${crypto.randomUUID()}`,
         line_type: "artikel",
         description: a.name,
-        quantity: 1,
+        quantity: qty,
         unit: a.unit_label || a.unit,
         unit_price: Number(a.price),
         vat_rate: vr,
-        line_total: Number(a.price),
+        line_total: qty * Number(a.price),
         sort_order: prev.length,
       },
     ]);
     setPickArticle("");
+    setArtQty("1");
   };
 
   const employeeRates = useMemo(
