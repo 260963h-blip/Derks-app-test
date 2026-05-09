@@ -100,6 +100,7 @@ function BedrijfsgegevensPage() {
       } else if (data) {
         setForm({
           company_name: data.company_name ?? "",
+          logo_url: data.logo_url ?? "",
           address: data.address ?? "",
           postal_code: data.postal_code ?? "",
           city: data.city ?? "",
@@ -163,6 +164,7 @@ function BedrijfsgegevensPage() {
       default_quote_validity_days: Number(form.default_quote_validity_days) || 30,
       quote_footer: form.quote_footer || null,
       invoice_footer: form.invoice_footer || null,
+      logo_url: form.logo_url || null,
       owner_first_name: form.owner_first_name || null,
       owner_middle_name: form.owner_middle_name || null,
       owner_last_name: form.owner_last_name || null,
