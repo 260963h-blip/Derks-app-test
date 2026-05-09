@@ -494,9 +494,17 @@ function OfferteEditor() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button size="sm" onClick={addArticleLine} disabled={!pickArticle} className="w-full">
-                <Plus className="mr-1 h-4 w-4" /> Toevoegen
-              </Button>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="Aantal"
+                  value={artQty}
+                  onChange={(e) => setArtQty(e.target.value)}
+                />
+                <Button size="sm" onClick={addArticleLine} disabled={!pickArticle}>
+                  <Plus className="mr-1 h-4 w-4" /> Toevoegen
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
