@@ -451,6 +451,24 @@ function OfferteEditor() {
       const W = 210;
       let y = 15;
 
+      // Optioneel logo links bovenin
+      if (company?.logo_url) {
+        try {
+          const resp = await fetch(company.logo_url);
+          const blob = await resp.blob();
+          const dataUrl: string = await new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result as string);
+            r.onerror = rej;
+            r.readAsDataURL(blob);
+          });
+          const fmt = (blob.type.includes("png") ? "PNG" : "JPEG") as "PNG" | "JPEG";
+          doc.addImage(dataUrl, fmt, W - 55, y - 5, 40, 20, undefined, "FAST");
+        } catch {
+          // logo niet geladen, ga door zonder
+        }
+      }
+
       // Header — bedrijfsgegevens
       doc.setFontSize(16).setFont("helvetica", "bold");
       doc.text(company?.company_name ?? "Bedrijf", 15, y);
