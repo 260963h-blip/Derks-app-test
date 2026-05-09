@@ -22,6 +22,7 @@ import { Route as ProjectenIndexRouteImport } from './routes/projecten.index'
 import { Route as OffertesIndexRouteImport } from './routes/offertes.index'
 import { Route as ProjectenIdRouteImport } from './routes/projecten.$id'
 import { Route as OffertesIdRouteImport } from './routes/offertes.$id'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 
 const VerlofRoute = VerlofRouteImport.update({
   id: '/verlof',
@@ -88,6 +89,12 @@ const OffertesIdRoute = OffertesIdRouteImport.update({
   path: '/offertes/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/projecten/$id': typeof ProjectenIdRoute
   '/offertes/': typeof OffertesIndexRoute
   '/projecten/': typeof ProjectenIndexRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,6 +126,7 @@ export interface FileRoutesByTo {
   '/projecten/$id': typeof ProjectenIdRoute
   '/offertes': typeof OffertesIndexRoute
   '/projecten': typeof ProjectenIndexRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,6 +143,7 @@ export interface FileRoutesById {
   '/projecten/$id': typeof ProjectenIdRoute
   '/offertes/': typeof OffertesIndexRoute
   '/projecten/': typeof ProjectenIndexRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
     | '/projecten/$id'
     | '/offertes/'
     | '/projecten/'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/projecten/$id'
     | '/offertes'
     | '/projecten'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -181,6 +193,7 @@ export interface FileRouteTypes {
     | '/projecten/$id'
     | '/offertes/'
     | '/projecten/'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -197,6 +210,7 @@ export interface RootRouteChildren {
   ProjectenIdRoute: typeof ProjectenIdRoute
   OffertesIndexRoute: typeof OffertesIndexRoute
   ProjectenIndexRoute: typeof ProjectenIndexRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -292,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OffertesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -309,6 +330,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectenIdRoute: ProjectenIdRoute,
   OffertesIndexRoute: OffertesIndexRoute,
   ProjectenIndexRoute: ProjectenIndexRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
