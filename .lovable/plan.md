@@ -1,73 +1,91 @@
-## Artikelen module
+## Doel
 
-We bouwen een artikelenbeheer met twee soorten artikelen:
-
-### 1. Materialen (BTW hoog 21%)
-Gewone producten met categorie, subcategorie, eenheid en prijs.
-
-### 2. Werkzaamheden per ruimte (BTW laag 9%)
-Diensten gekoppeld aan een ruimte (Keuken, Woonkamer, Slaapkamer, Badkamer, …) met dynamische invoervelden (aantal wanden, m², kleur, type stucwerk, etc.).
+We stappen over van losse "klant + offerte" naar **projecten als centrale entiteit**. Elk project heeft één uniek **projectnummer** dat tegelijk dient als offertenummer (en later factuurnummer-basis). Binnen een project verzamelen we alle documenten: offerte-pdf, werkorder-pdf en factuur-pdf — het projectdossier.
 
 ---
 
-### Database
+## Nieuwe structuur (concept)
 
-**Tabel `articles`** (gemeenschappelijk voor beide types):
-- `article_type` — `materiaal` of `werkzaamheid`
-- `category` — bv. "Materialen" of ruimtenaam ("Keuken", "Woonkamer", "Badkamer", …)
-- `subcategory` — bv. "Hoekstukken", "Zakken stuc", "Stukadoren wanden"
-- `name` — naam van het artikel/werkzaamheid
-- `description` — vrije tekst
-- `unit` — `stuk`, `zak`, `liter`, `rol`, `m2`, `wand`, `ja_nee`, …
-- `unit_label` — vrije tekst voor weergave (bv. "per zak (25kg)")
-- `vat_rate` — 21 of 9 (default afhankelijk van type)
-- `price` — verkoopprijs per eenheid
-- `cost_price` — inkoopprijs (optioneel)
-- `field_schema` — JSONB array van extra invoervelden (alleen werkzaamheden), bv:
-  ```json
-  [
-    { "key": "aantal_wanden", "label": "Aantal wanden", "type": "number" },
-    { "key": "hoogte", "label": "Hoogte wanden (m)", "type": "number" },
-    { "key": "kleur", "label": "Kleur", "type": "text" },
-    { "key": "type_stucwerk", "label": "Type stucwerk", "type": "select", "options": ["glad","structuur"] },
-    { "key": "plafond", "label": "Plafond", "type": "boolean" },
-    { "key": "opp_plafond", "label": "Opp. plafond (m²)", "type": "number" }
-  ]
-  ```
-- `is_active` — boolean
-- standard `user_id`, RLS, timestamps
-
-**Seed-data** met de voorbeelden die je gaf (Hoekprofiel 2m, Stucmortel, Primer, Latex verf, Behang 10m², plus de werkzaamheden per ruimte).
+```
+Project (projectnummer = offertenummer)
+├── Klant (nieuw of bestaand, gekoppeld aan project)
+├── Offerte (1 per project, status: concept → definitief → akkoord)
+│   └── offerte.pdf  (opgeslagen in dossier)
+├── Werkorder (na akkoord, status: gepland → uitgevoerd)
+│   └── werkorder.pdf
+└── Factuur (na uitvoering)
+    └── factuur.pdf
+```
 
 ---
 
-### UI: `/artikelen`
+## Stappenplan
 
-Eén pagina met twee tabbladen:
+### Stap 1 — Database
 
-**Tab "Materialen"**
-- Tabel: Categorie / Subcategorie / Naam / Eenheid / Prijs / BTW
-- Filter op subcategorie (Hoekstukken, Zakken stuc, Voorstrijk, Verf, Behang)
-- Dialog voor nieuw/bewerken met velden: subcategorie, naam, eenheid, prijs, BTW (default 21%)
+- Nieuwe tabel **`projects`**: projectnummer (= offertenummer), titel, klant_id, contact_id, status (`nieuw` / `offerte` / `akkoord` / `in_uitvoering` / `afgerond` / `gefactureerd`), aanmaakdatum, notities.
+- **`quotes`** krijgt verplichte `project_id` (1-op-1 met project).
+- Nieuwe tabel **`work_orders`** (project_id, datum, uitvoerder, status, notities).
+- Nieuwe tabel **`invoices`** (project_id, factuurnummer, datum, vervaldatum, status, bedragen).
+- Nieuwe tabel **`project_documents`** (project_id, type: `offerte` / `werkorder` / `factuur` / `overig`, bestandsnaam, file_path in storage, versie, aangemaakt_op).
+- Storage bucket **`project-documents`** (privé, RLS per gebruiker).
+- Nummering: `company_settings.quote_number_next` wordt hergebruikt als **projectnummer-teller**; factuurnummer blijft eigen reeks.
 
-**Tab "Werkzaamheden"**
-- Tabel: Ruimte / Werkzaamheid / Eenheid / Prijs / BTW
-- Filter op ruimte (Keuken, Woonkamer, Slaapkamer, Badkamer, …)
-- Dialog voor nieuw/bewerken met:
-  - Ruimte (select + vrije invoer)
-  - Werkzaamheid (naam)
-  - Eenheid + label
-  - Prijs, BTW (default 9%)
-  - **Veldenbouwer**: lijst van extra invoervelden die later bij offerte/calculatie ingevuld worden (key, label, type: number/text/select/boolean, opties)
+### Stap 2 — Nieuwe flow: project aanmaken
 
-Tegel "Artikelen" toevoegen op het dashboard.
+Nieuwe route **`/projecten`** (lijst) en **`/projecten/$id`** (dossier).
+
+Wizard bij "Nieuw project":
+1. **Klant kiezen of nieuw aanmaken** (bestaande klantvelden, inline formulier).
+2. Project-titel + referentie invullen → projectnummer wordt automatisch gegenereerd.
+3. Project wordt aangemaakt → meteen door naar het projectdossier.
+
+### Stap 3 — Offerte binnen project
+
+- De bestaande offerte-editor verhuist naar een tab **"Offerte"** binnen het projectdossier.
+- Offertenummer = projectnummer (read-only).
+- Bij **"Definitieve offerte genereren"** wordt de pdf opgeslagen in storage onder `projects/{projectnummer}/offerte-v{n}.pdf` en als rij in `project_documents` vastgelegd.
+- Elke nieuwe generatie = nieuwe versie (oude blijven bewaard in dossier).
+
+### Stap 4 — Projectdossier UI
+
+Tabbladen binnen `/projecten/$id`:
+- **Overzicht** — klant, status, totalen, snelle acties.
+- **Offerte** — editor + pdf-versies.
+- **Werkorder** — (stap 5).
+- **Factuur** — (stap 6).
+- **Documenten** — alle pdf's chronologisch, downloadbaar.
+
+### Stap 5 — Werkorder (later uit te bouwen)
+
+- Knop "Werkorder aanmaken" zodra offerte = akkoord.
+- Eenvoudig formulier (datum, medewerkers, opmerkingen) → genereert werkorder.pdf → opgeslagen in dossier.
+
+### Stap 6 — Factuur (later uit te bouwen)
+
+- Knop "Factuur aanmaken" na uitvoering, neemt regels over uit offerte.
+- Genereert factuur.pdf met eigen factuurnummer → opgeslagen in dossier.
+
+### Stap 7 — Migratie bestaande offertes
+
+- Voor elke bestaande offerte automatisch een project aanmaken met hetzelfde nummer en dezelfde klant, zodat niets verloren gaat.
+- Menu "Offertes" wordt vervangen door "Projecten" (of beide naast elkaar in de overgang).
 
 ---
 
-### Stappen
-1. Migratie `articles` tabel + RLS + trigger updated_at
-2. Seed voorbeelddata
-3. Route `/artikelen` met tabs, lijst + dialog
-4. Tegel op dashboard
+## Volgorde van uitvoeren
 
-Akkoord? Dan zet ik stap 1 (migratie) klaar.
+1. Stap 1 (database) — migratie schrijven, jij keurt goed.
+2. Stap 2 + 3 + 4 — nieuwe `/projecten` route, wizard, dossier met offerte-tab + pdf-opslag.
+3. Stap 7 — migratie van bestaande offertes naar projecten.
+4. Stap 5 — werkorder.
+5. Stap 6 — factuur.
+
+---
+
+## Vragen voor jou
+
+1. **Projectnummer-format**: zelfde als nu (`2026-0001`)? Of een eigen prefix zoals `P2026-0001`?
+2. **Factuurnummer**: aparte doorlopende reeks (bv. `F2026-0001`) of gelijk aan projectnummer?
+3. **Mogen bestaande offertes automatisch omgezet worden** naar projecten (stap 7), of wil je dat handmatig doen?
+4. Akkoord om met **stap 1 (databasemigratie)** te beginnen?
