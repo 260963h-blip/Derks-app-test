@@ -530,7 +530,13 @@ function OfferteEditor() {
       doc.text(`Datum: ${quote.quote_date}`, W - 15, y, { align: "right" });
       if (quote.valid_until) doc.text(`Geldig tot: ${quote.valid_until}`, W - 15, y + 5, { align: "right" });
       if (quote.reference) doc.text(`Referentie: ${quote.reference}`, 15, y + 5);
-      y += 12;
+      y += 10;
+      // Blauwe scheidingslijn onder referentie/geldigheidsduur
+      doc.setDrawColor(37, 99, 235);
+      doc.setLineWidth(0.4);
+      doc.line(15, y, W - 15, y);
+      doc.setDrawColor(0);
+      y += 5;
 
       // Gegenereerde tekst
       const wrapped = doc.splitTextToSize(text, W - 30);
@@ -538,31 +544,7 @@ function OfferteEditor() {
       doc.text(wrapped, 15, y);
       y += wrapped.length * 5 + 6;
 
-      // Regels tabel
-      autoTable(doc, {
-        startY: y,
-        head: [["Omschrijving", "Aantal", "Eenh.", "Prijs", "BTW%", "Totaal"]],
-        body: lines.map((l) => [
-          l.description,
-          String(l.quantity),
-          l.unit ?? "",
-          fmt(Number(l.unit_price)),
-          `${l.vat_rate}%`,
-          fmt(Number(l.quantity) * Number(l.unit_price)),
-        ]),
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [40, 40, 40] },
-        columnStyles: {
-          1: { halign: "right" },
-          3: { halign: "right" },
-          4: { halign: "right" },
-          5: { halign: "right" },
-        },
-      });
-      // @ts-ignore lastAutoTable
-      y = (doc as any).lastAutoTable.finalY + 6;
-
-      // Totalen
+      // Totalen (zonder regeloverzicht)
       const xLabel = W - 80;
       const xVal = W - 15;
       doc.setFontSize(10);
@@ -584,8 +566,11 @@ function OfferteEditor() {
           y += 5;
         }
       }
+      // Streep tussen BTW en totaal
+      doc.setLineWidth(0.3);
+      doc.line(xLabel, y - 2, xVal, y - 2);
       doc.setFont("helvetica", "bold");
-      doc.text("Totaal", xLabel, y + 1);
+      doc.text("Totaal incl. BTW", xLabel, y + 1);
       doc.text(fmt(totals.total), xVal, y + 1, { align: "right" });
       doc.setFont("helvetica", "normal");
       y += 10;
