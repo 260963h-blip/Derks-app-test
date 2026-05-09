@@ -245,8 +245,8 @@ function ProjectDossier() {
           token = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
           await supabase.from("quotes").update({ approval_token: token }).eq("id", q2.id);
         }
-        // Gebruik de gepubliceerde URL zodat de klant de link zonder login kan openen.
-        const publicBase = "https://klus-kameraad.lovable.app";
+        // Gebruik de eigen live domeinnaam voor akkoordlinks in e-mails.
+        const publicBase = "https://projecten.stucadoorsbedrijfderks.nl";
         approvalUrl = `${publicBase}/offerte-akkoord/${token}`;
       }
 
