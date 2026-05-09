@@ -289,6 +289,11 @@ function OfferteEditor() {
     const r = rooms.find((x) => x.id === pickRoom);
     if (!r) return;
     const vr = vatForLine(selectedCustomer?.customer_type, quote!.vat_mode, "ruimte");
+    const walls = Number(roomWalls) || 0;
+    const descParts: string[] = [];
+    if (walls > 0) descParts.push(`${walls} ${walls === 1 ? "wand" : "wanden"}`);
+    if (roomCeiling) descParts.push("incl. plafond");
+    const extra = descParts.length ? ` (${descParts.join(", ")})` : "";
     if (r.pricing_type === "fixed") {
       const price = Number(r.fixed_price);
       setLines((prev) => [
@@ -296,7 +301,7 @@ function OfferteEditor() {
         {
           id: `tmp-${crypto.randomUUID()}`,
           line_type: "ruimte",
-          description: r.name,
+          description: r.name + extra,
           quantity: 1,
           unit: "stuk",
           unit_price: price,
@@ -313,7 +318,7 @@ function OfferteEditor() {
         {
           id: `tmp-${crypto.randomUUID()}`,
           line_type: "ruimte",
-          description: r.name,
+          description: r.name + extra,
           quantity: m2,
           unit: "m²",
           unit_price: Number(r.price_per_m2),
@@ -325,6 +330,8 @@ function OfferteEditor() {
     }
     setPickRoom("");
     setRoomM2("");
+    setRoomWalls("");
+    setRoomCeiling(false);
   };
 
   const save = async () => {
@@ -558,6 +565,8 @@ function OfferteEditor() {
                 const r = rooms.find((x) => x.id === v);
                 if (r?.pricing_type !== "fixed" && r?.default_m2) setRoomM2(String(r.default_m2));
                 else setRoomM2("");
+                setRoomWalls(r?.default_walls ? String(r.default_walls) : "");
+                setRoomCeiling(!!r?.include_ceiling);
               }}>
                 <SelectTrigger><SelectValue placeholder="Kies ruimte..." /></SelectTrigger>
                 <SelectContent>
@@ -570,19 +579,45 @@ function OfferteEditor() {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="flex gap-2">
-                {rooms.find((x) => x.id === pickRoom)?.pricing_type !== "fixed" && (
-                  <Input
-                    type="number"
-                    placeholder="m²"
-                    value={roomM2}
-                    onChange={(e) => setRoomM2(e.target.value)}
-                  />
-                )}
-                <Button size="sm" onClick={addRoomLine} disabled={!pickRoom} className="ml-auto">
-                  <Plus className="mr-1 h-4 w-4" /> Toevoegen
-                </Button>
-              </div>
+              {pickRoom && (
+                <div className="space-y-2 rounded-md border p-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Aantal wanden</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={roomWalls}
+                        onChange={(e) => setRoomWalls(e.target.value)}
+                      />
+                    </div>
+                    {rooms.find((x) => x.id === pickRoom)?.pricing_type !== "fixed" && (
+                      <div>
+                        <Label className="text-xs">m²</Label>
+                        <Input
+                          type="number"
+                          placeholder="m²"
+                          value={roomM2}
+                          onChange={(e) => setRoomM2(e.target.value)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={roomCeiling}
+                      onCheckedChange={(v) => setRoomCeiling(!!v)}
+                    />
+                    Plafond meenemen
+                  </label>
+                  <div className="flex">
+                    <Button size="sm" onClick={addRoomLine} disabled={!pickRoom} className="ml-auto">
+                      <Plus className="mr-1 h-4 w-4" /> Toevoegen
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
