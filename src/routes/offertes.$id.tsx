@@ -590,10 +590,30 @@ function OfferteEditor() {
       doc.setFont("helvetica", "normal");
       y += 10;
 
-      if (company?.quote_footer) {
-        const footer = doc.splitTextToSize(company.quote_footer, W - 30);
+      // Voettekst (afbeelding + tekst) uit bedrijfsgegevens
+      const footerY = 280;
+      if ((company as any)?.footer_image_url) {
+        try {
+          const resp = await fetch((company as any).footer_image_url);
+          const blob = await resp.blob();
+          const dataUrl: string = await new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result as string);
+            r.onerror = rej;
+            r.readAsDataURL(blob);
+          });
+          const fmtImg = (blob.type.includes("png") ? "PNG" : "JPEG") as "PNG" | "JPEG";
+          doc.addImage(dataUrl, fmtImg, 15, footerY - 12, 30, 12, undefined, "FAST");
+        } catch {
+          // afbeelding niet geladen
+        }
+      }
+      const footerText = (company as any)?.footer_text || company?.quote_footer;
+      if (footerText) {
+        const footer = doc.splitTextToSize(footerText, W - 60);
         doc.setFontSize(8).setTextColor(100);
-        doc.text(footer, 15, 285);
+        doc.text(footer, W - 15, footerY - 6, { align: "right" });
+        doc.setTextColor(0);
       }
 
       doc.save(`Offerte-${quote.quote_number}.pdf`);
