@@ -451,7 +451,9 @@ function OfferteEditor() {
       const W = 210;
       let y = 15;
 
-      // Optioneel logo links bovenin
+      // Logo links binnen marge
+      const logoTop = y;
+      const logoH = 28;
       if (company?.logo_url) {
         try {
           const resp = await fetch(company.logo_url);
@@ -463,32 +465,40 @@ function OfferteEditor() {
             r.readAsDataURL(blob);
           });
           const imgFmt = (blob.type.includes("png") ? "PNG" : "JPEG") as "PNG" | "JPEG";
-          doc.addImage(dataUrl, imgFmt, W - 55, y - 5, 40, 20, undefined, "FAST");
+          doc.addImage(dataUrl, imgFmt, 15, logoTop, 50, logoH, undefined, "FAST");
         } catch {
           // logo niet geladen, ga door zonder
         }
       }
 
-      // Header — bedrijfsgegevens
-      doc.setFontSize(16).setFont("helvetica", "bold");
-      doc.text(company?.company_name ?? "Bedrijf", 15, y);
+      // Bedrijfsgegevens rechts uitgelijnd
+      const rightX = W - 15;
+      doc.setFontSize(13).setFont("helvetica", "bold");
+      doc.text(company?.company_name ?? "Bedrijf", rightX, y + 4, { align: "right" });
       doc.setFontSize(9).setFont("helvetica", "normal");
-      const compLines = [
+      const addrLines = [
         company?.address,
         [company?.postal_code, company?.city].filter(Boolean).join(" "),
-        company?.country,
-        company?.phone ? `Tel: ${company.phone}` : null,
-        company?.email,
-        company?.website,
-        company?.kvk_number ? `KvK: ${company.kvk_number}` : null,
-        company?.vat_number ? `BTW: ${company.vat_number}` : null,
-        company?.iban ? `IBAN: ${company.iban}` : null,
       ].filter(Boolean) as string[];
-      compLines.forEach((line, i) => doc.text(line, 15, y + 6 + i * 4));
+      addrLines.forEach((line, i) => doc.text(line, rightX, y + 9 + i * 4, { align: "right" }));
+      const labeled: { label: string; value?: string | null }[] = [
+        { label: "E-Mail", value: company?.email },
+        { label: "KvK-nummer", value: company?.kvk_number },
+        { label: "BTW-nummer", value: company?.vat_number },
+        { label: "Telefoon", value: company?.phone },
+      ];
+      let ly = y + 9 + addrLines.length * 4 + 2;
+      for (const row of labeled) {
+        if (!row.value) continue;
+        doc.text(`${row.label}: ${row.value}`, rightX, ly, { align: "right" });
+        ly += 4;
+      }
 
-      // Klantblok rechts
+      y = Math.max(logoTop + logoH, ly) + 6;
+
+      // Klantblok
       doc.setFontSize(10).setFont("helvetica", "bold");
-      doc.text("Aan:", W - 80, y);
+      doc.text("Aan:", 15, y);
       doc.setFont("helvetica", "normal").setFontSize(9);
       const custLines = [
         cust?.name,
@@ -499,9 +509,8 @@ function OfferteEditor() {
         cust?.customer_type === "zakelijk" && cust?.vat_number ? `BTW: ${cust.vat_number}` : null,
         cust?.customer_type === "zakelijk" && cust?.kvk_number ? `KvK: ${cust.kvk_number}` : null,
       ].filter(Boolean) as string[];
-      custLines.forEach((line, i) => doc.text(line, W - 80, y + 6 + i * 4));
-
-      y = Math.max(y + 6 + compLines.length * 4, y + 6 + custLines.length * 4) + 10;
+      custLines.forEach((line, i) => doc.text(line, 15, y + 5 + i * 4));
+      y += 5 + custLines.length * 4 + 8;
 
       // Titel + meta
       doc.setFontSize(14).setFont("helvetica", "bold");
