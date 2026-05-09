@@ -92,6 +92,8 @@ type Room = {
   price_per_m2: number;
   vat_rate: number;
   is_active: boolean;
+  pricing_type: "per_m2" | "fixed";
+  fixed_price: number;
 };
 
 type CategoryRow = { id: string; scope: "materiaal" | "werkzaamheid"; name: string };
@@ -132,6 +134,8 @@ const emptyRoom = () => ({
   price_per_m2: 0,
   vat_rate: 9,
   is_active: true,
+  pricing_type: "per_m2" as "per_m2" | "fixed",
+  fixed_price: 0,
 });
 
 function ArtikelenPage() {
@@ -292,6 +296,8 @@ function ArtikelenPage() {
       price_per_m2: Number(r.price_per_m2),
       vat_rate: Number(r.vat_rate),
       is_active: r.is_active,
+      pricing_type: (r.pricing_type ?? "per_m2") as "per_m2" | "fixed",
+      fixed_price: Number(r.fixed_price ?? 0),
     });
     setRoomDialog(true);
   };
@@ -310,6 +316,8 @@ function ArtikelenPage() {
       price_per_m2: Number(roomForm.price_per_m2) || 0,
       vat_rate: Number(roomForm.vat_rate),
       is_active: roomForm.is_active,
+      pricing_type: roomForm.pricing_type,
+      fixed_price: Number(roomForm.fixed_price) || 0,
     };
     const res = roomEditing
       ? await supabase.from("rooms").update(payload).eq("id", roomEditing.id)
