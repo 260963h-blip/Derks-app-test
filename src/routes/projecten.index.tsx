@@ -272,7 +272,7 @@ function ProjectenPage() {
           <DialogTrigger asChild>
             <Button><Plus className="mr-1 h-4 w-4" /> Nieuw project</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
             <DialogHeader><DialogTitle>Nieuw project aanmaken</DialogTitle></DialogHeader>
             <Tabs value={mode} onValueChange={(v) => setMode(v as "existing" | "new")}>
               <TabsList className="grid w-full grid-cols-2">
@@ -292,33 +292,158 @@ function ProjectenPage() {
                   </SelectContent>
                 </Select>
               </TabsContent>
-              <TabsContent value="new" className="grid grid-cols-2 gap-2 pt-3">
-                <div className="col-span-2">
-                  <Label className="text-xs">Naam *</Label>
-                  <Input value={newCust.name} onChange={(e) => setNewCust({ ...newCust, name: e.target.value })} />
+              <TabsContent value="new" className="space-y-4 pt-3">
+                <div className="space-y-2">
+                  <Label>Type klant</Label>
+                  <RadioGroup
+                    value={newCust.customer_type}
+                    onValueChange={(v) => setNewCust({ ...newCust, customer_type: v as "particulier" | "zakelijk" })}
+                    className="flex gap-6"
+                  >
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <RadioGroupItem value="particulier" id="np-part" />
+                      <span>Particulier</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <RadioGroupItem value="zakelijk" id="np-zak" />
+                      <span>Zakelijk</span>
+                    </label>
+                  </RadioGroup>
                 </div>
-                <div className="col-span-2">
-                  <Label className="text-xs">Type</Label>
-                  <Select value={newCust.customer_type} onValueChange={(v) => setNewCust({ ...newCust, customer_type: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="particulier">Particulier</SelectItem>
-                      <SelectItem value="zakelijk">Zakelijk</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label className="text-xs">{newCust.customer_type === "zakelijk" ? "Bedrijfsnaam *" : "Naam *"}</Label>
+                    <Input value={newCust.name} onChange={(e) => setNewCust({ ...newCust, name: e.target.value })} />
+                  </div>
+                  {newCust.customer_type === "particulier" && (
+                    <div>
+                      <Label className="text-xs">Telefoonnummer</Label>
+                      <Input value={newCust.phone} onChange={(e) => setNewCust({ ...newCust, phone: e.target.value })} />
+                    </div>
+                  )}
                 </div>
-                <div><Label className="text-xs">E-mail</Label>
-                  <Input value={newCust.email} onChange={(e) => setNewCust({ ...newCust, email: e.target.value })} /></div>
-                <div><Label className="text-xs">Telefoon</Label>
-                  <Input value={newCust.phone} onChange={(e) => setNewCust({ ...newCust, phone: e.target.value })} /></div>
-                <div><Label className="text-xs">Straat</Label>
-                  <Input value={newCust.street} onChange={(e) => setNewCust({ ...newCust, street: e.target.value })} /></div>
-                <div><Label className="text-xs">Huisnr.</Label>
-                  <Input value={newCust.house_number} onChange={(e) => setNewCust({ ...newCust, house_number: e.target.value })} /></div>
-                <div><Label className="text-xs">Postcode</Label>
-                  <Input value={newCust.postal_code} onChange={(e) => setNewCust({ ...newCust, postal_code: e.target.value })} /></div>
-                <div><Label className="text-xs">Plaats</Label>
-                  <Input value={newCust.city} onChange={(e) => setNewCust({ ...newCust, city: e.target.value })} /></div>
+
+                <div className="grid grid-cols-12 gap-2">
+                  <div className="col-span-12 sm:col-span-6">
+                    <Label className="text-xs">Straat</Label>
+                    <Input value={newCust.street} onChange={(e) => setNewCust({ ...newCust, street: e.target.value })} />
+                  </div>
+                  <div className="col-span-4 sm:col-span-2">
+                    <Label className="text-xs">Huisnr.</Label>
+                    <Input value={newCust.house_number} onChange={(e) => setNewCust({ ...newCust, house_number: e.target.value })} />
+                  </div>
+                  <div className="col-span-8 sm:col-span-4">
+                    <Label className="text-xs">Toevoeging</Label>
+                    <Input value={newCust.house_number_addition} onChange={(e) => setNewCust({ ...newCust, house_number_addition: e.target.value })} />
+                  </div>
+                  <div className="col-span-4">
+                    <Label className="text-xs">Postcode</Label>
+                    <Input value={newCust.postal_code} onChange={(e) => setNewCust({ ...newCust, postal_code: e.target.value })} />
+                  </div>
+                  <div className="col-span-8">
+                    <Label className="text-xs">Plaats</Label>
+                    <Input value={newCust.city} onChange={(e) => setNewCust({ ...newCust, city: e.target.value })} />
+                  </div>
+                </div>
+
+                {newCust.customer_type === "particulier" && (
+                  <div>
+                    <Label className="text-xs">E-mailadres</Label>
+                    <Input type="email" value={newCust.email} onChange={(e) => setNewCust({ ...newCust, email: e.target.value })} />
+                  </div>
+                )}
+
+                {newCust.customer_type === "zakelijk" && (
+                  <>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <Label className="text-xs">KvK-nummer</Label>
+                        <Input value={newCust.kvk_number} onChange={(e) => setNewCust({ ...newCust, kvk_number: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">BTW-nummer</Label>
+                        <Input value={newCust.vat_number} onChange={(e) => setNewCust({ ...newCust, vat_number: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">E-mail algemeen</Label>
+                        <Input type="email" value={newCust.email} onChange={(e) => setNewCust({ ...newCust, email: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">E-mail facturatie</Label>
+                        <Input type="email" value={newCust.email_invoice} onChange={(e) => setNewCust({ ...newCust, email_invoice: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Telefoonnummer</Label>
+                        <Input value={newCust.phone} onChange={(e) => setNewCust({ ...newCust, phone: e.target.value })} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 rounded-md border p-3">
+                      <div className="flex items-center justify-between">
+                        <Label>Contactpersonen</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setNewContacts([...newContacts, { name: "", phone: "", email: "" }])}
+                        >
+                          <Plus className="mr-1 h-4 w-4" /> Toevoegen
+                        </Button>
+                      </div>
+                      {newContacts.length === 0 && (
+                        <p className="text-sm text-muted-foreground">Nog geen contactpersonen.</p>
+                      )}
+                      {newContacts.map((c, i) => (
+                        <div key={i} className="grid grid-cols-12 items-end gap-2">
+                          <div className="col-span-12 sm:col-span-4">
+                            <Label className="text-xs">Naam</Label>
+                            <Input value={c.name} onChange={(e) => {
+                              const n = [...newContacts]; n[i] = { ...n[i], name: e.target.value }; setNewContacts(n);
+                            }} />
+                          </div>
+                          <div className="col-span-6 sm:col-span-3">
+                            <Label className="text-xs">GSM</Label>
+                            <Input value={c.phone} onChange={(e) => {
+                              const n = [...newContacts]; n[i] = { ...n[i], phone: e.target.value }; setNewContacts(n);
+                            }} />
+                          </div>
+                          <div className="col-span-6 sm:col-span-4">
+                            <Label className="text-xs">E-mail</Label>
+                            <Input type="email" value={c.email} onChange={(e) => {
+                              const n = [...newContacts]; n[i] = { ...n[i], email: e.target.value }; setNewContacts(n);
+                            }} />
+                          </div>
+                          <div className="col-span-12 sm:col-span-1">
+                            <Button type="button" variant="ghost" size="icon" onClick={() => {
+                              const n = [...newContacts]; n.splice(i, 1); setNewContacts(n);
+                            }}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Standaard BTW-tarief voor deze klant</Label>
+                  <select
+                    value={newCust.default_vat_type}
+                    onChange={(e) => setNewCust({ ...newCust, default_vat_type: e.target.value as VatType })}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    {VAT_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Notities</Label>
+                  <Textarea rows={3} value={newCust.notes} onChange={(e) => setNewCust({ ...newCust, notes: e.target.value })} />
+                </div>
               </TabsContent>
             </Tabs>
             <div className="space-y-2 border-t pt-3">
