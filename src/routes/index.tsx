@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Receipt, Users, Package, UserCog, Building2, LogOut, Clock, CalendarDays, Settings } from "lucide-react";
+import { FileText, Receipt, Users, Package, UserCog, Building2, LogOut, Clock, CalendarDays, Settings, FolderKanban } from "lucide-react";
 import logo from "@/assets/logo-derks.png";
 
 export const Route = createFileRoute("/")({
@@ -16,7 +16,8 @@ const menu: Array<{
   icon: typeof FileText;
   to?: string;
 }> = [
-  { title: "Offertes", desc: "Offertes maken en beheren", icon: FileText, to: "/offertes" },
+  { title: "Projecten", desc: "Projecten met offerte, werkorder en factuur", icon: FolderKanban, to: "/projecten" },
+  { title: "Offertes (oud)", desc: "Bestaande offertenlijst", icon: FileText, to: "/offertes" },
   { title: "Facturen", desc: "Facturen en UBL/XML-export", icon: Receipt },
   { title: "Klanten", desc: "Klantgegevens beheren", icon: Users, to: "/klanten" },
   { title: "Artikelen", desc: "Materialen en werkzaamheden", icon: Package, to: "/artikelen" },

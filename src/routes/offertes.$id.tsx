@@ -31,6 +31,7 @@ type Quote = {
   valid_until: string | null;
   notes: string | null;
   vat_mode: string;
+  project_id: string | null;
 };
 
 type Line = {
@@ -606,8 +607,45 @@ function OfferteEditor() {
         doc.setTextColor(0);
       }
 
-      doc.save(`Offerte-${quote.quote_number}.pdf`);
-      toast.success("Offerte PDF gegenereerd");
+      const fileName = `Offerte-${quote.quote_number}.pdf`;
+      // Lokaal downloaden
+      doc.save(fileName);
+
+      // Opslaan in projectdossier (storage + project_documents)
+      if (quote.project_id) {
+        try {
+          const blob = doc.output("blob");
+          // bepaal volgende versie
+          const { data: existing } = await supabase
+            .from("project_documents")
+            .select("version")
+            .eq("project_id", quote.project_id)
+            .eq("doc_type", "offerte")
+            .order("version", { ascending: false })
+            .limit(1);
+          const nextVersion = ((existing?.[0]?.version as number) ?? 0) + 1;
+          const path = `${user.id}/${quote.project_id}/offerte-v${nextVersion}-${quote.quote_number}.pdf`;
+          const { error: upErr } = await supabase.storage
+            .from("project-documents")
+            .upload(path, blob, { contentType: "application/pdf", upsert: false });
+          if (upErr) throw upErr;
+          await supabase.from("project_documents").insert({
+            user_id: user.id,
+            project_id: quote.project_id,
+            doc_type: "offerte",
+            file_name: `Offerte-${quote.quote_number}-v${nextVersion}.pdf`,
+            file_path: path,
+            version: nextVersion,
+            mime_type: "application/pdf",
+            file_size: blob.size,
+          });
+          toast.success(`Offerte PDF gegenereerd en opgeslagen in dossier (v${nextVersion})`);
+        } catch (e: any) {
+          toast.error("PDF lokaal gedownload, maar opslaan in dossier mislukt: " + (e?.message ?? e));
+        }
+      } else {
+        toast.success("Offerte PDF gegenereerd");
+      }
     } catch (e: any) {
       toast.error("Genereren mislukt: " + (e?.message ?? e));
     } finally {
