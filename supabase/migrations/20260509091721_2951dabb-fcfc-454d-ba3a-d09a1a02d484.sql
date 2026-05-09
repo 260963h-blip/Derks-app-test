@@ -1,0 +1,2 @@
+ALTER TABLE public.company_settings ALTER COLUMN quote_email_subject SET DEFAULT 'Offerte {{quote_number}} - {{customer_name}}';
+UPDATE public.company_settings SET quote_email_subject = 'Offerte {{quote_number}} - {{customer_name}}' WHERE quote_email_subject = 'Offerte {{quote_number}} - {{company_name}}' OR quote_email_subject IS NULL;
