@@ -381,6 +381,18 @@ function ProjectDossier() {
         ? new Date(q2.valid_until as string).toLocaleDateString("nl-NL")
         : undefined;
 
+      // Genereer/hergebruik approval_token zodat de klant via een knop in de mail akkoord kan geven
+      let approvalUrl: string | undefined;
+      if (quote?.id) {
+        let token: string | null = (quote as any).approval_token ?? null;
+        if (!token) {
+          token = (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)) + "-" + Date.now().toString(36);
+          await supabase.from("quotes").update({ approval_token: token }).eq("id", quote.id);
+        }
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
+        approvalUrl = `${origin}/offerte/akkoord?token=${encodeURIComponent(token)}`;
+      }
+
       const { data: comp } = await supabase
         .from("company_settings").select("company_name").eq("user_id", user.id).maybeSingle();
       const companyName = (comp as any)?.company_name ?? "";
@@ -392,6 +404,7 @@ function ProjectDossier() {
         bodyText: sendBody,
         downloadUrl,
         validUntil,
+        approvalUrl,
         subject: sendSubject,
       };
 
