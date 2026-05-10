@@ -925,6 +925,45 @@ function ProjectDossier() {
         file_size: blob.size,
       });
 
+      // 4b) UBL e-factuur (XML) genereren en opslaan naast de pdf
+      try {
+        const xml = buildUblInvoiceXml({
+          invoiceNumber,
+          invoiceDate,
+          dueDate,
+          subtotal,
+          vatTotal,
+          total,
+          vatMode,
+          notes: invoiceText,
+          quoteNumber: q?.quote_number ?? null,
+          projectNumber: project.project_number,
+          company: comp as any,
+          customer: cust as any,
+          contact: contactRes as any,
+          lines,
+        });
+        const xmlBlob = new Blob([xml], { type: "application/xml" });
+        const xmlPath = `${user.id}/${project.id}/factuur-${invoiceNumber}.xml`;
+        const { error: xmlUpErr } = await supabase.storage
+          .from("project-documents")
+          .upload(xmlPath, xmlBlob, { contentType: "application/xml", upsert: false });
+        if (xmlUpErr) throw xmlUpErr;
+        await supabase.from("project_documents").insert({
+          user_id: user.id,
+          project_id: project.id,
+          doc_type: "factuur",
+          file_name: `Factuur-${invoiceNumber}.xml`,
+          file_path: xmlPath,
+          version: 1,
+          mime_type: "application/xml",
+          file_size: xmlBlob.size,
+        });
+      } catch (xmlErr: any) {
+        console.error("UBL XML genereren mislukt", xmlErr);
+        toast.warning("Factuur-pdf opgeslagen, maar XML genereren mislukte: " + (xmlErr?.message ?? xmlErr));
+      }
+
       // Bump nummer in instellingen
       await supabase.from("company_settings").update({
         invoice_number_year: year,
@@ -952,8 +991,8 @@ function ProjectDossier() {
     setInvSending(true);
     try {
       // Vind factuur-pdf
-      const factuurDoc = docs.find((d) => d.doc_type === "factuur" && d.file_name.includes(invoice.invoice_number))
-        ?? docs.find((d) => d.doc_type === "factuur");
+      const factuurDoc = docs.find((d) => d.doc_type === "factuur" && d.file_name.endsWith(".pdf") && d.file_name.includes(invoice.invoice_number))
+        ?? docs.find((d) => d.doc_type === "factuur" && d.file_name.endsWith(".pdf"));
       if (!factuurDoc) throw new Error("Factuur-pdf niet gevonden");
       const { data: signed } = await supabase.storage
         .from("project-documents")
@@ -962,9 +1001,18 @@ function ProjectDossier() {
 
       // Bijlagen
       const attachments: { name: string; url: string }[] = [];
+      // Standaard altijd de UBL XML e-factuur meesturen
+      const xmlDoc = docs.find((d) => d.doc_type === "factuur" && d.file_name.endsWith(".xml") && d.file_name.includes(invoice.invoice_number))
+        ?? docs.find((d) => d.doc_type === "factuur" && d.file_name.endsWith(".xml"));
+      if (xmlDoc) {
+        const { data: sx } = await supabase.storage
+          .from("project-documents")
+          .createSignedUrl(xmlDoc.file_path, 60 * 60 * 24 * 30);
+        if (sx?.signedUrl) attachments.push({ name: xmlDoc.file_name, url: sx.signedUrl });
+      }
       for (const did of Object.keys(invAttachIds).filter((k) => invAttachIds[k])) {
         const d = docs.find((x) => x.id === did);
-        if (!d || d.id === factuurDoc.id) continue;
+        if (!d || d.id === factuurDoc.id || (xmlDoc && d.id === xmlDoc.id)) continue;
         const { data: s } = await supabase.storage
           .from("project-documents")
           .createSignedUrl(d.file_path, 60 * 60 * 24 * 30);
