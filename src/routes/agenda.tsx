@@ -869,6 +869,67 @@ function AgendaPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={resOpen} onOpenChange={setResOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{resEditing ? "Reservering bewerken" : "Nieuwe reservering"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Naam *</Label>
+              <Input value={resForm.name} onChange={(e) => setResForm({ ...resForm, name: e.target.value })} placeholder="Bijv. Vakantie, Onderhoud bus..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Korte beschrijving</Label>
+              <Textarea rows={2} value={resForm.description} onChange={(e) => setResForm({ ...resForm, description: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Periode *</Label>
+              <div className="flex gap-2">
+                <Input type="date" value={resForm.start_date} onChange={(e) => {
+                  const v = e.target.value;
+                  setResForm((f) => ({ ...f, start_date: v, end_date: f.end_date < v ? v : f.end_date }));
+                }} />
+                <Input type="date" value={resForm.end_date} onChange={(e) => setResForm({ ...resForm, end_date: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Tijd</Label>
+              <div className="flex gap-2">
+                <Input type="time" value={resForm.start_time} onChange={(e) => setResForm({ ...resForm, start_time: e.target.value })} />
+                <Input type="time" value={resForm.end_time} onChange={(e) => setResForm({ ...resForm, end_time: e.target.value })} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <div>
+              {resEditing && (
+                <Button variant="destructive" size="sm" onClick={() => { setResOpen(false); setResToDelete(resEditing); }}>
+                  <Trash2 className="mr-1 h-4 w-4" /> Verwijderen
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setResOpen(false)}>Annuleren</Button>
+              <Button onClick={saveReservation}>{resEditing ? "Bijwerken" : "Reserveren"}</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!resToDelete} onOpenChange={(o) => !o && setResToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reservering verwijderen?</AlertDialogTitle>
+            <AlertDialogDescription>Deze actie kan niet ongedaan worden gemaakt.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={doDeleteReservation}>Verwijderen</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
