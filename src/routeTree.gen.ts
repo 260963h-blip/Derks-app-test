@@ -22,7 +22,6 @@ import { Route as ProjectenIndexRouteImport } from './routes/projecten.index'
 import { Route as OffertesIndexRouteImport } from './routes/offertes.index'
 import { Route as ProjectenIdRouteImport } from './routes/projecten.$id'
 import { Route as OffertesIdRouteImport } from './routes/offertes.$id'
-import { Route as OfferteAkkoordTokenRouteImport } from './routes/offerte-akkoord.$token'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -94,11 +93,6 @@ const OffertesIdRoute = OffertesIdRouteImport.update({
   path: '/offertes/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OfferteAkkoordTokenRoute = OfferteAkkoordTokenRouteImport.update({
-  id: '/offerte-akkoord/$token',
-  path: '/offerte-akkoord/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
@@ -139,7 +133,6 @@ export interface FileRoutesByFullPath {
   '/uren': typeof UrenRoute
   '/verlof': typeof VerlofRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/offerte-akkoord/$token': typeof OfferteAkkoordTokenRoute
   '/offertes/$id': typeof OffertesIdRoute
   '/projecten/$id': typeof ProjectenIdRoute
   '/offertes/': typeof OffertesIndexRoute
@@ -160,7 +153,6 @@ export interface FileRoutesByTo {
   '/uren': typeof UrenRoute
   '/verlof': typeof VerlofRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/offerte-akkoord/$token': typeof OfferteAkkoordTokenRoute
   '/offertes/$id': typeof OffertesIdRoute
   '/projecten/$id': typeof ProjectenIdRoute
   '/offertes': typeof OffertesIndexRoute
@@ -182,7 +174,6 @@ export interface FileRoutesById {
   '/uren': typeof UrenRoute
   '/verlof': typeof VerlofRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/offerte-akkoord/$token': typeof OfferteAkkoordTokenRoute
   '/offertes/$id': typeof OffertesIdRoute
   '/projecten/$id': typeof ProjectenIdRoute
   '/offertes/': typeof OffertesIndexRoute
@@ -205,7 +196,6 @@ export interface FileRouteTypes {
     | '/uren'
     | '/verlof'
     | '/email/unsubscribe'
-    | '/offerte-akkoord/$token'
     | '/offertes/$id'
     | '/projecten/$id'
     | '/offertes/'
@@ -226,7 +216,6 @@ export interface FileRouteTypes {
     | '/uren'
     | '/verlof'
     | '/email/unsubscribe'
-    | '/offerte-akkoord/$token'
     | '/offertes/$id'
     | '/projecten/$id'
     | '/offertes'
@@ -247,7 +236,6 @@ export interface FileRouteTypes {
     | '/uren'
     | '/verlof'
     | '/email/unsubscribe'
-    | '/offerte-akkoord/$token'
     | '/offertes/$id'
     | '/projecten/$id'
     | '/offertes/'
@@ -269,7 +257,6 @@ export interface RootRouteChildren {
   UrenRoute: typeof UrenRoute
   VerlofRoute: typeof VerlofRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
-  OfferteAkkoordTokenRoute: typeof OfferteAkkoordTokenRoute
   OffertesIdRoute: typeof OffertesIdRoute
   ProjectenIdRoute: typeof ProjectenIdRoute
   OffertesIndexRoute: typeof OffertesIndexRoute
@@ -373,13 +360,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OffertesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/offerte-akkoord/$token': {
-      id: '/offerte-akkoord/$token'
-      path: '/offerte-akkoord/$token'
-      fullPath: '/offerte-akkoord/$token'
-      preLoaderRoute: typeof OfferteAkkoordTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/email/unsubscribe': {
       id: '/email/unsubscribe'
       path: '/email/unsubscribe'
@@ -429,7 +409,6 @@ const rootRouteChildren: RootRouteChildren = {
   UrenRoute: UrenRoute,
   VerlofRoute: VerlofRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
-  OfferteAkkoordTokenRoute: OfferteAkkoordTokenRoute,
   OffertesIdRoute: OffertesIdRoute,
   ProjectenIdRoute: ProjectenIdRoute,
   OffertesIndexRoute: OffertesIndexRoute,

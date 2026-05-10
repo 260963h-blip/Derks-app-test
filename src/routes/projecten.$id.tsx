@@ -229,26 +229,11 @@ function ProjectDossier() {
       const downloadUrl = signed.signedUrl;
 
       const { data: q2 } = await supabase
-        .from("quotes").select("id,quote_number,valid_until,approval_token,approved_at").eq("project_id", project.id).maybeSingle();
+        .from("quotes").select("quote_number,valid_until").eq("project_id", project.id).maybeSingle();
       const quoteNumber = (q2?.quote_number as string) ?? project.project_number;
       const validUntil = q2?.valid_until
         ? new Date(q2.valid_until as string).toLocaleDateString("nl-NL")
         : undefined;
-
-      // Zorg voor een approval-token (alleen als nog niet akkoord)
-      let approvalUrl: string | undefined;
-      if (q2?.id && !q2.approved_at) {
-        let token = (q2 as any).approval_token as string | null;
-        if (!token) {
-          const bytes = new Uint8Array(24);
-          crypto.getRandomValues(bytes);
-          token = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-          await supabase.from("quotes").update({ approval_token: token }).eq("id", q2.id);
-        }
-        // Gebruik de eigen live domeinnaam voor akkoordlinks in e-mails.
-        const publicBase = "https://projecten.stucadoorsbedrijfderks.nl";
-        approvalUrl = `${publicBase}/offerte-akkoord/${token}`;
-      }
 
       const { data: comp } = await supabase
         .from("company_settings").select("company_name").eq("user_id", user.id).maybeSingle();
@@ -261,7 +246,6 @@ function ProjectDossier() {
         bodyText: sendBody,
         downloadUrl,
         validUntil,
-        approvalUrl,
         subject: sendSubject,
       };
 
