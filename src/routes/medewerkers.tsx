@@ -886,6 +886,146 @@ function MedewerkersPage() {
               )}
             </TabsContent>
 
+            {/* VERLOFDAGEN */}
+            <TabsContent value="verlofdagen" className="space-y-4 pt-4">
+              {!editing ? (
+                <p className="text-sm text-muted-foreground">
+                  Sla eerst de medewerker op. Daarna kun je hier verlof aanvragen en het saldo bekijken.
+                </p>
+              ) : (
+                <>
+                  <div className="rounded-md border p-3">
+                    <Label>Vakantiedagen per jaar</Label>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.5"
+                        value={form.vacation_days_per_year}
+                        onChange={(e) => set("vacation_days_per_year", e.target.value)}
+                        className="w-32"
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        Wordt opgeslagen bij "Opslaan" onderaan.
+                      </span>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const year = new Date().getFullYear();
+                    const total = Number(form.vacation_days_per_year || 0);
+                    const yearReqs = leaveReqs.filter(
+                      (r) => r.leave_type === "vakantie" && r.start_date.startsWith(String(year)),
+                    );
+                    const used = yearReqs
+                      .filter((r) => r.status === "goedgekeurd")
+                      .reduce((s, r) => s + Number(r.days || 0), 0);
+                    const pending = yearReqs
+                      .filter((r) => r.status === "aangevraagd")
+                      .reduce((s, r) => s + Number(r.days || 0), 0);
+                    return (
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="secondary">Recht {year}: {total} dagen</Badge>
+                        <Badge variant="outline">Opgenomen: {used}</Badge>
+                        <Badge variant="outline">In aanvraag: {pending}</Badge>
+                        <Badge>Resterend: {(total - used).toFixed(1)}</Badge>
+                      </div>
+                    );
+                  })()}
+
+                  <div className="rounded-md border p-3">
+                    <h4 className="mb-2 text-sm font-semibold">Nieuwe verlofaanvraag</h4>
+                    <p className="mb-3 text-xs text-muted-foreground">
+                      Weekenden en wettelijke feestdagen worden niet meegerekend.
+                    </p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_2fr_auto]">
+                      <div>
+                        <Label>Van</Label>
+                        <Input
+                          type="date"
+                          value={leaveForm.start_date}
+                          onChange={(e) => setLeaveForm({ ...leaveForm, start_date: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Tot</Label>
+                        <Input
+                          type="date"
+                          value={leaveForm.end_date}
+                          onChange={(e) => setLeaveForm({ ...leaveForm, end_date: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Reden (optioneel)</Label>
+                        <Input
+                          value={leaveForm.reason}
+                          onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <Button onClick={submitLeave} disabled={savingLeave} className="w-full">
+                          <Plus className="mr-2 h-4 w-4" />
+                          {calcLeaveDays(leaveForm.start_date, leaveForm.end_date)} dgn
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="mb-2 text-sm font-semibold">Mijn aanvragen</h4>
+                    {leaveReqs.filter((r) => r.status !== "afgekeurd").length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nog geen aanvragen.</p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Van</TableHead>
+                            <TableHead>Tot</TableHead>
+                            <TableHead className="text-right">Dagen</TableHead>
+                            <TableHead>Reden</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="w-12"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {leaveReqs
+                            .filter((r) => r.status !== "afgekeurd")
+                            .map((r) => (
+                              <TableRow key={r.id}>
+                                <TableCell>{r.start_date}</TableCell>
+                                <TableCell>{r.end_date}</TableCell>
+                                <TableCell className="text-right font-medium">
+                                  {Number(r.days).toFixed(1)}
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {r.reason ?? "—"}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={r.status === "goedgekeurd" ? "default" : "secondary"}>
+                                    {r.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {r.status === "aangevraagd" && (
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => deleteLeave(r.id)}
+                                      title="Aanvraag intrekken"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                </>
+              )}
+            </TabsContent>
+
             {/* VERZEKERING & ARBO */}
             <TabsContent value="arbo" className="space-y-4 pt-4">
               <div>
