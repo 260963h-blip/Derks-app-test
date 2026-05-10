@@ -778,18 +778,16 @@ function ProjectDossier() {
                       </div>
                     )}
                   </div>
-                  <div className="rounded-md border bg-muted/30 p-3 text-sm">
-                    <p className="font-medium">Voor akkoord</p>
-                    <p className="text-muted-foreground">
-                      Naam: {woSignerName || "..."} &nbsp;·&nbsp; d.d.: {new Date(woDate).toLocaleDateString("nl-NL")} &nbsp;·&nbsp; Handtekening: hieronder
-                    </p>
-                  </div>
                   <div>
-                    <Label className="text-xs">Naam ondertekenaar (klant)</Label>
+                    <Label className="text-xs">Voor akkoord: Naam</Label>
                     <Input
                       value={woSignerName}
                       onChange={(e) => setWoSignerName(e.target.value)}
                       placeholder="Naam klant"
+                      autoComplete="name"
+                      autoCapitalize="words"
+                      inputMode="text"
+                      className="h-11 text-base"
                     />
                   </div>
                   <div>
