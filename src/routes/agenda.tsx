@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/context-menu";
 import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil, Calendar, Users, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { sendTransactionalEmail } from "@/lib/email/send";
 
 export const Route = createFileRoute("/agenda")({
   component: AgendaPage,
@@ -62,10 +63,14 @@ type Project = {
   title: string;
   status: string;
   customer_id: string | null;
+  contact_id?: string | null;
 };
 type Customer = {
   id: string;
   name: string;
+  contact_person: string | null;
+  email: string | null;
+  customer_type: string | null;
   street: string | null;
   house_number: string | null;
   house_number_addition: string | null;
@@ -143,6 +148,11 @@ function AgendaPage() {
   const [detailsItem, setDetailsItem] = useState<Planning | null>(null);
   const [detailsLines, setDetailsLines] = useState<{ description: string; quantity: number; unit: string | null }[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTo, setConfirmTo] = useState("");
+  const [confirmSubject, setConfirmSubject] = useState("");
+  const [confirmBody, setConfirmBody] = useState("");
+  const [confirmSending, setConfirmSending] = useState(false);
   const [form, setForm] = useState({
     project_id: "",
     work_date: ymd(new Date()),
@@ -159,9 +169,9 @@ function AgendaPage() {
     const [emp, lr, pr, pl, cu] = await Promise.all([
       supabase.from("employees").select("id,first_name,last_name,role").eq("status", "actief").order("last_name"),
       supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,status"),
-      supabase.from("projects").select("id,project_number,title,status,customer_id").in("status", ["akkoord","in_uitvoering"]).order("project_number", { ascending: false }),
+      supabase.from("projects").select("id,project_number,title,status,customer_id,contact_id").in("status", ["akkoord","in_uitvoering"]).order("project_number", { ascending: false }),
       supabase.from("planning_items").select("*").order("work_date"),
-      supabase.from("customers").select("id,name,street,house_number,house_number_addition,postal_code,city"),
+      supabase.from("customers").select("id,name,contact_person,email,customer_type,street,house_number,house_number_addition,postal_code,city"),
     ]);
     setEmployees((emp.data ?? []) as Employee[]);
     setLeaves((lr.data ?? []) as Leave[]);
