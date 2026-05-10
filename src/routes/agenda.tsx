@@ -729,6 +729,35 @@ function AgendaPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Bevestigingsmail naar klant</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Aan</Label>
+              <Input type="email" value={confirmTo} onChange={(e) => setConfirmTo(e.target.value)} placeholder="klant@voorbeeld.nl" />
+            </div>
+            <div className="space-y-2">
+              <Label>Onderwerp</Label>
+              <Input value={confirmSubject} onChange={(e) => setConfirmSubject(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Bericht</Label>
+              <Textarea rows={16} value={confirmBody} onChange={(e) => setConfirmBody(e.target.value)} className="font-mono text-xs" />
+              <p className="text-xs text-muted-foreground">Pas de tekst zo nodig aan voordat u verstuurt.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={confirmSending}>Annuleren</Button>
+            <Button onClick={sendConfirmMail} disabled={confirmSending || !confirmTo}>
+              {confirmSending ? "Versturen..." : "Versturen"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
