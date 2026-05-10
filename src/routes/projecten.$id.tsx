@@ -123,6 +123,19 @@ function ProjectDossier() {
   const [companyEmail, setCompanyEmail] = useState("");
   const [contactName, setContactName] = useState("");
 
+  // Factureren
+  const genInvoiceText = useServerFn(generateInvoiceText);
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [invoiceText, setInvoiceText] = useState("");
+  const [genInvText, setGenInvText] = useState(false);
+  const [genInvPdf, setGenInvPdf] = useState(false);
+  const [invSendTo, setInvSendTo] = useState("");
+  const [invSendCc, setInvSendCc] = useState("");
+  const [invSendSubject, setInvSendSubject] = useState("");
+  const [invSendBody, setInvSendBody] = useState("");
+  const [invAttachIds, setInvAttachIds] = useState<Record<string, boolean>>({});
+  const [invSending, setInvSending] = useState(false);
+
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
   }, [user, authLoading, navigate]);
