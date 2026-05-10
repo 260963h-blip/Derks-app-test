@@ -1282,7 +1282,6 @@ function ProjectDossier() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="documents">
         <TabsContent value="factureren">
           <div className="space-y-4">
             <Card>
