@@ -363,13 +363,14 @@ function AgendaPage() {
                             const isStart = hourOfTime(p.start_time) === h;
                             const addr = addressFor(p.project_id);
                             return (
-                              <button
-                                key={p.id}
-                                onClick={() => openEdit(p)}
-                                className="rounded bg-primary/15 px-1 py-0.5 text-left text-[10px] hover:bg-primary/25"
-                                title={`${proj?.project_number} ${proj?.title}${addr ? ` — ${addr}` : ""}`}
-                              >
-                                {isStart ? (
+                              <ContextMenu key={p.id}>
+                                <ContextMenuTrigger asChild>
+                                  <button
+                                    onClick={() => openDetails(p)}
+                                    className="rounded bg-primary/15 px-1 py-0.5 text-left text-[10px] hover:bg-primary/25"
+                                    title={`${proj?.project_number} ${proj?.title}${addr ? ` — ${addr}` : ""} — rechtsklik voor opties`}
+                                  >
+                                    {isStart ? (
                                   <>
                                     <div className="truncate font-medium">{proj?.project_number} · {proj?.title}</div>
                                     {addr && <div className="truncate text-muted-foreground">{addr}</div>}
@@ -386,7 +387,29 @@ function AgendaPage() {
                                 ) : (
                                   <span className="text-muted-foreground">↑ {proj?.project_number}</span>
                                 )}
-                              </button>
+                                  </button>
+                                </ContextMenuTrigger>
+                                <ContextMenuContent>
+                                  <ContextMenuItem onSelect={() => openDetails(p)}>
+                                    <FileText className="mr-2 h-4 w-4" /> Werkomschrijving bekijken
+                                  </ContextMenuItem>
+                                  <ContextMenuSeparator />
+                                  <ContextMenuItem onSelect={() => openEdit(p)}>
+                                    <Calendar className="mr-2 h-4 w-4" /> Datum/tijd aanpassen
+                                  </ContextMenuItem>
+                                  <ContextMenuItem onSelect={() => openEdit(p)}>
+                                    <Users className="mr-2 h-4 w-4" /> Medewerkers wijzigen
+                                  </ContextMenuItem>
+                                  <ContextMenuSeparator />
+                                  <ContextMenuItem onSelect={() => navigate({ to: `/projecten/${p.project_id}?tab=werkorder` as any })}>
+                                    Werkorder openen
+                                  </ContextMenuItem>
+                                  <ContextMenuSeparator />
+                                  <ContextMenuItem className="text-destructive" onSelect={() => setToDelete(p)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Verwijderen
+                                  </ContextMenuItem>
+                                </ContextMenuContent>
+                              </ContextMenu>
                             );
                           })}
                         </div>
