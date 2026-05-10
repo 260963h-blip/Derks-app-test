@@ -164,19 +164,6 @@ function Dashboard() {
     void loadLog();
   }
 
-  async function revertDecision(id: string) {
-    const { error } = await supabase
-      .from("leave_requests")
-      .update({ status: "aangevraagd", notes: null })
-      .eq("id", id);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("Beslissing ongedaan gemaakt");
-    void loadLog();
-  }
-
   async function confirmReject() {
     if (!rejectFor) return;
     if (!rejectReason.trim()) {
@@ -278,13 +265,6 @@ function Dashboard() {
                           <Button size="sm" onClick={() => approve(e.id)}>Akkoord</Button>
                           <Button size="sm" variant="outline" onClick={() => { setRejectFor(e.id); setRejectReason(""); }}>
                             Afkeuren
-                          </Button>
-                        </div>
-                      )}
-                      {(e.status === "goedgekeurd" || e.status === "afgekeurd") && (
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => revertDecision(e.id)}>
-                            Ongedaan maken
                           </Button>
                         </div>
                       )}
