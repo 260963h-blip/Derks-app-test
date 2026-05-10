@@ -691,9 +691,9 @@ function AgendaPage() {
               <Select value={form.project_id} onValueChange={(v) => setForm({ ...form, project_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Kies project..." /></SelectTrigger>
                 <SelectContent>
-                  {projects.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground">Geen akkoord-projecten</div>
-                  ) : projects.map((p) => (
+                  {selectableProjects.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground">Geen projecten te plannen</div>
+                  ) : selectableProjects.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.project_number} — {p.title}</SelectItem>
                   ))}
                 </SelectContent>
