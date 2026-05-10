@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -118,6 +118,7 @@ function hourOfTime(t: string) { return parseInt(t.slice(0, 2), 10); }
 
 function AgendaPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -340,6 +341,14 @@ function AgendaPage() {
                                     <div className="truncate font-medium">{proj?.project_number} · {proj?.title}</div>
                                     {addr && <div className="truncate text-muted-foreground">{addr}</div>}
                                     <div className="truncate text-muted-foreground">{p.start_time.slice(0,5)}-{p.end_time.slice(0,5)} · {p.employee_ids.map(empName).join(", ")}</div>
+                                    <div
+                                      role="button"
+                                      tabIndex={0}
+                                      onClick={(e) => { e.stopPropagation(); navigate({ to: `/projecten/${p.project_id}?tab=werkorder` as any }); }}
+                                      className="mt-1 inline-block rounded bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground hover:bg-primary/90"
+                                    >
+                                      Werkorder
+                                    </div>
                                   </>
                                 ) : (
                                   <span className="text-muted-foreground">↑ {proj?.project_number}</span>
