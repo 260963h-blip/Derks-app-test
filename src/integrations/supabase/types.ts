@@ -1079,6 +1079,45 @@ export type Database = {
         }
         Relationships: []
       }
+      reservations: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string
+          end_time: string
+          id: string
+          name: string
+          start_date: string
+          start_time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date: string
+          end_time?: string
+          id?: string
+          name: string
+          start_date: string
+          start_time?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          end_time?: string
+          id?: string
+          name?: string
+          start_date?: string
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       rooms: {
         Row: {
           created_at: string

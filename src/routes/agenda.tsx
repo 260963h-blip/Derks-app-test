@@ -87,6 +87,15 @@ type Planning = {
   employee_ids: string[];
   notes: string | null;
 };
+type Reservation = {
+  id: string;
+  name: string;
+  description: string | null;
+  start_date: string;
+  end_date: string;
+  start_time: string;
+  end_time: string;
+};
 
 type ViewMode = "day" | "week" | "year";
 
@@ -136,6 +145,7 @@ function AgendaPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [plannings, setPlannings] = useState<Planning[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [view, setView] = useState<ViewMode>("week");
   const [anchor, setAnchor] = useState<Date>(() => { const t = new Date(); t.setHours(0,0,0,0); return t; });
   const [yearOpen, setYearOpen] = useState(false);
@@ -153,6 +163,17 @@ function AgendaPage() {
   const [confirmSubject, setConfirmSubject] = useState("");
   const [confirmBody, setConfirmBody] = useState("");
   const [confirmSending, setConfirmSending] = useState(false);
+  const [resOpen, setResOpen] = useState(false);
+  const [resEditing, setResEditing] = useState<Reservation | null>(null);
+  const [resToDelete, setResToDelete] = useState<Reservation | null>(null);
+  const [resForm, setResForm] = useState({
+    name: "",
+    description: "",
+    start_date: ymd(new Date()),
+    end_date: ymd(new Date()),
+    start_time: "07:00",
+    end_time: "17:00",
+  });
   const [form, setForm] = useState({
     project_id: "",
     work_date: ymd(new Date()),
@@ -166,18 +187,20 @@ function AgendaPage() {
   useEffect(() => { if (user) void load(); }, [user]);
 
   async function load() {
-    const [emp, lr, pr, pl, cu] = await Promise.all([
+    const [emp, lr, pr, pl, cu, rs] = await Promise.all([
       supabase.from("employees").select("id,first_name,last_name,role").eq("status", "actief").order("last_name"),
       supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,status"),
       supabase.from("projects").select("id,project_number,title,status,customer_id,contact_id").in("status", ["akkoord","in_uitvoering"]).order("project_number", { ascending: false }),
       supabase.from("planning_items").select("*").order("work_date"),
       supabase.from("customers").select("id,name,contact_person,email,customer_type,street,house_number,house_number_addition,postal_code,city"),
+      supabase.from("reservations").select("*").order("start_date"),
     ]);
     setEmployees((emp.data ?? []) as Employee[]);
     setLeaves((lr.data ?? []) as Leave[]);
     setProjects((pr.data ?? []) as Project[]);
     setPlannings((pl.data ?? []) as Planning[]);
     setCustomers((cu.data ?? []) as Customer[]);
+    setReservations((rs.data ?? []) as Reservation[]);
   }
 
   const weekStart = useMemo(() => startOfWeek(anchor), [anchor]);
@@ -193,6 +216,10 @@ function AgendaPage() {
   const planningsFor = (d: Date) => {
     const s = ymd(d);
     return plannings.filter((p) => p.work_date <= s && (p.end_date ?? p.work_date) >= s);
+  };
+  const reservationsFor = (d: Date) => {
+    const s = ymd(d);
+    return reservations.filter((r) => r.start_date <= s && r.end_date >= s);
   };
   const projectFor = (id: string) => projects.find((p) => p.id === id);
   const addressFor = (projectId: string) => {
@@ -407,6 +434,55 @@ function AgendaPage() {
   function shift(days: number) { setAnchor((a) => addDays(a, days)); }
   function gotoToday() { const t = new Date(); t.setHours(0,0,0,0); setAnchor(t); }
 
+  function openNewReservation(date?: Date) {
+    setResEditing(null);
+    const start = ymd(date ?? anchor);
+    setResForm({ name: "", description: "", start_date: start, end_date: start, start_time: "07:00", end_time: "17:00" });
+    setResOpen(true);
+  }
+  function openEditReservation(r: Reservation) {
+    setResEditing(r);
+    setResForm({
+      name: r.name,
+      description: r.description ?? "",
+      start_date: r.start_date,
+      end_date: r.end_date,
+      start_time: r.start_time.slice(0,5),
+      end_time: r.end_time.slice(0,5),
+    });
+    setResOpen(true);
+  }
+  async function saveReservation() {
+    if (!user) return;
+    if (!resForm.name.trim()) { toast.error("Naam is verplicht"); return; }
+    if (resForm.end_date < resForm.start_date) { toast.error("Einddatum kan niet voor startdatum liggen"); return; }
+    if (resForm.end_time <= resForm.start_time) { toast.error("Eindtijd moet na starttijd liggen"); return; }
+    const payload = {
+      user_id: user.id,
+      name: resForm.name.trim(),
+      description: resForm.description.trim() || null,
+      start_date: resForm.start_date,
+      end_date: resForm.end_date,
+      start_time: resForm.start_time,
+      end_time: resForm.end_time,
+    };
+    const res = resEditing
+      ? await supabase.from("reservations").update(payload).eq("id", resEditing.id)
+      : await supabase.from("reservations").insert(payload);
+    if (res.error) { toast.error(res.error.message); return; }
+    toast.success(resEditing ? "Bijgewerkt" : "Reservering aangemaakt");
+    setResOpen(false);
+    void load();
+  }
+  async function doDeleteReservation() {
+    if (!resToDelete) return;
+    const { error } = await supabase.from("reservations").delete().eq("id", resToDelete.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Verwijderd");
+    setResToDelete(null);
+    void load();
+  }
+
   const headerTitle = useMemo(() => {
     if (view === "day") return `Planning (${DAY_NAMES[anchor.getDay()]} ${anchor.getDate()} ${MONTH_NAMES[anchor.getMonth()]} ${anchor.getFullYear()})`;
     if (view === "year") return `Planning (jaar ${anchor.getFullYear()})`;
@@ -426,6 +502,7 @@ function AgendaPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" onClick={() => openNew()}><Plus className="mr-1 h-4 w-4" /> Project plannen</Button>
+            <Button size="sm" variant="destructive" onClick={() => openNewReservation()}><Plus className="mr-1 h-4 w-4" /> Reservering</Button>
             <Button size="sm" variant="outline" onClick={gotoToday}>Vandaag</Button>
             <Button size="sm" variant={view === "day" ? "default" : "outline"} onClick={() => setView("day")}>Dag</Button>
             <Button size="sm" variant={view === "week" ? "default" : "outline"} onClick={() => setView("week")}>Week</Button>
@@ -473,9 +550,43 @@ function AgendaPage() {
                   <div className="p-2 text-xs text-muted-foreground">{String(h).padStart(2,'0')}:00 - {String(h+1).padStart(2,'0')}:00</div>
                   {days.map((d) => {
                     const items = planningsFor(d).filter((p) => hourOfTime(p.start_time) <= h && hourOfTime(p.end_time) > h);
+                    const resItems = reservationsFor(d).filter((r) => hourOfTime(r.start_time) <= h && hourOfTime(r.end_time) > h);
                     return (
                       <div key={d.toISOString()+h} className="min-h-[44px] border-l p-1">
                         <div className="flex flex-col gap-1">
+                          {resItems.map((r) => {
+                            const isStart = hourOfTime(r.start_time) === h;
+                            return (
+                              <ContextMenu key={r.id}>
+                                <ContextMenuTrigger asChild>
+                                  <button
+                                    onClick={() => openEditReservation(r)}
+                                    className="rounded bg-destructive/20 px-1 py-0.5 text-left text-[10px] text-destructive hover:bg-destructive/30"
+                                    title={`Reservering: ${r.name}${r.description ? ` — ${r.description}` : ""}`}
+                                  >
+                                    {isStart ? (
+                                      <>
+                                        <div className="truncate font-medium">🔒 {r.name}</div>
+                                        {r.description && <div className="truncate opacity-80">{r.description}</div>}
+                                        <div className="truncate opacity-80">{r.start_time.slice(0,5)}-{r.end_time.slice(0,5)}</div>
+                                      </>
+                                    ) : (
+                                      <span className="opacity-80">↑ {r.name}</span>
+                                    )}
+                                  </button>
+                                </ContextMenuTrigger>
+                                <ContextMenuContent>
+                                  <ContextMenuItem onSelect={() => openEditReservation(r)}>
+                                    <Pencil className="mr-2 h-4 w-4" /> Bewerken
+                                  </ContextMenuItem>
+                                  <ContextMenuSeparator />
+                                  <ContextMenuItem className="text-destructive" onSelect={() => setResToDelete(r)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Verwijderen
+                                  </ContextMenuItem>
+                                </ContextMenuContent>
+                              </ContextMenu>
+                            );
+                          })}
                           {items.map((p) => {
                             const proj = projectFor(p.project_id);
                             const isStart = hourOfTime(p.start_time) === h;
@@ -758,6 +869,67 @@ function AgendaPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={resOpen} onOpenChange={setResOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{resEditing ? "Reservering bewerken" : "Nieuwe reservering"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Naam *</Label>
+              <Input value={resForm.name} onChange={(e) => setResForm({ ...resForm, name: e.target.value })} placeholder="Bijv. Vakantie, Onderhoud bus..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Korte beschrijving</Label>
+              <Textarea rows={2} value={resForm.description} onChange={(e) => setResForm({ ...resForm, description: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Periode *</Label>
+              <div className="flex gap-2">
+                <Input type="date" value={resForm.start_date} onChange={(e) => {
+                  const v = e.target.value;
+                  setResForm((f) => ({ ...f, start_date: v, end_date: f.end_date < v ? v : f.end_date }));
+                }} />
+                <Input type="date" value={resForm.end_date} onChange={(e) => setResForm({ ...resForm, end_date: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Tijd</Label>
+              <div className="flex gap-2">
+                <Input type="time" value={resForm.start_time} onChange={(e) => setResForm({ ...resForm, start_time: e.target.value })} />
+                <Input type="time" value={resForm.end_time} onChange={(e) => setResForm({ ...resForm, end_time: e.target.value })} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <div>
+              {resEditing && (
+                <Button variant="destructive" size="sm" onClick={() => { setResOpen(false); setResToDelete(resEditing); }}>
+                  <Trash2 className="mr-1 h-4 w-4" /> Verwijderen
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setResOpen(false)}>Annuleren</Button>
+              <Button onClick={saveReservation}>{resEditing ? "Bijwerken" : "Reserveren"}</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!resToDelete} onOpenChange={(o) => !o && setResToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reservering verwijderen?</AlertDialogTitle>
+            <AlertDialogDescription>Deze actie kan niet ongedaan worden gemaakt.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={doDeleteReservation}>Verwijderen</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
