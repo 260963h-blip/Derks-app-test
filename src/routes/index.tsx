@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Receipt, Users, Package, UserCog, Building2, LogOut, Clock, CalendarDays, Settings, FolderKanban, Calendar } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import logo from "@/assets/logo-derks.png";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -184,6 +185,16 @@ function Dashboard() {
     void loadLog();
   }
 
+  async function deleteLog(id: string) {
+    const { error } = await supabase.from("leave_requests").delete().eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Verwijderd");
+    void loadLog();
+  }
+
   const statusVariant = (s: string) =>
     s === "goedgekeurd" ? "default" : s === "afgekeurd" ? "destructive" : "secondary";
 
@@ -267,6 +278,16 @@ function Dashboard() {
                             Afkeuren
                           </Button>
                         </div>
+                      )}
+                      {(e.status === "goedgekeurd" || e.status === "afgekeurd") && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => deleteLog(e.id)}
+                          title="Verwijder uit log"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </li>
                   ))}
