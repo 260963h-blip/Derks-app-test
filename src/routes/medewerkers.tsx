@@ -338,6 +338,61 @@ function MedewerkersPage() {
     loadRates(editing.id);
   }
 
+  async function loadLeave(employeeId: string) {
+    const { data, error } = await supabase
+      .from("leave_requests")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .order("start_date", { ascending: false });
+    if (error) {
+      toast.error("Kon verlofaanvragen niet laden");
+      return;
+    }
+    setLeaveReqs((data ?? []) as LeaveReq[]);
+  }
+
+  async function submitLeave() {
+    if (!user || !editing) return;
+    if (leaveForm.end_date < leaveForm.start_date) {
+      toast.error("Einddatum kan niet voor startdatum liggen");
+      return;
+    }
+    const days = calcLeaveDays(leaveForm.start_date, leaveForm.end_date);
+    if (days <= 0) {
+      toast.error("Geen werkdagen geselecteerd");
+      return;
+    }
+    setSavingLeave(true);
+    const { error } = await supabase.from("leave_requests").insert({
+      user_id: user.id,
+      employee_id: editing.id,
+      leave_type: "vakantie",
+      start_date: leaveForm.start_date,
+      end_date: leaveForm.end_date,
+      days,
+      reason: leaveForm.reason || null,
+      status: "aangevraagd",
+    });
+    setSavingLeave(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Verlof aangevraagd");
+    setLeaveForm({ start_date: todayISO, end_date: todayISO, reason: "" });
+    void loadLeave(editing.id);
+  }
+
+  async function deleteLeave(id: string) {
+    if (!editing) return;
+    const { error } = await supabase.from("leave_requests").delete().eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    void loadLeave(editing.id);
+  }
+
   async function save() {
     if (!user) return;
     if (!form.first_name.trim() || !form.last_name.trim()) {
