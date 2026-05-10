@@ -45,6 +45,13 @@ type Doc = {
   version: number;
   created_at: string;
 };
+type QuoteLine = {
+  id: string;
+  description: string;
+  quantity: number;
+  unit: string | null;
+  sort_order: number;
+};
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n || 0);
@@ -62,9 +69,10 @@ function ProjectDossier() {
   const [saving, setSaving] = useState(false);
 
   // Werkorder
-  const [woWerkzaamheden, setWoWerkzaamheden] = useState("");
   const [woSignerName, setWoSignerName] = useState("");
+  const [woDate, setWoDate] = useState(new Date().toISOString().slice(0, 10));
   const [woSaving, setWoSaving] = useState(false);
+  const [quoteLines, setQuoteLines] = useState<QuoteLine[]>([]);
   const sigRef = useRef<SignaturePadHandle>(null);
 
   // Verzenden offerte
@@ -106,6 +114,16 @@ function ProjectDossier() {
       .from("quotes").select("id,quote_number,status,total")
       .eq("project_id", id).maybeSingle();
     setQuote((q ?? null) as Quote | null);
+    if (q?.id) {
+      const { data: lines } = await supabase
+        .from("quote_lines")
+        .select("id,description,quantity,unit,sort_order")
+        .eq("quote_id", q.id)
+        .order("sort_order");
+      setQuoteLines((lines ?? []) as QuoteLine[]);
+    } else {
+      setQuoteLines([]);
+    }
     const { data: d } = await supabase
       .from("project_documents")
       .select("id,doc_type,file_name,file_path,version,created_at")
@@ -297,8 +315,8 @@ function ProjectDossier() {
       toast.error("Werkorder kan pas vanaf status 'Akkoord' worden gegenereerd");
       return;
     }
-    if (!woWerkzaamheden.trim()) {
-      toast.error("Vul de uitgevoerde werkzaamheden in");
+    if (quoteLines.length === 0) {
+      toast.error("Geen offerteregels gevonden om over te nemen");
       return;
     }
     if (!sigRef.current || sigRef.current.isEmpty()) {
@@ -392,14 +410,29 @@ function ProjectDossier() {
       doc.setDrawColor(0);
       y += 6;
 
-      // Werkzaamheden
+      // Offertetekst (zonder bedragen)
       doc.setFontSize(11).setFont("helvetica", "bold");
-      doc.text("Uitgevoerde werkzaamheden", 15, y);
+      doc.text("Omschrijving werkzaamheden (conform offerte)", 15, y);
       y += 6;
       doc.setFontSize(10).setFont("helvetica", "normal");
-      const wrapped = doc.splitTextToSize(woWerkzaamheden, W - 30);
-      doc.text(wrapped, 15, y);
-      y += wrapped.length * 5 + 10;
+      for (const line of quoteLines) {
+        const qty = Number(line.quantity || 0);
+        const prefix = qty && qty !== 1 ? `${qty}${line.unit ? " " + line.unit : ""} - ` : "";
+        const text = `${prefix}${line.description || ""}`.trim();
+        const wrapped = doc.splitTextToSize(text, W - 30);
+        if (y + wrapped.length * 5 > 250) { doc.addPage(); y = 20; }
+        doc.text(wrapped, 15, y);
+        y += wrapped.length * 5 + 2;
+      }
+      y += 6;
+      doc.setFont("helvetica", "italic");
+      const conform = doc.splitTextToSize(
+        "Werkzaamheden conform offerte uitgevoerd.", W - 30,
+      );
+      doc.text(conform, 15, y);
+      doc.setFont("helvetica", "normal");
+      y += conform.length * 5 + 8;
+      if (y > 230) { doc.addPage(); y = 20; }
 
       // Ondertekening
       doc.setFontSize(11).setFont("helvetica", "bold");
@@ -407,7 +440,11 @@ function ProjectDossier() {
       y += 6;
       doc.setFontSize(9).setFont("helvetica", "normal");
       doc.text(`Naam: ${woSignerName}`, 15, y);
-      doc.text(`Datum: ${new Date().toLocaleDateString("nl-NL")}`, 15, y + 5);
+      doc.text(
+        `Datum: ${new Date(woDate).toLocaleDateString("nl-NL")}`,
+        15,
+        y + 5,
+      );
       try {
         doc.addImage(sigData, "PNG", 90, y - 4, 80, 30, undefined, "FAST");
       } catch {}
@@ -468,16 +505,18 @@ function ProjectDossier() {
       await supabase.from("work_orders").insert({
         user_id: user.id,
         project_id: project.id,
-        work_date: new Date().toISOString().slice(0, 10),
+        work_date: woDate,
         executor: woSignerName,
-        notes: woWerkzaamheden,
+        notes: "Werkzaamheden conform offerte uitgevoerd.",
         status: "uitgevoerd",
       });
-      await supabase.from("projects").update({ status: "afgerond" }).eq("id", project.id);
+      await supabase
+        .from("projects")
+        .update({ status: "te_factureren" })
+        .eq("id", project.id);
 
       doc.save(`Werkorder-${project.project_number}.pdf`);
-      toast.success(`Werkorder opgeslagen (v${nextVersion}). Project op 'Afgerond'.`);
-      setWoWerkzaamheden("");
+      toast.success(`Werkorder opgeslagen (v${nextVersion}). Project op 'Te factureren'.`);
       setWoSignerName("");
       sigRef.current?.clear();
       load();
@@ -519,6 +558,7 @@ function ProjectDossier() {
                     <SelectItem value="akkoord">Akkoord</SelectItem>
                     <SelectItem value="in_uitvoering">In uitvoering</SelectItem>
                     <SelectItem value="afgerond">Afgerond</SelectItem>
+                    <SelectItem value="te_factureren">Te factureren</SelectItem>
                     <SelectItem value="gefactureerd">Gefactureerd</SelectItem>
                   </SelectContent>
                 </Select>
@@ -697,17 +737,39 @@ function ProjectDossier() {
                     </div>
                     <div>
                       <Label className="text-xs">Datum</Label>
-                      <Input value={new Date().toLocaleDateString("nl-NL")} readOnly />
+                      <Input
+                        type="date"
+                        value={woDate}
+                        onChange={(e) => setWoDate(e.target.value)}
+                      />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs">Uitgevoerde werkzaamheden</Label>
-                    <Textarea
-                      rows={6}
-                      value={woWerkzaamheden}
-                      onChange={(e) => setWoWerkzaamheden(e.target.value)}
-                      placeholder="Beschrijf wat er is uitgevoerd..."
-                    />
+                    <Label className="text-xs">Omschrijving werkzaamheden (conform offerte)</Label>
+                    {quoteLines.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Geen offerteregels gevonden. Voeg eerst regels toe aan de offerte.
+                      </p>
+                    ) : (
+                      <div className="space-y-1 rounded-md border bg-muted/40 p-3 text-sm">
+                        {quoteLines.map((l) => {
+                          const qty = Number(l.quantity || 0);
+                          const prefix = qty && qty !== 1 ? `${qty}${l.unit ? " " + l.unit : ""} - ` : "";
+                          return (
+                            <p key={l.id}>{prefix}{l.description}</p>
+                          );
+                        })}
+                        <p className="mt-2 italic text-muted-foreground">
+                          Werkzaamheden conform offerte uitgevoerd.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-md border bg-muted/30 p-3 text-sm">
+                    <p className="font-medium">Voor akkoord</p>
+                    <p className="text-muted-foreground">
+                      Naam: {woSignerName || "..."} &nbsp;·&nbsp; d.d.: {new Date(woDate).toLocaleDateString("nl-NL")} &nbsp;·&nbsp; Handtekening: hieronder
+                    </p>
                   </div>
                   <div>
                     <Label className="text-xs">Naam ondertekenaar (klant)</Label>
@@ -724,7 +786,7 @@ function ProjectDossier() {
                   <div className="flex justify-end">
                     <Button onClick={generateWerkorderPdf} disabled={woSaving}>
                       <Save className="mr-1 h-4 w-4" />
-                      {woSaving ? "Opslaan..." : "Werkorder opslaan & afronden"}
+                      {woSaving ? "Opslaan..." : "Akkoord & werkorder opslaan"}
                     </Button>
                   </div>
                 </>
