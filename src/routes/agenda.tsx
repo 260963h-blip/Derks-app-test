@@ -33,7 +33,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil } from "lucide-react";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+  ContextMenuSeparator,
+} from "@/components/ui/context-menu";
+import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil, Calendar, Users, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/agenda")({
@@ -132,6 +139,10 @@ function AgendaPage() {
   const [planOpen, setPlanOpen] = useState(false);
   const [editing, setEditing] = useState<Planning | null>(null);
   const [toDelete, setToDelete] = useState<Planning | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsItem, setDetailsItem] = useState<Planning | null>(null);
+  const [detailsLines, setDetailsLines] = useState<{ description: string; quantity: number; unit: string | null }[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [form, setForm] = useState({
     project_id: "",
     work_date: ymd(new Date()),
@@ -211,6 +222,28 @@ function AgendaPage() {
       notes: p.notes ?? "",
     });
     setPlanOpen(true);
+  }
+  async function openDetails(p: Planning) {
+    setDetailsItem(p);
+    setDetailsOpen(true);
+    setDetailsLoading(true);
+    setDetailsLines([]);
+    const { data: q } = await supabase
+      .from("quotes")
+      .select("id")
+      .eq("project_id", p.project_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (q?.id) {
+      const { data: lines } = await supabase
+        .from("quote_lines")
+        .select("description,quantity,unit,sort_order")
+        .eq("quote_id", q.id)
+        .order("sort_order");
+      setDetailsLines((lines ?? []) as any);
+    }
+    setDetailsLoading(false);
   }
   async function savePlan() {
     if (!user) return;
@@ -330,13 +363,14 @@ function AgendaPage() {
                             const isStart = hourOfTime(p.start_time) === h;
                             const addr = addressFor(p.project_id);
                             return (
-                              <button
-                                key={p.id}
-                                onClick={() => openEdit(p)}
-                                className="rounded bg-primary/15 px-1 py-0.5 text-left text-[10px] hover:bg-primary/25"
-                                title={`${proj?.project_number} ${proj?.title}${addr ? ` — ${addr}` : ""}`}
-                              >
-                                {isStart ? (
+                              <ContextMenu key={p.id}>
+                                <ContextMenuTrigger asChild>
+                                  <button
+                                    onClick={() => openDetails(p)}
+                                    className="rounded bg-primary/15 px-1 py-0.5 text-left text-[10px] hover:bg-primary/25"
+                                    title={`${proj?.project_number} ${proj?.title}${addr ? ` — ${addr}` : ""} — rechtsklik voor opties`}
+                                  >
+                                    {isStart ? (
                                   <>
                                     <div className="truncate font-medium">{proj?.project_number} · {proj?.title}</div>
                                     {addr && <div className="truncate text-muted-foreground">{addr}</div>}
@@ -353,7 +387,29 @@ function AgendaPage() {
                                 ) : (
                                   <span className="text-muted-foreground">↑ {proj?.project_number}</span>
                                 )}
-                              </button>
+                                  </button>
+                                </ContextMenuTrigger>
+                                <ContextMenuContent>
+                                  <ContextMenuItem onSelect={() => openDetails(p)}>
+                                    <FileText className="mr-2 h-4 w-4" /> Werkomschrijving bekijken
+                                  </ContextMenuItem>
+                                  <ContextMenuSeparator />
+                                  <ContextMenuItem onSelect={() => openEdit(p)}>
+                                    <Calendar className="mr-2 h-4 w-4" /> Datum/tijd aanpassen
+                                  </ContextMenuItem>
+                                  <ContextMenuItem onSelect={() => openEdit(p)}>
+                                    <Users className="mr-2 h-4 w-4" /> Medewerkers wijzigen
+                                  </ContextMenuItem>
+                                  <ContextMenuSeparator />
+                                  <ContextMenuItem onSelect={() => navigate({ to: `/projecten/${p.project_id}?tab=werkorder` as any })}>
+                                    Werkorder openen
+                                  </ContextMenuItem>
+                                  <ContextMenuSeparator />
+                                  <ContextMenuItem className="text-destructive" onSelect={() => setToDelete(p)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Verwijderen
+                                  </ContextMenuItem>
+                                </ContextMenuContent>
+                              </ContextMenu>
                             );
                           })}
                         </div>
@@ -483,6 +539,74 @@ function AgendaPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {detailsItem ? `${projectFor(detailsItem.project_id)?.project_number ?? ""} · ${projectFor(detailsItem.project_id)?.title ?? ""}` : "Afspraak"}
+            </DialogTitle>
+          </DialogHeader>
+          {detailsItem && (
+            <div className="space-y-4 text-sm">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground">Datum</div>
+                  <div>{detailsItem.work_date}{detailsItem.end_date && detailsItem.end_date !== detailsItem.work_date ? ` t/m ${detailsItem.end_date}` : ""}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground">Tijd</div>
+                  <div>{detailsItem.start_time.slice(0,5)} - {detailsItem.end_time.slice(0,5)}</div>
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="text-xs font-medium text-muted-foreground">Adres</div>
+                  <div>{addressFor(detailsItem.project_id) || "—"}</div>
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="text-xs font-medium text-muted-foreground">Uitvoerende medewerker(s)</div>
+                  <div>{detailsItem.employee_ids.length > 0 ? detailsItem.employee_ids.map(empName).join(", ") : "—"}</div>
+                </div>
+                {detailsItem.notes && (
+                  <div className="sm:col-span-2">
+                    <div className="text-xs font-medium text-muted-foreground">Notities</div>
+                    <div className="whitespace-pre-wrap">{detailsItem.notes}</div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <div className="mb-2 text-xs font-medium text-muted-foreground">Werkomschrijving (uit offerte)</div>
+                {detailsLoading ? (
+                  <div className="text-muted-foreground">Laden...</div>
+                ) : detailsLines.length === 0 ? (
+                  <div className="text-muted-foreground">Geen offerteregels gevonden.</div>
+                ) : (
+                  <ul className="space-y-1 rounded-md border p-3">
+                    {detailsLines.map((l, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="shrink-0 text-muted-foreground">{l.quantity}{l.unit ? ` ${l.unit}` : ""}</span>
+                        <span className="whitespace-pre-wrap">{l.description}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setDetailsOpen(false)}>Sluiten</Button>
+            {detailsItem && (
+              <>
+                <Button variant="outline" onClick={() => { setDetailsOpen(false); openEdit(detailsItem); }}>
+                  <Pencil className="mr-1 h-4 w-4" /> Bewerken
+                </Button>
+                <Button onClick={() => navigate({ to: `/projecten/${detailsItem.project_id}?tab=werkorder` as any })}>
+                  Werkorder
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
