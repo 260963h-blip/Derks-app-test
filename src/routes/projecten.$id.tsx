@@ -1025,6 +1025,7 @@ function ProjectDossier() {
           <TabsTrigger value="quote">Offerte</TabsTrigger>
           <TabsTrigger value="verzenden">Verzenden</TabsTrigger>
           <TabsTrigger value="werkorder">Werkorder</TabsTrigger>
+          <TabsTrigger value="factureren">Factureren</TabsTrigger>
           <TabsTrigger value="documents">Documenten ({docs.length})</TabsTrigger>
         </TabsList>
 
