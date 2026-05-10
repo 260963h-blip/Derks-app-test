@@ -523,6 +523,10 @@ function AgendaPage() {
                                     Werkorder openen
                                   </ContextMenuItem>
                                   <ContextMenuSeparator />
+                                  <ContextMenuItem onSelect={() => openConfirmMail(p)}>
+                                    <FileText className="mr-2 h-4 w-4" /> Bevestigingsmail naar klant
+                                  </ContextMenuItem>
+                                  <ContextMenuSeparator />
                                   <ContextMenuItem className="text-destructive" onSelect={() => setToDelete(p)}>
                                     <Trash2 className="mr-2 h-4 w-4" /> Verwijderen
                                   </ContextMenuItem>
