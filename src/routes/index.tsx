@@ -28,13 +28,13 @@ const menu: Array<{
   to?: string;
 }> = [
   { title: "Projecten", desc: "Projecten met offerte, werkorder en factuur", icon: FolderKanban, to: "/projecten" },
+  { title: "Agenda", desc: "Weekplanning en beschikbaarheid", icon: Calendar, to: "/agenda" },
   { title: "Facturen", desc: "Facturen en UBL/XML-export", icon: Receipt },
   { title: "Klanten", desc: "Klantgegevens beheren", icon: Users, to: "/klanten" },
   { title: "Artikelen", desc: "Materialen en werkzaamheden", icon: Package, to: "/artikelen" },
   { title: "Medewerkers", desc: "HR-dossier en personeelsgegevens", icon: UserCog, to: "/medewerkers" },
   { title: "Urenregistratie", desc: "Gewerkte uren per medewerker", icon: Clock, to: "/uren" },
   { title: "Verlof", desc: "Vakantie, ziekte en bijzonder verlof", icon: CalendarDays, to: "/verlof" },
-  { title: "Agenda", desc: "Weekplanning en beschikbaarheid", icon: Calendar, to: "/agenda" },
   { title: "Bedrijfsgegevens", desc: "Eigen bedrijfsinformatie", icon: Building2, to: "/bedrijfsgegevens" },
   { title: "Instellingen", desc: "Categorieën en eenheden beheren", icon: Settings, to: "/instellingen" },
 ];
