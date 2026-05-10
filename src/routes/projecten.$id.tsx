@@ -656,6 +656,7 @@ function ProjectDossier() {
 
   if (authLoading || !user || !project) return null;
 
+
   return (
     <AppShell title={`Project ${project.project_number}`} subtitle={project.title || "Projectdossier"} back>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
