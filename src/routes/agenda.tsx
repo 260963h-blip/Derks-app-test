@@ -230,7 +230,9 @@ function AgendaPage() {
   }
   const availableFor = (d: Date) => employees.filter((e) => !isAbsent(e.id, d) && !isFullyBooked(e.id, d));
   const dayStatus = (d: Date): "red" | "green" | "neutral" => {
-    const notAbsent = employees.filter((e) => !isAbsent(e.id, d));
+    // Alleen vaste medewerkers + eigenaar tellen mee voor dagstatus (ZZP-ers niet)
+    const core = employees.filter((e) => e.role === "medewerker" || e.role === "eigenaar" || !e.role);
+    const notAbsent = core.filter((e) => !isAbsent(e.id, d));
     if (notAbsent.length === 0) return "neutral";
     const free = notAbsent.filter((e) => !isFullyBooked(e.id, d));
     if (free.length === 0) return "red";
