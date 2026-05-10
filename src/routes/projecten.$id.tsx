@@ -163,7 +163,7 @@ function ProjectDossier() {
       setCustomer(c as Customer | null);
     }
     const { data: q } = await supabase
-      .from("quotes").select("id,quote_number,status,total")
+      .from("quotes").select("id,quote_number,status,total,approval_token")
       .eq("project_id", id).maybeSingle();
     setQuote((q ?? null) as Quote | null);
     if (q?.id) {
