@@ -828,6 +828,45 @@ export type Database = {
         }
         Relationships: []
       }
+      planning_items: {
+        Row: {
+          created_at: string
+          employee_ids: string[]
+          end_time: string
+          id: string
+          notes: string | null
+          project_id: string
+          start_time: string
+          updated_at: string
+          user_id: string
+          work_date: string
+        }
+        Insert: {
+          created_at?: string
+          employee_ids?: string[]
+          end_time?: string
+          id?: string
+          notes?: string | null
+          project_id: string
+          start_time?: string
+          updated_at?: string
+          user_id: string
+          work_date: string
+        }
+        Update: {
+          created_at?: string
+          employee_ids?: string[]
+          end_time?: string
+          id?: string
+          notes?: string | null
+          project_id?: string
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+          work_date?: string
+        }
+        Relationships: []
+      }
       project_documents: {
         Row: {
           created_at: string
