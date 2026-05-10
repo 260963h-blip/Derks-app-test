@@ -74,6 +74,19 @@ function ProjectDossier() {
   const [woSaving, setWoSaving] = useState(false);
   const [quoteLines, setQuoteLines] = useState<QuoteLine[]>([]);
   const sigRef = useRef<SignaturePadHandle>(null);
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window === "undefined") return "overview";
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return t || "overview";
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (activeTab === "overview") url.searchParams.delete("tab");
+    else url.searchParams.set("tab", activeTab);
+    window.history.replaceState({}, "", url.toString());
+  }, [activeTab]);
 
   // Verzenden offerte
   const [sendTo, setSendTo] = useState("");
@@ -531,7 +544,7 @@ function ProjectDossier() {
 
   return (
     <AppShell title={`Project ${project.project_number}`} subtitle={project.title || "Projectdossier"} back>
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overzicht</TabsTrigger>
           <TabsTrigger value="quote">Offerte</TabsTrigger>
