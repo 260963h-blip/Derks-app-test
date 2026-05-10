@@ -599,12 +599,17 @@ function AgendaPage() {
                   const avail = availableFor(d);
                   const absent = absentFor(d);
                   const status = dayStatus(d);
-                  const statusBg =
-                    status === "red" ? "bg-red-100 dark:bg-red-950/40"
+                  const sunday = isSunday(d);
+                  const hName = holidayName(d);
+                  const blocked = isDayBlocked(d);
+                  const statusBg = blocked
+                    ? "bg-muted/60"
+                    : status === "red" ? "bg-red-100 dark:bg-red-950/40"
                     : status === "green" ? "bg-green-100 dark:bg-green-950/40"
                     : isToday ? "bg-primary/5" : "";
-                  const statusDot =
-                    status === "red" ? "bg-red-500"
+                  const statusDot = blocked
+                    ? ""
+                    : status === "red" ? "bg-red-500"
                     : status === "green" ? "bg-green-500"
                     : "";
                   return (
@@ -614,8 +619,29 @@ function AgendaPage() {
                           {statusDot && <span className={`inline-block h-2 w-2 rounded-full ${statusDot}`} />}
                           {DAY_NAMES[d.getDay()]}. {d.getDate()} {MONTH_NAMES[d.getMonth()].slice(0,3)}
                         </div>
-                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openNew(d)}><Plus className="h-3 w-3" /></Button>
+                        {!blocked && (
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openNew(d)}><Plus className="h-3 w-3" /></Button>
+                        )}
                       </div>
+                      {sunday && (
+                        <div className="mt-1 text-[10px] font-medium text-muted-foreground">🚫 Zondag — geblokkeerd</div>
+                      )}
+                      {hName && !sunday && (
+                        <div className="mt-1 flex items-center justify-between gap-1">
+                          <span className="text-[10px] font-medium text-muted-foreground truncate">🎉 {hName}</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 px-1.5 text-[10px]"
+                            onClick={() => toggleHolidayBlock(d)}
+                            title={isHolidayBlocked(d) ? "Deblokkeer deze feestdag" : "Blokkeer deze feestdag opnieuw"}
+                          >
+                            {isHolidayBlocked(d) ? "Deblokkeer" : "Blokkeer"}
+                          </Button>
+                        </div>
+                      )}
+                      {!blocked && (
+                        <>
                       <div className="mt-1 flex flex-wrap gap-1">
                         {avail.length === 0 ? <span className="text-xs text-muted-foreground">{status === "red" ? "Volledig ingepland" : "Niemand beschikbaar"}</span> : avail.map((e) => (
                           <Badge key={e.id} variant="secondary" className="text-[10px]">{e.first_name} {e.last_name[0]}.</Badge>
@@ -628,6 +654,8 @@ function AgendaPage() {
                           ))}
                         </div>
                       )}
+                        </>
+                      )}
                     </div>
                   );
                 })}
@@ -637,6 +665,15 @@ function AgendaPage() {
                 <div key={h} className="grid border-b" style={{ gridTemplateColumns: `80px repeat(${days.length}, minmax(0,1fr))` }}>
                   <div className="p-2 text-xs text-muted-foreground">{String(h).padStart(2,'0')}:00 - {String(h+1).padStart(2,'0')}:00</div>
                   {days.map((d) => {
+                    if (isDayBlocked(d)) {
+                      return (
+                        <div
+                          key={d.toISOString()+h}
+                          className="min-h-[44px] border-l bg-muted/40"
+                          style={{ backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(0,0,0,0.04) 6px, rgba(0,0,0,0.04) 12px)" }}
+                        />
+                      );
+                    }
                     const items = planningsFor(d).filter((p) => hourOfTime(p.start_time) <= h && hourOfTime(p.end_time) > h);
                     const resItems = reservationsFor(d).filter((r) => hourOfTime(r.start_time) <= h && hourOfTime(r.end_time) > h);
                     return (
