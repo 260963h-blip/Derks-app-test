@@ -551,14 +551,26 @@ function AgendaPage() {
                   const isToday = ymd(d) === ymd(new Date());
                   const avail = availableFor(d);
                   const absent = absentFor(d);
+                  const status = dayStatus(d);
+                  const statusBg =
+                    status === "red" ? "bg-red-100 dark:bg-red-950/40"
+                    : status === "green" ? "bg-green-100 dark:bg-green-950/40"
+                    : isToday ? "bg-primary/5" : "";
+                  const statusDot =
+                    status === "red" ? "bg-red-500"
+                    : status === "green" ? "bg-green-500"
+                    : "";
                   return (
-                    <div key={d.toISOString()} className={`border-l p-2 ${isToday ? "bg-primary/5" : ""}`}>
+                    <div key={d.toISOString()} className={`border-l p-2 ${statusBg}`}>
                       <div className="flex items-center justify-between">
-                        <div className="text-sm font-semibold">{DAY_NAMES[d.getDay()]}. {d.getDate()} {MONTH_NAMES[d.getMonth()].slice(0,3)}</div>
+                        <div className="flex items-center gap-1.5 text-sm font-semibold">
+                          {statusDot && <span className={`inline-block h-2 w-2 rounded-full ${statusDot}`} />}
+                          {DAY_NAMES[d.getDay()]}. {d.getDate()} {MONTH_NAMES[d.getMonth()].slice(0,3)}
+                        </div>
                         <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openNew(d)}><Plus className="h-3 w-3" /></Button>
                       </div>
                       <div className="mt-1 flex flex-wrap gap-1">
-                        {avail.length === 0 ? <span className="text-xs text-muted-foreground">Niemand beschikbaar</span> : avail.map((e) => (
+                        {avail.length === 0 ? <span className="text-xs text-muted-foreground">{status === "red" ? "Volledig ingepland" : "Niemand beschikbaar"}</span> : avail.map((e) => (
                           <Badge key={e.id} variant="secondary" className="text-[10px]">{e.first_name} {e.last_name[0]}.</Badge>
                         ))}
                       </div>
