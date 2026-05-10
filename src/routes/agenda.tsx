@@ -211,7 +211,31 @@ function AgendaPage() {
     const d = ymd(day);
     return leaves.find((l) => l.employee_id === empId && l.status === "goedgekeurd" && ABSENT_TYPES.has(l.leave_type) && l.start_date <= d && l.end_date >= d) ?? null;
   }
-  const availableFor = (d: Date) => employees.filter((e) => !isAbsent(e.id, d));
+  const FULL_DAY_START = 7;
+  const FULL_DAY_END = 17;
+  function isFullyBooked(empId: string, day: Date) {
+    const s = ymd(day);
+    const intervals = plannings
+      .filter((p) => p.work_date <= s && (p.end_date ?? p.work_date) >= s && p.employee_ids.includes(empId))
+      .map((p) => [hourOfTime(p.start_time), hourOfTime(p.end_time)] as [number, number])
+      .sort((a, b) => a[0] - b[0]);
+    if (intervals.length === 0) return false;
+    let cur = FULL_DAY_START;
+    for (const [a, b] of intervals) {
+      if (a > cur) return false;
+      if (b > cur) cur = b;
+      if (cur >= FULL_DAY_END) return true;
+    }
+    return cur >= FULL_DAY_END;
+  }
+  const availableFor = (d: Date) => employees.filter((e) => !isAbsent(e.id, d) && !isFullyBooked(e.id, d));
+  const dayStatus = (d: Date): "red" | "green" | "neutral" => {
+    const notAbsent = employees.filter((e) => !isAbsent(e.id, d));
+    if (notAbsent.length === 0) return "neutral";
+    const free = notAbsent.filter((e) => !isFullyBooked(e.id, d));
+    if (free.length === 0) return "red";
+    return "green";
+  };
   const absentFor = (d: Date) => employees.map((e) => ({ emp: e, leave: isAbsent(e.id, d) })).filter((x) => x.leave) as { emp: Employee; leave: Leave }[];
   const planningsFor = (d: Date) => {
     const s = ymd(d);
