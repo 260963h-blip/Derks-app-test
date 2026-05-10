@@ -297,7 +297,8 @@ function Dashboard() {
           <p className="text-muted-foreground">Ingelogd als {user.email}</p>
         </div>
 
-        <div className="mb-8">
+        <div className="mb-8 grid gap-4 lg:grid-cols-3">
+        <div>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xl font-semibold">Verlofaanvragen</h2>
             <Link to="/verlof" className="text-sm text-primary hover:underline">Alles bekijken</Link>
@@ -368,7 +369,7 @@ function Dashboard() {
           </Card>
         </div>
 
-        <div className="mb-8">
+        <div>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xl font-semibold">Akkoord ontvangen op offertes</h2>
             <Link to="/projecten" className="text-sm text-primary hover:underline">Alle projecten</Link>
@@ -401,7 +402,7 @@ function Dashboard() {
             </CardContent>
           </Card>
         </div>
-        <div className="mb-8">
+        <div>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xl font-semibold">Te factureren</h2>
             <Link to="/projecten" className="text-sm text-primary hover:underline">Alle projecten</Link>
@@ -433,6 +434,7 @@ function Dashboard() {
               )}
             </CardContent>
           </Card>
+        </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
