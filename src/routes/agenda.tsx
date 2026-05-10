@@ -462,6 +462,16 @@ function AgendaPage() {
     if (form.employee_ids.length === 0) { toast.error("Kies minimaal één medewerker"); return; }
     if (form.end_time <= form.start_time) { toast.error("Eindtijd moet na starttijd liggen"); return; }
     if (form.end_date < form.work_date) { toast.error("Einddatum kan niet voor startdatum liggen"); return; }
+    // Geen planning op zondagen of (nog geblokkeerde) feestdagen
+    const startD = new Date(form.work_date + "T00:00:00");
+    const endD = new Date(form.end_date + "T00:00:00");
+    for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
+      if (isSunday(d)) { toast.error("Op zondag kan niet worden gepland"); return; }
+      if (isHolidayBlocked(d)) {
+        toast.error(`${holidayName(d)} (${ymd(d)}) is geblokkeerd. Deblokkeer de feestdag eerst in de agenda.`);
+        return;
+      }
+    }
     const payload = {
       user_id: user.id,
       project_id: form.project_id,
