@@ -370,17 +370,6 @@ function Dashboard() {
 
         <div className="mb-8">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Te factureren</h2>
-            <Link to="/projecten" className="text-sm text-primary hover:underline">Alle projecten</Link>
-          </div>
-          <Card>
-            <CardContent className="p-0">
-              {/* placeholder to satisfy patch context */}
-            </CardContent>
-          </Card>
-        </div>
-        <div className="mb-8">
-          <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xl font-semibold">Akkoord ontvangen op offertes</h2>
             <Link to="/projecten" className="text-sm text-primary hover:underline">Alle projecten</Link>
           </div>
@@ -412,7 +401,7 @@ function Dashboard() {
             </CardContent>
           </Card>
         </div>
-        <div className="mb-8 hidden">
+        <div className="mb-8">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xl font-semibold">Te factureren</h2>
             <Link to="/projecten" className="text-sm text-primary hover:underline">Alle projecten</Link>
