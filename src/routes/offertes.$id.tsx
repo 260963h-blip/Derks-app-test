@@ -654,7 +654,7 @@ function OfferteEditor() {
   };
 
   return (
-    <AppShell title={`Offerte ${quote.quote_number}`} subtitle="Stel de offerte samen" back>
+    <AppShell title={`Offerte ${quote.quote_number}`} subtitle="Stel de offerte samen" back backTo="/offertes">
       <div className="space-y-6">
         <Card>
           <CardContent className="grid gap-4 pt-6 sm:grid-cols-2 lg:grid-cols-4">
