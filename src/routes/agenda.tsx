@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/context-menu";
 import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil, Calendar, Users, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { sendTransactionalEmail } from "@/lib/email/send";
 
 export const Route = createFileRoute("/agenda")({
   component: AgendaPage,
@@ -62,10 +63,14 @@ type Project = {
   title: string;
   status: string;
   customer_id: string | null;
+  contact_id?: string | null;
 };
 type Customer = {
   id: string;
   name: string;
+  contact_person: string | null;
+  email: string | null;
+  customer_type: string | null;
   street: string | null;
   house_number: string | null;
   house_number_addition: string | null;
@@ -143,6 +148,11 @@ function AgendaPage() {
   const [detailsItem, setDetailsItem] = useState<Planning | null>(null);
   const [detailsLines, setDetailsLines] = useState<{ description: string; quantity: number; unit: string | null }[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTo, setConfirmTo] = useState("");
+  const [confirmSubject, setConfirmSubject] = useState("");
+  const [confirmBody, setConfirmBody] = useState("");
+  const [confirmSending, setConfirmSending] = useState(false);
   const [form, setForm] = useState({
     project_id: "",
     work_date: ymd(new Date()),
@@ -159,9 +169,9 @@ function AgendaPage() {
     const [emp, lr, pr, pl, cu] = await Promise.all([
       supabase.from("employees").select("id,first_name,last_name,role").eq("status", "actief").order("last_name"),
       supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,status"),
-      supabase.from("projects").select("id,project_number,title,status,customer_id").in("status", ["akkoord","in_uitvoering"]).order("project_number", { ascending: false }),
+      supabase.from("projects").select("id,project_number,title,status,customer_id,contact_id").in("status", ["akkoord","in_uitvoering"]).order("project_number", { ascending: false }),
       supabase.from("planning_items").select("*").order("work_date"),
-      supabase.from("customers").select("id,name,street,house_number,house_number_addition,postal_code,city"),
+      supabase.from("customers").select("id,name,contact_person,email,customer_type,street,house_number,house_number_addition,postal_code,city"),
     ]);
     setEmployees((emp.data ?? []) as Employee[]);
     setLeaves((lr.data ?? []) as Leave[]);
@@ -244,6 +254,114 @@ function AgendaPage() {
       setDetailsLines((lines ?? []) as any);
     }
     setDetailsLoading(false);
+  }
+  function formatDateNL(s: string) {
+    const [y, m, d] = s.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    return `${DAY_NAMES[dt.getDay()]} ${dt.getDate()} ${MONTH_NAMES[dt.getMonth()]} ${dt.getFullYear()}`;
+  }
+  async function openConfirmMail(p: Planning) {
+    const proj = projectFor(p.project_id);
+    if (!proj?.customer_id) { toast.error("Project heeft geen klant"); return; }
+    const customer = customers.find((x) => x.id === proj.customer_id);
+    if (!customer) { toast.error("Klant niet gevonden"); return; }
+
+    // Bedrijfsgegevens
+    const { data: cs } = await supabase
+      .from("company_settings")
+      .select("company_name,phone,owner_first_name,owner_last_name")
+      .maybeSingle();
+    const companyName = cs?.company_name || "Stucadoorsbedrijf Derks";
+    const ondertekenaar = [cs?.owner_first_name, cs?.owner_last_name].filter(Boolean).join(" ") || "Nick Derks";
+    const tel = cs?.phone || "";
+
+    // Contactpersoon (zakelijk)
+    let contactName = "";
+    let contactEmail = "";
+    if (proj.contact_id) {
+      const { data: c } = await supabase
+        .from("customer_contacts")
+        .select("name,email")
+        .eq("id", proj.contact_id)
+        .maybeSingle();
+      contactName = c?.name ?? "";
+      contactEmail = c?.email ?? "";
+    }
+
+    // Aanhef
+    const isZakelijk = (customer.customer_type ?? "particulier") !== "particulier";
+    let aanhef = "Geachte heer/mevrouw,";
+    if (isZakelijk && (contactName || customer.contact_person)) {
+      const naam = contactName || customer.contact_person || "";
+      const voornaam = naam.trim().split(/\s+/)[0];
+      aanhef = `Beste ${voornaam},`;
+    } else if (customer.name) {
+      // particulier — gebruik achternaam (laatste woord van naam)
+      const parts = customer.name.trim().split(/\s+/);
+      const achternaam = parts.length > 1 ? parts.slice(-1)[0] : customer.name;
+      aanhef = `Geachte heer/mevrouw ${achternaam},`;
+    }
+
+    // Offertenummer
+    const { data: q } = await supabase
+      .from("quotes")
+      .select("quote_number")
+      .eq("project_id", p.project_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const offertenr = q?.quote_number || proj.project_number;
+
+    // Datums
+    const startD = new Date(p.work_date + "T00:00:00");
+    const endD = new Date((p.end_date || p.work_date) + "T00:00:00");
+    const dagen: string[] = [];
+    for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
+      // sla zondag over (werkweek ma-za)
+      if (d.getDay() === 0) continue;
+      dagen.push(`- ${formatDateNL(ymd(d))} — ${p.start_time.slice(0,5)} tot ${p.end_time.slice(0,5)}`);
+    }
+
+    const adres = addressFor(p.project_id);
+    const medewerkers = p.employee_ids.map(empName).join(", ");
+
+    const subject = `Bevestiging afspraak uitvoering werkzaamheden – offerte ${offertenr}`;
+    const body =
+      `${aanhef}\n\n` +
+      `Zoals telefonisch met u besproken, bevestigen wij hierbij de afspraak voor de uitvoering van de werkzaamheden behorend bij offerte ${offertenr}${proj.title ? ` – ${proj.title}` : ""}.\n\n` +
+      (adres ? `Locatie van uitvoering:\n${adres}\n\n` : "") +
+      `Geplande dag(en) en tijden:\n${dagen.join("\n")}\n\n` +
+      (medewerkers ? `Onze medewerker(s) ${medewerkers} zullen de werkzaamheden uitvoeren conform de afspraken in de offerte. ` : "") +
+      `Wij vragen u vriendelijk ervoor te zorgen dat de werkruimte op de geplande dag(en) toegankelijk en leeg is, zodat wij direct kunnen starten.\n\n` +
+      `Mocht er onverhoopt iets wijzigen of heeft u nog vragen, neem dan gerust telefonisch contact met ons op${tel ? ` via ${tel}` : ""}.\n\n` +
+      `Wij hebben er vertrouwen in dat we het werk netjes en naar tevredenheid voor u zullen uitvoeren.\n\n` +
+      `Met vriendelijke groet,\n\n${ondertekenaar}\n${companyName}` +
+      (tel ? `\nTel: ${tel}` : "");
+
+    setDetailsItem(p);
+    setConfirmTo(contactEmail || customer.email || "");
+    setConfirmSubject(subject);
+    setConfirmBody(body);
+    setConfirmOpen(true);
+  }
+  async function sendConfirmMail() {
+    if (!detailsItem) return;
+    if (!confirmTo) { toast.error("Geen e-mailadres"); return; }
+    setConfirmSending(true);
+    try {
+      await sendTransactionalEmail({
+        templateName: "afspraak-bevestiging",
+        recipientEmail: confirmTo,
+        idempotencyKey: `afspraak-${detailsItem.id}-${Date.now()}`,
+        templateData: { subject: confirmSubject, bodyText: confirmBody },
+      });
+      toast.success("Bevestigingsmail verstuurd");
+      setConfirmOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Versturen mislukt");
+    } finally {
+      setConfirmSending(false);
+    }
   }
   async function savePlan() {
     if (!user) return;
@@ -403,6 +521,10 @@ function AgendaPage() {
                                   <ContextMenuSeparator />
                                   <ContextMenuItem onSelect={() => navigate({ to: `/projecten/${p.project_id}?tab=werkorder` as any })}>
                                     Werkorder openen
+                                  </ContextMenuItem>
+                                  <ContextMenuSeparator />
+                                  <ContextMenuItem onSelect={() => openConfirmMail(p)}>
+                                    <FileText className="mr-2 h-4 w-4" /> Bevestigingsmail naar klant
                                   </ContextMenuItem>
                                   <ContextMenuSeparator />
                                   <ContextMenuItem className="text-destructive" onSelect={() => setToDelete(p)}>
@@ -604,6 +726,35 @@ function AgendaPage() {
                 </Button>
               </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Bevestigingsmail naar klant</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Aan</Label>
+              <Input type="email" value={confirmTo} onChange={(e) => setConfirmTo(e.target.value)} placeholder="klant@voorbeeld.nl" />
+            </div>
+            <div className="space-y-2">
+              <Label>Onderwerp</Label>
+              <Input value={confirmSubject} onChange={(e) => setConfirmSubject(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Bericht</Label>
+              <Textarea rows={16} value={confirmBody} onChange={(e) => setConfirmBody(e.target.value)} className="font-mono text-xs" />
+              <p className="text-xs text-muted-foreground">Pas de tekst zo nodig aan voordat u verstuurt.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={confirmSending}>Annuleren</Button>
+            <Button onClick={sendConfirmMail} disabled={confirmSending || !confirmTo}>
+              {confirmSending ? "Versturen..." : "Versturen"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
