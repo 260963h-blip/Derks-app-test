@@ -19,6 +19,8 @@ export const SignaturePad = forwardRef<SignaturePadHandle, { height?: number }>(
       if (!c) return;
       const dpr = window.devicePixelRatio || 1;
       const resize = () => {
+        // Behoud bestaande tekening bij rotatie/resize
+        const prev = dirty.current ? c.toDataURL("image/png") : null;
         const rect = c.getBoundingClientRect();
         c.width = rect.width * dpr;
         c.height = rect.height * dpr;
@@ -29,8 +31,19 @@ export const SignaturePad = forwardRef<SignaturePadHandle, { height?: number }>(
         ctx.strokeStyle = "#0a2463";
         ctx.fillStyle = "#fff";
         ctx.fillRect(0, 0, rect.width, rect.height);
+        if (prev) {
+          const img = new Image();
+          img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+          img.src = prev;
+        }
       };
       resize();
+      window.addEventListener("resize", resize);
+      window.addEventListener("orientationchange", resize);
+      return () => {
+        window.removeEventListener("resize", resize);
+        window.removeEventListener("orientationchange", resize);
+      };
     }, []);
 
     const pos = (e: PointerEvent | React.PointerEvent) => {
