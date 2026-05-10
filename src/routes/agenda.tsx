@@ -43,6 +43,7 @@ import {
 import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil, Calendar, Users, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { sendTransactionalEmail } from "@/lib/email/send";
+import { dutchHolidaysForYears } from "@/lib/dutch-holidays";
 
 export const Route = createFileRoute("/agenda")({
   component: AgendaPage,
@@ -146,6 +147,7 @@ function AgendaPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [plannings, setPlannings] = useState<Planning[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [unblockedHolidays, setUnblockedHolidays] = useState<Set<string>>(new Set());
   const [view, setView] = useState<ViewMode>("week");
   const [anchor, setAnchor] = useState<Date>(() => { const t = new Date(); t.setHours(0,0,0,0); return t; });
   const [yearOpen, setYearOpen] = useState(false);
@@ -187,13 +189,14 @@ function AgendaPage() {
   useEffect(() => { if (user) void load(); }, [user]);
 
   async function load() {
-    const [emp, lr, pr, pl, cu, rs] = await Promise.all([
+    const [emp, lr, pr, pl, cu, rs, hu] = await Promise.all([
       supabase.from("employees").select("id,first_name,last_name,role").eq("status", "actief").order("last_name"),
       supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,status"),
       supabase.from("projects").select("id,project_number,title,status,customer_id,contact_id").in("status", ["akkoord","in_uitvoering","te_factureren","gefactureerd"]).order("project_number", { ascending: false }),
       supabase.from("planning_items").select("*").order("work_date"),
       supabase.from("customers").select("id,name,contact_person,email,customer_type,street,house_number,house_number_addition,postal_code,city"),
       supabase.from("reservations").select("*").order("start_date"),
+      supabase.from("holiday_unblocks").select("holiday_date"),
     ]);
     setEmployees((emp.data ?? []) as Employee[]);
     setLeaves((lr.data ?? []) as Leave[]);
@@ -201,11 +204,43 @@ function AgendaPage() {
     setPlannings((pl.data ?? []) as Planning[]);
     setCustomers((cu.data ?? []) as Customer[]);
     setReservations((rs.data ?? []) as Reservation[]);
+    setUnblockedHolidays(new Set(((hu.data ?? []) as { holiday_date: string }[]).map((x) => x.holiday_date)));
   }
 
   const weekStart = useMemo(() => startOfWeek(anchor), [anchor]);
   const weekDays = useMemo(() => Array.from({ length: 6 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const { week, year } = useMemo(() => isoWeek(anchor), [anchor]);
+
+  // Feestdagen voor zichtbare jaren (huidig + buren) zodat alle views werken
+  const holidays = useMemo(() => {
+    const y = anchor.getFullYear();
+    return dutchHolidaysForYears([y - 1, y, y + 1]);
+  }, [anchor]);
+  function isSunday(d: Date) { return d.getDay() === 0; }
+  function holidayName(d: Date): string | null { return holidays.get(ymd(d)) ?? null; }
+  function isHolidayBlocked(d: Date): boolean {
+    const name = holidayName(d);
+    if (!name) return false;
+    return !unblockedHolidays.has(ymd(d));
+  }
+  function isDayBlocked(d: Date): boolean {
+    return isSunday(d) || isHolidayBlocked(d);
+  }
+  async function toggleHolidayBlock(d: Date) {
+    if (!user) return;
+    const key = ymd(d);
+    if (unblockedHolidays.has(key)) {
+      const { error } = await supabase.from("holiday_unblocks").delete().eq("holiday_date", key).eq("user_id", user.id);
+      if (error) { toast.error(error.message); return; }
+      setUnblockedHolidays((s) => { const n = new Set(s); n.delete(key); return n; });
+      toast.success("Feestdag opnieuw geblokkeerd");
+    } else {
+      const { error } = await supabase.from("holiday_unblocks").insert({ user_id: user.id, holiday_date: key });
+      if (error) { toast.error(error.message); return; }
+      setUnblockedHolidays((s) => { const n = new Set(s); n.add(key); return n; });
+      toast.success("Feestdag gedeblokkeerd");
+    }
+  }
 
   function isAbsent(empId: string, day: Date): Leave | null {
     const d = ymd(day);
@@ -427,6 +462,16 @@ function AgendaPage() {
     if (form.employee_ids.length === 0) { toast.error("Kies minimaal één medewerker"); return; }
     if (form.end_time <= form.start_time) { toast.error("Eindtijd moet na starttijd liggen"); return; }
     if (form.end_date < form.work_date) { toast.error("Einddatum kan niet voor startdatum liggen"); return; }
+    // Geen planning op zondagen of (nog geblokkeerde) feestdagen
+    const startD = new Date(form.work_date + "T00:00:00");
+    const endD = new Date(form.end_date + "T00:00:00");
+    for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
+      if (isSunday(d)) { toast.error("Op zondag kan niet worden gepland"); return; }
+      if (isHolidayBlocked(d)) {
+        toast.error(`${holidayName(d)} (${ymd(d)}) is geblokkeerd. Deblokkeer de feestdag eerst in de agenda.`);
+        return;
+      }
+    }
     const payload = {
       user_id: user.id,
       project_id: form.project_id,
@@ -554,12 +599,17 @@ function AgendaPage() {
                   const avail = availableFor(d);
                   const absent = absentFor(d);
                   const status = dayStatus(d);
-                  const statusBg =
-                    status === "red" ? "bg-red-100 dark:bg-red-950/40"
+                  const sunday = isSunday(d);
+                  const hName = holidayName(d);
+                  const blocked = isDayBlocked(d);
+                  const statusBg = blocked
+                    ? "bg-muted/60"
+                    : status === "red" ? "bg-red-100 dark:bg-red-950/40"
                     : status === "green" ? "bg-green-100 dark:bg-green-950/40"
                     : isToday ? "bg-primary/5" : "";
-                  const statusDot =
-                    status === "red" ? "bg-red-500"
+                  const statusDot = blocked
+                    ? ""
+                    : status === "red" ? "bg-red-500"
                     : status === "green" ? "bg-green-500"
                     : "";
                   return (
@@ -569,8 +619,29 @@ function AgendaPage() {
                           {statusDot && <span className={`inline-block h-2 w-2 rounded-full ${statusDot}`} />}
                           {DAY_NAMES[d.getDay()]}. {d.getDate()} {MONTH_NAMES[d.getMonth()].slice(0,3)}
                         </div>
-                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openNew(d)}><Plus className="h-3 w-3" /></Button>
+                        {!blocked && (
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openNew(d)}><Plus className="h-3 w-3" /></Button>
+                        )}
                       </div>
+                      {sunday && (
+                        <div className="mt-1 text-[10px] font-medium text-muted-foreground">🚫 Zondag — geblokkeerd</div>
+                      )}
+                      {hName && !sunday && (
+                        <div className="mt-1 flex items-center justify-between gap-1">
+                          <span className="text-[10px] font-medium text-muted-foreground truncate">🎉 {hName}</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 px-1.5 text-[10px]"
+                            onClick={() => toggleHolidayBlock(d)}
+                            title={isHolidayBlocked(d) ? "Deblokkeer deze feestdag" : "Blokkeer deze feestdag opnieuw"}
+                          >
+                            {isHolidayBlocked(d) ? "Deblokkeer" : "Blokkeer"}
+                          </Button>
+                        </div>
+                      )}
+                      {!blocked && (
+                        <>
                       <div className="mt-1 flex flex-wrap gap-1">
                         {avail.length === 0 ? <span className="text-xs text-muted-foreground">{status === "red" ? "Volledig ingepland" : "Niemand beschikbaar"}</span> : avail.map((e) => (
                           <Badge key={e.id} variant="secondary" className="text-[10px]">{e.first_name} {e.last_name[0]}.</Badge>
@@ -583,6 +654,8 @@ function AgendaPage() {
                           ))}
                         </div>
                       )}
+                        </>
+                      )}
                     </div>
                   );
                 })}
@@ -592,6 +665,15 @@ function AgendaPage() {
                 <div key={h} className="grid border-b" style={{ gridTemplateColumns: `80px repeat(${days.length}, minmax(0,1fr))` }}>
                   <div className="p-2 text-xs text-muted-foreground">{String(h).padStart(2,'0')}:00 - {String(h+1).padStart(2,'0')}:00</div>
                   {days.map((d) => {
+                    if (isDayBlocked(d)) {
+                      return (
+                        <div
+                          key={d.toISOString()+h}
+                          className="min-h-[44px] border-l bg-muted/40"
+                          style={{ backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(0,0,0,0.04) 6px, rgba(0,0,0,0.04) 12px)" }}
+                        />
+                      );
+                    }
                     const items = planningsFor(d).filter((p) => hourOfTime(p.start_time) <= h && hourOfTime(p.end_time) > h);
                     const resItems = reservationsFor(d).filter((r) => hourOfTime(r.start_time) <= h && hourOfTime(r.end_time) > h);
                     return (
