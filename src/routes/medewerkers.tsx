@@ -151,7 +151,7 @@ const empty = {
   work_days: "",
   hourly_rate: "",
   monthly_salary: "",
-  vacation_days_per_year: "20",
+  vacation_days_per_year: "25",
   iban: "",
   bic: "",
   payroll_tax_credit: false,
