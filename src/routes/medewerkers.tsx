@@ -394,16 +394,33 @@ function MedewerkersPage() {
   }
 
   async function undoLeave(id: string) {
-    if (!editing) return;
-    const { error } = await supabase
-      .from("leave_requests")
-      .update({ status: "aangevraagd", notes: null })
-      .eq("id", id);
+    if (!editing || !user) return;
+    const original = leaveReqs.find((r) => r.id === id);
+    if (!original) return;
+    // Voorkom dubbele intrekking voor dezelfde aanvraag
+    const existing = leaveReqs.find(
+      (r) => r.leave_type === "intrekking" && r.notes === `original:${id}` && r.status === "aangevraagd",
+    );
+    if (existing) {
+      toast.error("Er staat al een intrekking open voor deze aanvraag");
+      return;
+    }
+    const { error } = await supabase.from("leave_requests").insert({
+      user_id: user.id,
+      employee_id: editing.id,
+      leave_type: "intrekking",
+      start_date: original.start_date,
+      end_date: original.end_date,
+      days: original.days,
+      reason: "Intrekking goedgekeurd verlof",
+      status: "aangevraagd",
+      notes: `original:${id}`,
+    });
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success("Verlof ongedaan gemaakt — opnieuw ter beoordeling");
+    toast.success("Intrekking aangevraagd — wacht op goedkeuring");
     void loadLeave(editing.id);
   }
 

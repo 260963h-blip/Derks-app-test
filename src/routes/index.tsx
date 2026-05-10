@@ -153,6 +153,26 @@ function Dashboard() {
   }
 
   async function approve(id: string) {
+    const entry = logEntries.find((x) => x.id === id);
+    // Intrekking: bij goedkeuring de oorspronkelijke aanvraag verwijderen,
+    // zodat de verlofdagen weer bijgeschreven worden en de medewerker
+    // weer beschikbaar is in de agenda.
+    if (entry?.leave_type === "intrekking") {
+      const originalId = entry.notes?.startsWith("original:")
+        ? entry.notes.slice("original:".length)
+        : null;
+      if (originalId) {
+        await supabase.from("leave_requests").delete().eq("id", originalId);
+      }
+      const { error } = await supabase.from("leave_requests").delete().eq("id", id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("Intrekking goedgekeurd — verlofdagen teruggeboekt");
+      void loadLog();
+      return;
+    }
     const { error } = await supabase
       .from("leave_requests")
       .update({ status: "goedgekeurd" })
@@ -252,7 +272,11 @@ function Dashboard() {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium">{e.employee_name}</span>
-                          <Badge variant="outline">{e.leave_type}</Badge>
+                          {e.leave_type === "intrekking" ? (
+                            <Badge variant="destructive">Intrekking goedgekeurd verlof</Badge>
+                          ) : (
+                            <Badge variant="outline">{e.leave_type}</Badge>
+                          )}
                           <Badge variant={statusVariant(e.status) as any}>{e.status}</Badge>
                           {e.has_conflict && (
                             <Badge variant="destructive">Conflict met planning</Badge>
