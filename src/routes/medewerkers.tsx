@@ -512,6 +512,7 @@ function MedewerkersPage() {
                 >
                   <option value="medewerker">Medewerker</option>
                   <option value="eigenaar">Eigenaar</option>
+                  <option value="zzp">ZZP-er</option>
                 </select>
               </div>
 
