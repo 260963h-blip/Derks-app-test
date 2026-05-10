@@ -393,6 +393,20 @@ function MedewerkersPage() {
     void loadLeave(editing.id);
   }
 
+  async function undoLeave(id: string) {
+    if (!editing) return;
+    const { error } = await supabase
+      .from("leave_requests")
+      .update({ status: "aangevraagd", notes: null })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Verlof ongedaan gemaakt — opnieuw ter beoordeling");
+    void loadLeave(editing.id);
+  }
+
   async function save() {
     if (!user) return;
     if (!form.first_name.trim() || !form.last_name.trim()) {
@@ -1013,6 +1027,16 @@ function MedewerkersPage() {
                                       title="Aanvraag intrekken"
                                     >
                                       <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  {r.status === "goedgekeurd" && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => undoLeave(r.id)}
+                                      title="Goedkeuring ongedaan maken"
+                                    >
+                                      Ongedaan maken
                                     </Button>
                                   )}
                                 </TableCell>
