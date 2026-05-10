@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Search, FolderOpen, Save } from "lucide-react";
 import { toast } from "sonner";
 import { EmployeeDocumentsDialog } from "@/components/employee-documents-dialog";
+import { dutchHolidaysForYears } from "@/lib/dutch-holidays";
 
 export const Route = createFileRoute("/medewerkers")({
   component: MedewerkersPage,
@@ -93,6 +94,37 @@ type EmployeeRate = {
   sort_order: number;
 };
 
+type LeaveReq = {
+  id: string;
+  employee_id: string;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  days: number;
+  reason: string | null;
+  status: string;
+  notes: string | null;
+};
+
+function calcLeaveDays(start: string, end: string): number {
+  if (!start || !end) return 0;
+  const s = new Date(start);
+  const e = new Date(end);
+  if (e < s) return 0;
+  const years = new Set<number>();
+  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) years.add(d.getFullYear());
+  const holidays = dutchHolidaysForYears(Array.from(years));
+  let count = 0;
+  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) continue; // weekend
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (holidays.has(key)) continue; // wettelijke feestdag
+    count++;
+  }
+  return count;
+}
+
 const empty = {
   first_name: "",
   middle_name: "",
@@ -119,7 +151,7 @@ const empty = {
   work_days: "",
   hourly_rate: "",
   monthly_salary: "",
-  vacation_days_per_year: "20",
+  vacation_days_per_year: "25",
   iban: "",
   bic: "",
   payroll_tax_credit: false,
@@ -153,6 +185,10 @@ function MedewerkersPage() {
   const [docsFor, setDocsFor] = useState<Employee | null>(null);
   const [rates, setRates] = useState<EmployeeRate[]>([]);
   const [newRate, setNewRate] = useState({ name: "", hourly_rate: "", is_default: false });
+  const [leaveReqs, setLeaveReqs] = useState<LeaveReq[]>([]);
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const [leaveForm, setLeaveForm] = useState({ start_date: todayISO, end_date: todayISO, reason: "" });
+  const [savingLeave, setSavingLeave] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -178,6 +214,8 @@ function MedewerkersPage() {
     setEditing(null);
     setForm(empty);
     setRates([]);
+    setLeaveReqs([]);
+    setLeaveForm({ start_date: todayISO, end_date: todayISO, reason: "" });
     setOpen(true);
   }
 
@@ -223,6 +261,8 @@ function MedewerkersPage() {
       arbo_notes: e.arbo_notes ?? "",
     });
     loadRates(e.id);
+    loadLeave(e.id);
+    setLeaveForm({ start_date: todayISO, end_date: todayISO, reason: "" });
     setOpen(true);
   }
 
@@ -296,6 +336,61 @@ function MedewerkersPage() {
       return;
     }
     loadRates(editing.id);
+  }
+
+  async function loadLeave(employeeId: string) {
+    const { data, error } = await supabase
+      .from("leave_requests")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .order("start_date", { ascending: false });
+    if (error) {
+      toast.error("Kon verlofaanvragen niet laden");
+      return;
+    }
+    setLeaveReqs((data ?? []) as LeaveReq[]);
+  }
+
+  async function submitLeave() {
+    if (!user || !editing) return;
+    if (leaveForm.end_date < leaveForm.start_date) {
+      toast.error("Einddatum kan niet voor startdatum liggen");
+      return;
+    }
+    const days = calcLeaveDays(leaveForm.start_date, leaveForm.end_date);
+    if (days <= 0) {
+      toast.error("Geen werkdagen geselecteerd");
+      return;
+    }
+    setSavingLeave(true);
+    const { error } = await supabase.from("leave_requests").insert({
+      user_id: user.id,
+      employee_id: editing.id,
+      leave_type: "vakantie",
+      start_date: leaveForm.start_date,
+      end_date: leaveForm.end_date,
+      days,
+      reason: leaveForm.reason || null,
+      status: "aangevraagd",
+    });
+    setSavingLeave(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Verlof aangevraagd");
+    setLeaveForm({ start_date: todayISO, end_date: todayISO, reason: "" });
+    void loadLeave(editing.id);
+  }
+
+  async function deleteLeave(id: string) {
+    if (!editing) return;
+    const { error } = await supabase.from("leave_requests").delete().eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    void loadLeave(editing.id);
   }
 
   async function save() {
@@ -493,11 +588,12 @@ function MedewerkersPage() {
           </DialogHeader>
 
           <Tabs defaultValue="persoonlijk" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="persoonlijk">Persoonlijk</TabsTrigger>
               <TabsTrigger value="arbeid">Arbeid</TabsTrigger>
               <TabsTrigger value="loon">Loon</TabsTrigger>
               <TabsTrigger value="tarieven">Tarieven</TabsTrigger>
+              <TabsTrigger value="verlofdagen">Verlofdagen</TabsTrigger>
               <TabsTrigger value="arbo">Verzekering & Arbo</TabsTrigger>
             </TabsList>
 
@@ -785,6 +881,146 @@ function MedewerkersPage() {
                         </Button>
                       </div>
                     </div>
+                  </div>
+                </>
+              )}
+            </TabsContent>
+
+            {/* VERLOFDAGEN */}
+            <TabsContent value="verlofdagen" className="space-y-4 pt-4">
+              {!editing ? (
+                <p className="text-sm text-muted-foreground">
+                  Sla eerst de medewerker op. Daarna kun je hier verlof aanvragen en het saldo bekijken.
+                </p>
+              ) : (
+                <>
+                  <div className="rounded-md border p-3">
+                    <Label>Vakantiedagen per jaar</Label>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.5"
+                        value={form.vacation_days_per_year}
+                        onChange={(e) => set("vacation_days_per_year", e.target.value)}
+                        className="w-32"
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        Wordt opgeslagen bij "Opslaan" onderaan.
+                      </span>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const year = new Date().getFullYear();
+                    const total = Number(form.vacation_days_per_year || 0);
+                    const yearReqs = leaveReqs.filter(
+                      (r) => r.leave_type === "vakantie" && r.start_date.startsWith(String(year)),
+                    );
+                    const used = yearReqs
+                      .filter((r) => r.status === "goedgekeurd")
+                      .reduce((s, r) => s + Number(r.days || 0), 0);
+                    const pending = yearReqs
+                      .filter((r) => r.status === "aangevraagd")
+                      .reduce((s, r) => s + Number(r.days || 0), 0);
+                    return (
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="secondary">Recht {year}: {total} dagen</Badge>
+                        <Badge variant="outline">Opgenomen: {used}</Badge>
+                        <Badge variant="outline">In aanvraag: {pending}</Badge>
+                        <Badge>Resterend: {(total - used).toFixed(1)}</Badge>
+                      </div>
+                    );
+                  })()}
+
+                  <div className="rounded-md border p-3">
+                    <h4 className="mb-2 text-sm font-semibold">Nieuwe verlofaanvraag</h4>
+                    <p className="mb-3 text-xs text-muted-foreground">
+                      Weekenden en wettelijke feestdagen worden niet meegerekend.
+                    </p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_2fr_auto]">
+                      <div>
+                        <Label>Van</Label>
+                        <Input
+                          type="date"
+                          value={leaveForm.start_date}
+                          onChange={(e) => setLeaveForm({ ...leaveForm, start_date: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Tot</Label>
+                        <Input
+                          type="date"
+                          value={leaveForm.end_date}
+                          onChange={(e) => setLeaveForm({ ...leaveForm, end_date: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Reden (optioneel)</Label>
+                        <Input
+                          value={leaveForm.reason}
+                          onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <Button onClick={submitLeave} disabled={savingLeave} className="w-full">
+                          <Plus className="mr-2 h-4 w-4" />
+                          {calcLeaveDays(leaveForm.start_date, leaveForm.end_date)} dgn
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="mb-2 text-sm font-semibold">Mijn aanvragen</h4>
+                    {leaveReqs.filter((r) => r.status !== "afgekeurd").length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nog geen aanvragen.</p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Van</TableHead>
+                            <TableHead>Tot</TableHead>
+                            <TableHead className="text-right">Dagen</TableHead>
+                            <TableHead>Reden</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="w-12"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {leaveReqs
+                            .filter((r) => r.status !== "afgekeurd")
+                            .map((r) => (
+                              <TableRow key={r.id}>
+                                <TableCell>{r.start_date}</TableCell>
+                                <TableCell>{r.end_date}</TableCell>
+                                <TableCell className="text-right font-medium">
+                                  {Number(r.days).toFixed(1)}
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {r.reason ?? "—"}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={r.status === "goedgekeurd" ? "default" : "secondary"}>
+                                    {r.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {r.status === "aangevraagd" && (
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => deleteLeave(r.id)}
+                                      title="Aanvraag intrekken"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    )}
                   </div>
                 </>
               )}

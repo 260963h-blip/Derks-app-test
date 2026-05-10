@@ -33,7 +33,6 @@ const menu: Array<{
   { title: "Klanten", desc: "Klantgegevens beheren", icon: Users, to: "/klanten" },
   { title: "Artikelen", desc: "Materialen en werkzaamheden", icon: Package, to: "/artikelen" },
   { title: "Urenregistratie", desc: "Gewerkte uren per medewerker", icon: Clock, to: "/uren" },
-  { title: "Verlof", desc: "Vakantie, ziekte en bijzonder verlof", icon: CalendarDays, to: "/verlof" },
   { title: "Bedrijfsgegevens", desc: "Eigen bedrijfsinformatie", icon: Building2, to: "/bedrijfsgegevens" },
   { title: "Instellingen", desc: "Categorieën en eenheden beheren", icon: Settings, to: "/instellingen" },
 ];
