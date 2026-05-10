@@ -157,46 +157,9 @@ function Dashboard() {
           <p className="text-muted-foreground">Ingelogd als {user.email}</p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {menu.map((item) => {
-            const Icon = item.icon;
-            const inner = (
-              <Card
-                className={
-                  item.to
-                    ? "cursor-pointer transition-colors hover:bg-accent/50"
-                    : "cursor-not-allowed opacity-70"
-                }
-              >
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-md bg-secondary p-2 text-primary">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <CardTitle className="text-base">{item.title}</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{item.desc}</p>
-                  {!item.to && (
-                    <p className="mt-2 text-xs italic text-muted-foreground">Binnenkort beschikbaar</p>
-                  )}
-                </CardContent>
-              </Card>
-            );
-            return item.to ? (
-              <Link key={item.title} to={item.to}>
-                {inner}
-              </Link>
-            ) : (
-              <div key={item.title}>{inner}</div>
-            );
-          })}
-        </div>
-
-        <div className="mt-10">
+        <div className="mb-8">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Logboek verlofaanvragen</h2>
+            <h2 className="text-xl font-semibold">Verlofaanvragen</h2>
             <Link to="/verlof" className="text-sm text-primary hover:underline">Alles bekijken</Link>
           </div>
           <Card>
@@ -235,6 +198,43 @@ function Dashboard() {
               )}
             </CardContent>
           </Card>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {menu.map((item) => {
+            const Icon = item.icon;
+            const inner = (
+              <Card
+                className={
+                  item.to
+                    ? "cursor-pointer transition-colors hover:bg-accent/50"
+                    : "cursor-not-allowed opacity-70"
+                }
+              >
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-md bg-secondary p-2 text-primary">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <CardTitle className="text-base">{item.title}</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                  {!item.to && (
+                    <p className="mt-2 text-xs italic text-muted-foreground">Binnenkort beschikbaar</p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+            return item.to ? (
+              <Link key={item.title} to={item.to}>
+                {inner}
+              </Link>
+            ) : (
+              <div key={item.title}>{inner}</div>
+            );
+          })}
         </div>
       </main>
 
