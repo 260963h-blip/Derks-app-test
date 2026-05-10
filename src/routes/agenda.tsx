@@ -33,7 +33,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil } from "lucide-react";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+  ContextMenuSeparator,
+} from "@/components/ui/context-menu";
+import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil, Calendar, Users, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/agenda")({
@@ -132,6 +139,10 @@ function AgendaPage() {
   const [planOpen, setPlanOpen] = useState(false);
   const [editing, setEditing] = useState<Planning | null>(null);
   const [toDelete, setToDelete] = useState<Planning | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsItem, setDetailsItem] = useState<Planning | null>(null);
+  const [detailsLines, setDetailsLines] = useState<{ description: string; quantity: number; unit: string | null }[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [form, setForm] = useState({
     project_id: "",
     work_date: ymd(new Date()),
@@ -211,6 +222,28 @@ function AgendaPage() {
       notes: p.notes ?? "",
     });
     setPlanOpen(true);
+  }
+  async function openDetails(p: Planning) {
+    setDetailsItem(p);
+    setDetailsOpen(true);
+    setDetailsLoading(true);
+    setDetailsLines([]);
+    const { data: q } = await supabase
+      .from("quotes")
+      .select("id")
+      .eq("project_id", p.project_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (q?.id) {
+      const { data: lines } = await supabase
+        .from("quote_lines")
+        .select("description,quantity,unit,sort_order")
+        .eq("quote_id", q.id)
+        .order("sort_order");
+      setDetailsLines((lines ?? []) as any);
+    }
+    setDetailsLoading(false);
   }
   async function savePlan() {
     if (!user) return;
