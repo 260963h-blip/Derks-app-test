@@ -1,10 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Receipt, Users, Package, UserCog, Building2, LogOut, Clock, CalendarDays, Settings, FolderKanban } from "lucide-react";
 import logo from "@/assets/logo-derks.png";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -30,10 +41,89 @@ const menu: Array<{
 function Dashboard() {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
+  const [logEntries, setLogEntries] = useState<Array<{
+    id: string;
+    employee_id: string;
+    leave_type: string;
+    start_date: string;
+    end_date: string;
+    days: number;
+    reason: string | null;
+    status: string;
+    notes: string | null;
+    created_at: string;
+    employee_name?: string;
+  }>>([]);
+  const [rejectFor, setRejectFor] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (!user) return;
+    void loadLog();
+  }, [user]);
+
+  async function loadLog() {
+    const { data, error } = await supabase
+      .from("leave_requests")
+      .select("id,employee_id,leave_type,start_date,end_date,days,reason,status,notes,created_at")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    const rows = data ?? [];
+    const empIds = Array.from(new Set(rows.map((r) => r.employee_id)));
+    let names: Record<string, string> = {};
+    if (empIds.length) {
+      const { data: emps } = await supabase
+        .from("employees")
+        .select("id,first_name,last_name")
+        .in("id", empIds);
+      names = Object.fromEntries((emps ?? []).map((e) => [e.id, `${e.first_name} ${e.last_name}`]));
+    }
+    setLogEntries(rows.map((r) => ({ ...r, employee_name: names[r.employee_id] ?? "—" })));
+  }
+
+  async function approve(id: string) {
+    const { error } = await supabase
+      .from("leave_requests")
+      .update({ status: "goedgekeurd" })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Aanvraag goedgekeurd");
+    void loadLog();
+  }
+
+  async function confirmReject() {
+    if (!rejectFor) return;
+    if (!rejectReason.trim()) {
+      toast.error("Geef een reden op");
+      return;
+    }
+    const { error } = await supabase
+      .from("leave_requests")
+      .update({ status: "afgekeurd", notes: rejectReason.trim() })
+      .eq("id", rejectFor);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Aanvraag afgekeurd");
+    setRejectFor(null);
+    setRejectReason("");
+    void loadLog();
+  }
+
+  const statusVariant = (s: string) =>
+    s === "goedgekeurd" ? "default" : s === "afgekeurd" ? "destructive" : "secondary";
 
   if (loading || !user) {
     return (
@@ -103,7 +193,66 @@ function Dashboard() {
             );
           })}
         </div>
+
+        <div className="mt-10">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Logboek verlofaanvragen</h2>
+            <Link to="/verlof" className="text-sm text-primary hover:underline">Alles bekijken</Link>
+          </div>
+          <Card>
+            <CardContent className="p-0">
+              {logEntries.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">Geen verlofaanvragen</div>
+              ) : (
+                <ul className="divide-y">
+                  {logEntries.map((e) => (
+                    <li key={e.id} className="flex flex-wrap items-center gap-3 p-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">{e.employee_name}</span>
+                          <Badge variant="outline">{e.leave_type}</Badge>
+                          <Badge variant={statusVariant(e.status) as any}>{e.status}</Badge>
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {e.start_date} t/m {e.end_date} · {Number(e.days).toFixed(1)} dagen
+                          {e.reason ? ` · ${e.reason}` : ""}
+                        </p>
+                        {e.status === "afgekeurd" && e.notes && (
+                          <p className="mt-1 text-xs text-destructive">Reden afkeuring: {e.notes}</p>
+                        )}
+                      </div>
+                      {e.status === "aangevraagd" && (
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => approve(e.id)}>Akkoord</Button>
+                          <Button size="sm" variant="outline" onClick={() => { setRejectFor(e.id); setRejectReason(""); }}>
+                            Afkeuren
+                          </Button>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </main>
+
+      <Dialog open={!!rejectFor} onOpenChange={(o) => { if (!o) { setRejectFor(null); setRejectReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verlofaanvraag afkeuren</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Geef een reden op voor de afkeuring.</p>
+            <Textarea rows={4} value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Reden..." />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRejectFor(null); setRejectReason(""); }}>Annuleren</Button>
+            <Button variant="destructive" onClick={confirmReject}>Afkeuren</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
