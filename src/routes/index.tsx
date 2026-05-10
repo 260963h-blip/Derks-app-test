@@ -371,7 +371,7 @@ function Dashboard() {
 
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Akkoord ontvangen op offertes</h2>
+            <h2 className="text-xl font-semibold">Offertes Akkoord</h2>
             <Link to="/projecten" className="text-sm text-primary hover:underline">Alle projecten</Link>
           </div>
           <Card>
@@ -379,9 +379,9 @@ function Dashboard() {
               {akkoordOfferte.length === 0 ? (
                 <div className="p-6 text-center text-sm text-muted-foreground">Geen recente akkoorden</div>
               ) : (
-                <ul className="divide-y">
+                <ul className="flex snap-x snap-mandatory overflow-x-auto">
                   {akkoordOfferte.map((a) => (
-                    <li key={a.quote_id} className="flex flex-wrap items-center gap-3 p-4">
+                    <li key={a.quote_id} className="flex w-full flex-shrink-0 snap-center flex-wrap items-center gap-3 border-r p-4">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-mono font-medium">{a.project_number}</span>
