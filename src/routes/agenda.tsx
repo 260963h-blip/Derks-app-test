@@ -591,12 +591,17 @@ function AgendaPage() {
                             const proj = projectFor(p.project_id);
                             const isStart = hourOfTime(p.start_time) === h;
                             const addr = addressFor(p.project_id);
+                            const statusColor =
+                              proj?.status === "gefactureerd" ? "#C0C0C0"
+                              : proj?.status === "te_factureren" ? "#00B0F0"
+                              : "#92D050";
                             return (
                               <ContextMenu key={p.id}>
                                 <ContextMenuTrigger asChild>
                                   <button
                                     onClick={() => openDetails(p)}
-                                    className="rounded bg-primary/15 px-1 py-0.5 text-left text-[10px] hover:bg-primary/25"
+                                    className="rounded px-1 py-0.5 text-left text-[10px] text-foreground hover:opacity-90"
+                                    style={{ backgroundColor: statusColor }}
                                     title={`${proj?.project_number} ${proj?.title}${addr ? ` — ${addr}` : ""} — rechtsklik voor opties`}
                                   >
                                     {isStart ? (
