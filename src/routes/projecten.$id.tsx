@@ -1018,7 +1018,7 @@ function ProjectDossier() {
 
 
   return (
-    <AppShell title={`Project ${project.project_number}`} subtitle={project.title || "Projectdossier"} back>
+    <AppShell title={`Project ${project.project_number}`} subtitle={project.title || "Projectdossier"} back backTo="/projecten">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overzicht</TabsTrigger>
