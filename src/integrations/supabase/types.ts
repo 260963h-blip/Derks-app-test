@@ -832,6 +832,7 @@ export type Database = {
         Row: {
           created_at: string
           employee_ids: string[]
+          end_date: string
           end_time: string
           id: string
           notes: string | null
@@ -844,6 +845,7 @@ export type Database = {
         Insert: {
           created_at?: string
           employee_ids?: string[]
+          end_date?: string
           end_time?: string
           id?: string
           notes?: string | null
@@ -856,6 +858,7 @@ export type Database = {
         Update: {
           created_at?: string
           employee_ids?: string[]
+          end_date?: string
           end_time?: string
           id?: string
           notes?: string | null
