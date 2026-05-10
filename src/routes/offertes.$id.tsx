@@ -680,12 +680,13 @@ function OfferteEditor() {
             </div>
             <div>
               <Label className="text-xs">Status</Label>
-              <Select value={quote.status} onValueChange={(v) => setQuote({ ...quote, status: v })}>
+              <Select value={quote.status || "concept"} onValueChange={(v) => setQuote({ ...quote, status: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="concept">Concept</SelectItem>
                   <SelectItem value="verzonden">Verzonden</SelectItem>
                   <SelectItem value="geaccepteerd">Geaccepteerd</SelectItem>
+                  <SelectItem value="akkoord">Akkoord</SelectItem>
                   <SelectItem value="afgewezen">Afgewezen</SelectItem>
                 </SelectContent>
               </Select>
@@ -739,19 +740,15 @@ function OfferteEditor() {
             {selectedCustomer && (
               <div className="sm:col-span-2 lg:col-span-4">
                 <Label className="text-xs">BTW-toepassing</Label>
-                <Select value={quote.vat_mode} onValueChange={onVatModeChange}>
+                <Select value={quote.vat_mode || "hoog"} onValueChange={onVatModeChange}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {selectedCustomer.customer_type === "zakelijk" ? (
-                      <>
-                        <SelectItem value="hoog">BTW hoog 21%</SelectItem>
-                        <SelectItem value="verlegd">BTW verlegd 0%</SelectItem>
-                      </>
-                    ) : (
-                      <>
-                        <SelectItem value="hoog">BTW hoog 21%</SelectItem>
-                        <SelectItem value="laag">BTW laag 9% (alleen op uren — materiaal/ruimten 21%)</SelectItem>
-                      </>
+                    <SelectItem value="hoog">BTW hoog 21%</SelectItem>
+                    {selectedCustomer.customer_type === "zakelijk" && (
+                      <SelectItem value="verlegd">BTW verlegd 0%</SelectItem>
+                    )}
+                    {selectedCustomer.customer_type !== "zakelijk" && (
+                      <SelectItem value="laag">BTW laag 9% (alleen op uren — materiaal/ruimten 21%)</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
