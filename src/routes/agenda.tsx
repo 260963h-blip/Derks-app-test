@@ -56,10 +56,20 @@ type Project = {
   status: string;
   customer_id: string | null;
 };
+type Customer = {
+  id: string;
+  name: string;
+  street: string | null;
+  house_number: string | null;
+  house_number_addition: string | null;
+  postal_code: string | null;
+  city: string | null;
+};
 type Planning = {
   id: string;
   project_id: string;
   work_date: string;
+  end_date: string;
   start_time: string;
   end_time: string;
   employee_ids: string[];
@@ -111,6 +121,7 @@ function AgendaPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [plannings, setPlannings] = useState<Planning[]>([]);
   const [view, setView] = useState<ViewMode>("week");
   const [anchor, setAnchor] = useState<Date>(() => { const t = new Date(); t.setHours(0,0,0,0); return t; });
@@ -123,6 +134,7 @@ function AgendaPage() {
   const [form, setForm] = useState({
     project_id: "",
     work_date: ymd(new Date()),
+    end_date: ymd(new Date()),
     start_time: "07:00",
     end_time: "17:00",
     employee_ids: [] as string[],
@@ -132,16 +144,18 @@ function AgendaPage() {
   useEffect(() => { if (user) void load(); }, [user]);
 
   async function load() {
-    const [emp, lr, pr, pl] = await Promise.all([
+    const [emp, lr, pr, pl, cu] = await Promise.all([
       supabase.from("employees").select("id,first_name,last_name,role").eq("status", "actief").order("last_name"),
       supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,status"),
       supabase.from("projects").select("id,project_number,title,status,customer_id").in("status", ["akkoord","in_uitvoering"]).order("project_number", { ascending: false }),
       supabase.from("planning_items").select("*").order("work_date"),
+      supabase.from("customers").select("id,name,street,house_number,house_number_addition,postal_code,city"),
     ]);
     setEmployees((emp.data ?? []) as Employee[]);
     setLeaves((lr.data ?? []) as Leave[]);
     setProjects((pr.data ?? []) as Project[]);
     setPlannings((pl.data ?? []) as Planning[]);
+    setCustomers((cu.data ?? []) as Customer[]);
   }
 
   const weekStart = useMemo(() => startOfWeek(anchor), [anchor]);
@@ -154,15 +168,29 @@ function AgendaPage() {
   }
   const availableFor = (d: Date) => employees.filter((e) => !isAbsent(e.id, d));
   const absentFor = (d: Date) => employees.map((e) => ({ emp: e, leave: isAbsent(e.id, d) })).filter((x) => x.leave) as { emp: Employee; leave: Leave }[];
-  const planningsFor = (d: Date) => plannings.filter((p) => p.work_date === ymd(d));
+  const planningsFor = (d: Date) => {
+    const s = ymd(d);
+    return plannings.filter((p) => p.work_date <= s && (p.end_date ?? p.work_date) >= s);
+  };
   const projectFor = (id: string) => projects.find((p) => p.id === id);
+  const addressFor = (projectId: string) => {
+    const p = projectFor(projectId);
+    if (!p?.customer_id) return "";
+    const c = customers.find((x) => x.id === p.customer_id);
+    if (!c) return "";
+    const street = [c.street, c.house_number, c.house_number_addition].filter(Boolean).join(" ");
+    const place = [c.postal_code, c.city].filter(Boolean).join(" ");
+    return [street, place].filter(Boolean).join(", ");
+  };
   const empName = (id: string) => { const e = employees.find((x) => x.id === id); return e ? `${e.first_name} ${e.last_name[0]}.` : "?"; };
 
   function openNew(date?: Date) {
     setEditing(null);
+    const start = ymd(date ?? anchor);
     setForm({
       project_id: projects[0]?.id ?? "",
-      work_date: ymd(date ?? anchor),
+      work_date: start,
+      end_date: start,
       start_time: "07:00",
       end_time: "17:00",
       employee_ids: [],
@@ -175,6 +203,7 @@ function AgendaPage() {
     setForm({
       project_id: p.project_id,
       work_date: p.work_date,
+      end_date: p.end_date ?? p.work_date,
       start_time: p.start_time.slice(0,5),
       end_time: p.end_time.slice(0,5),
       employee_ids: p.employee_ids ?? [],
@@ -187,10 +216,12 @@ function AgendaPage() {
     if (!form.project_id) { toast.error("Kies een project"); return; }
     if (form.employee_ids.length === 0) { toast.error("Kies minimaal één medewerker"); return; }
     if (form.end_time <= form.start_time) { toast.error("Eindtijd moet na starttijd liggen"); return; }
+    if (form.end_date < form.work_date) { toast.error("Einddatum kan niet voor startdatum liggen"); return; }
     const payload = {
       user_id: user.id,
       project_id: form.project_id,
       work_date: form.work_date,
+      end_date: form.end_date,
       start_time: form.start_time,
       end_time: form.end_time,
       employee_ids: form.employee_ids,
@@ -200,6 +231,11 @@ function AgendaPage() {
       ? await supabase.from("planning_items").update(payload).eq("id", editing.id)
       : await supabase.from("planning_items").insert(payload);
     if (res.error) { toast.error(res.error.message); return; }
+    // Zet projectstatus op 'in_uitvoering' als die nog op 'akkoord' staat
+    const proj = projectFor(form.project_id);
+    if (proj && proj.status === "akkoord") {
+      await supabase.from("projects").update({ status: "in_uitvoering" }).eq("id", proj.id);
+    }
     toast.success(editing ? "Bijgewerkt" : "Gepland");
     setPlanOpen(false);
     void load();
@@ -291,16 +327,18 @@ function AgendaPage() {
                           {items.map((p) => {
                             const proj = projectFor(p.project_id);
                             const isStart = hourOfTime(p.start_time) === h;
+                            const addr = addressFor(p.project_id);
                             return (
                               <button
                                 key={p.id}
                                 onClick={() => openEdit(p)}
                                 className="rounded bg-primary/15 px-1 py-0.5 text-left text-[10px] hover:bg-primary/25"
-                                title={`${proj?.project_number} ${proj?.title}`}
+                                title={`${proj?.project_number} ${proj?.title}${addr ? ` — ${addr}` : ""}`}
                               >
                                 {isStart ? (
                                   <>
                                     <div className="truncate font-medium">{proj?.project_number} · {proj?.title}</div>
+                                    {addr && <div className="truncate text-muted-foreground">{addr}</div>}
                                     <div className="truncate text-muted-foreground">{p.start_time.slice(0,5)}-{p.end_time.slice(0,5)} · {p.employee_ids.map(empName).join(", ")}</div>
                                   </>
                                 ) : (
@@ -355,7 +393,14 @@ function AgendaPage() {
             </div>
             <div className="space-y-2">
               <Label>Datum *</Label>
-              <Input type="date" value={form.work_date} onChange={(e) => setForm({ ...form, work_date: e.target.value })} />
+              <div className="flex gap-2">
+                <Input type="date" value={form.work_date} onChange={(e) => {
+                  const v = e.target.value;
+                  setForm((f) => ({ ...f, work_date: v, end_date: f.end_date < v ? v : f.end_date }));
+                }} />
+                <Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+              </div>
+              <p className="text-xs text-muted-foreground">Van — t/m (meerdere werkdagen mogelijk)</p>
             </div>
             <div className="space-y-2">
               <Label>Tijd</Label>
