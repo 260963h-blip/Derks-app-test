@@ -222,6 +222,10 @@ function AgendaPage() {
     return reservations.filter((r) => r.start_date <= s && r.end_date >= s);
   };
   const projectFor = (id: string) => projects.find((p) => p.id === id);
+  const plannedProjectIds = useMemo(() => new Set(plannings.map((p) => p.project_id)), [plannings]);
+  const selectableProjects = useMemo(() => {
+    return projects.filter((p) => !plannedProjectIds.has(p.id) || (editing && p.id === editing.project_id));
+  }, [projects, plannedProjectIds, editing]);
   const addressFor = (projectId: string) => {
     const p = projectFor(projectId);
     if (!p?.customer_id) return "";
@@ -236,8 +240,9 @@ function AgendaPage() {
   function openNew(date?: Date) {
     setEditing(null);
     const start = ymd(date ?? anchor);
+    const firstAvailable = projects.find((p) => !plannedProjectIds.has(p.id));
     setForm({
-      project_id: projects[0]?.id ?? "",
+      project_id: firstAvailable?.id ?? "",
       work_date: start,
       end_date: start,
       start_time: "07:00",
@@ -686,9 +691,9 @@ function AgendaPage() {
               <Select value={form.project_id} onValueChange={(v) => setForm({ ...form, project_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Kies project..." /></SelectTrigger>
                 <SelectContent>
-                  {projects.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground">Geen akkoord-projecten</div>
-                  ) : projects.map((p) => (
+                  {selectableProjects.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground">Geen projecten te plannen</div>
+                  ) : selectableProjects.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.project_number} — {p.title}</SelectItem>
                   ))}
                 </SelectContent>
