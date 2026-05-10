@@ -17,6 +17,7 @@ import { Route as KlantenRouteImport } from './routes/klanten'
 import { Route as InstellingenRouteImport } from './routes/instellingen'
 import { Route as BedrijfsgegevensRouteImport } from './routes/bedrijfsgegevens'
 import { Route as ArtikelenRouteImport } from './routes/artikelen'
+import { Route as AgendaRouteImport } from './routes/agenda'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectenIndexRouteImport } from './routes/projecten.index'
 import { Route as OffertesIndexRouteImport } from './routes/offertes.index'
@@ -66,6 +67,11 @@ const BedrijfsgegevensRoute = BedrijfsgegevensRouteImport.update({
 const ArtikelenRoute = ArtikelenRouteImport.update({
   id: '/artikelen',
   path: '/artikelen',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgendaRoute = AgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -124,6 +130,7 @@ const LovableEmailQueueProcessRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
   '/artikelen': typeof ArtikelenRoute
   '/bedrijfsgegevens': typeof BedrijfsgegevensRoute
   '/instellingen': typeof InstellingenRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
   '/artikelen': typeof ArtikelenRoute
   '/bedrijfsgegevens': typeof BedrijfsgegevensRoute
   '/instellingen': typeof InstellingenRoute
@@ -165,6 +173,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
   '/artikelen': typeof ArtikelenRoute
   '/bedrijfsgegevens': typeof BedrijfsgegevensRoute
   '/instellingen': typeof InstellingenRoute
@@ -187,6 +196,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/agenda'
     | '/artikelen'
     | '/bedrijfsgegevens'
     | '/instellingen'
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/agenda'
     | '/artikelen'
     | '/bedrijfsgegevens'
     | '/instellingen'
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/agenda'
     | '/artikelen'
     | '/bedrijfsgegevens'
     | '/instellingen'
@@ -248,6 +260,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgendaRoute: typeof AgendaRoute
   ArtikelenRoute: typeof ArtikelenRoute
   BedrijfsgegevensRoute: typeof BedrijfsgegevensRoute
   InstellingenRoute: typeof InstellingenRoute
@@ -325,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtikelenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agenda': {
+      id: '/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AgendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -400,6 +420,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgendaRoute: AgendaRoute,
   ArtikelenRoute: ArtikelenRoute,
   BedrijfsgegevensRoute: BedrijfsgegevensRoute,
   InstellingenRoute: InstellingenRoute,
@@ -421,3 +442,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
