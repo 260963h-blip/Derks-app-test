@@ -502,6 +502,7 @@ function AgendaPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" onClick={() => openNew()}><Plus className="mr-1 h-4 w-4" /> Project plannen</Button>
+            <Button size="sm" variant="destructive" onClick={() => openNewReservation()}><Plus className="mr-1 h-4 w-4" /> Reservering</Button>
             <Button size="sm" variant="outline" onClick={gotoToday}>Vandaag</Button>
             <Button size="sm" variant={view === "day" ? "default" : "outline"} onClick={() => setView("day")}>Dag</Button>
             <Button size="sm" variant={view === "week" ? "default" : "outline"} onClick={() => setView("week")}>Week</Button>
@@ -549,9 +550,43 @@ function AgendaPage() {
                   <div className="p-2 text-xs text-muted-foreground">{String(h).padStart(2,'0')}:00 - {String(h+1).padStart(2,'0')}:00</div>
                   {days.map((d) => {
                     const items = planningsFor(d).filter((p) => hourOfTime(p.start_time) <= h && hourOfTime(p.end_time) > h);
+                    const resItems = reservationsFor(d).filter((r) => hourOfTime(r.start_time) <= h && hourOfTime(r.end_time) > h);
                     return (
                       <div key={d.toISOString()+h} className="min-h-[44px] border-l p-1">
                         <div className="flex flex-col gap-1">
+                          {resItems.map((r) => {
+                            const isStart = hourOfTime(r.start_time) === h;
+                            return (
+                              <ContextMenu key={r.id}>
+                                <ContextMenuTrigger asChild>
+                                  <button
+                                    onClick={() => openEditReservation(r)}
+                                    className="rounded bg-destructive/20 px-1 py-0.5 text-left text-[10px] text-destructive hover:bg-destructive/30"
+                                    title={`Reservering: ${r.name}${r.description ? ` — ${r.description}` : ""}`}
+                                  >
+                                    {isStart ? (
+                                      <>
+                                        <div className="truncate font-medium">🔒 {r.name}</div>
+                                        {r.description && <div className="truncate opacity-80">{r.description}</div>}
+                                        <div className="truncate opacity-80">{r.start_time.slice(0,5)}-{r.end_time.slice(0,5)}</div>
+                                      </>
+                                    ) : (
+                                      <span className="opacity-80">↑ {r.name}</span>
+                                    )}
+                                  </button>
+                                </ContextMenuTrigger>
+                                <ContextMenuContent>
+                                  <ContextMenuItem onSelect={() => openEditReservation(r)}>
+                                    <Pencil className="mr-2 h-4 w-4" /> Bewerken
+                                  </ContextMenuItem>
+                                  <ContextMenuSeparator />
+                                  <ContextMenuItem className="text-destructive" onSelect={() => setResToDelete(r)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Verwijderen
+                                  </ContextMenuItem>
+                                </ContextMenuContent>
+                              </ContextMenu>
+                            );
+                          })}
                           {items.map((p) => {
                             const proj = projectFor(p.project_id);
                             const isStart = hourOfTime(p.start_time) === h;
