@@ -21,6 +21,7 @@ import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pa
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateInvoiceText } from "@/lib/invoice-text.functions";
+import { buildUblInvoiceXml } from "@/lib/invoice-ubl";
 
 export const Route = createFileRoute("/projecten/$id")({
   component: ProjectDossier,
