@@ -53,9 +53,13 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
 
         const token = authHeader.slice('Bearer '.length).trim()
         const supabase = createClient(supabaseUrl, supabaseServiceKey)
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+        const { data: claimsData, error: authError } = await supabase.auth.getClaims(token)
 
-        if (authError || !user) {
+        if (authError || !claimsData?.claims?.sub) {
+          console.error('Auth validation failed', {
+            error: authError?.message,
+            hasClaims: !!claimsData?.claims,
+          })
           return Response.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
