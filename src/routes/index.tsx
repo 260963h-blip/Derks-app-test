@@ -65,6 +65,15 @@ function Dashboard() {
     updated_at: string;
     customer_name?: string;
   }>>([]);
+  const [akkoordOfferte, setAkkoordOfferte] = useState<Array<{
+    quote_id: string;
+    project_id: string;
+    project_number: string;
+    quote_number: string;
+    approved_at: string;
+    total: number;
+    customer_name?: string;
+  }>>([]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -74,6 +83,7 @@ function Dashboard() {
     if (!user) return;
     void loadLog();
     void loadTefactureren();
+    void loadAkkoord();
   }, [user]);
 
   async function loadLog() {
@@ -150,6 +160,43 @@ function Dashboard() {
       updated_at: r.updated_at,
       customer_name: r.customer_id ? names[r.customer_id] : undefined,
     })));
+  }
+
+  async function loadAkkoord() {
+    const { data, error } = await supabase
+      .from("quotes")
+      .select("id,quote_number,approved_at,total,project_id")
+      .eq("status", "akkoord")
+      .not("approved_at", "is", null)
+      .order("approved_at", { ascending: false })
+      .limit(10);
+    if (error) return;
+    const rows = (data ?? []).filter((r) => r.project_id);
+    const projIds = Array.from(new Set(rows.map((r) => r.project_id as string)));
+    let projs: Record<string, { project_number: string; customer_id: string | null }> = {};
+    if (projIds.length) {
+      const { data: ps } = await supabase
+        .from("projects").select("id,project_number,customer_id").in("id", projIds);
+      projs = Object.fromEntries((ps ?? []).map((p) => [p.id, { project_number: p.project_number, customer_id: p.customer_id }]));
+    }
+    const custIds = Array.from(new Set(Object.values(projs).map((p) => p.customer_id).filter(Boolean) as string[]));
+    let cust: Record<string, string> = {};
+    if (custIds.length) {
+      const { data: cs } = await supabase.from("customers").select("id,name").in("id", custIds);
+      cust = Object.fromEntries((cs ?? []).map((c) => [c.id, c.name]));
+    }
+    setAkkoordOfferte(rows.map((r) => {
+      const p = projs[r.project_id as string];
+      return {
+        quote_id: r.id,
+        project_id: r.project_id as string,
+        project_number: p?.project_number ?? "—",
+        quote_number: r.quote_number,
+        approved_at: r.approved_at as string,
+        total: Number(r.total ?? 0),
+        customer_name: p?.customer_id ? cust[p.customer_id] : undefined,
+      };
+    }));
   }
 
   async function approve(id: string) {
