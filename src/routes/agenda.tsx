@@ -539,6 +539,74 @@ function AgendaPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {detailsItem ? `${projectFor(detailsItem.project_id)?.project_number ?? ""} · ${projectFor(detailsItem.project_id)?.title ?? ""}` : "Afspraak"}
+            </DialogTitle>
+          </DialogHeader>
+          {detailsItem && (
+            <div className="space-y-4 text-sm">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground">Datum</div>
+                  <div>{detailsItem.work_date}{detailsItem.end_date && detailsItem.end_date !== detailsItem.work_date ? ` t/m ${detailsItem.end_date}` : ""}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground">Tijd</div>
+                  <div>{detailsItem.start_time.slice(0,5)} - {detailsItem.end_time.slice(0,5)}</div>
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="text-xs font-medium text-muted-foreground">Adres</div>
+                  <div>{addressFor(detailsItem.project_id) || "—"}</div>
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="text-xs font-medium text-muted-foreground">Uitvoerende medewerker(s)</div>
+                  <div>{detailsItem.employee_ids.length > 0 ? detailsItem.employee_ids.map(empName).join(", ") : "—"}</div>
+                </div>
+                {detailsItem.notes && (
+                  <div className="sm:col-span-2">
+                    <div className="text-xs font-medium text-muted-foreground">Notities</div>
+                    <div className="whitespace-pre-wrap">{detailsItem.notes}</div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <div className="mb-2 text-xs font-medium text-muted-foreground">Werkomschrijving (uit offerte)</div>
+                {detailsLoading ? (
+                  <div className="text-muted-foreground">Laden...</div>
+                ) : detailsLines.length === 0 ? (
+                  <div className="text-muted-foreground">Geen offerteregels gevonden.</div>
+                ) : (
+                  <ul className="space-y-1 rounded-md border p-3">
+                    {detailsLines.map((l, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="shrink-0 text-muted-foreground">{l.quantity}{l.unit ? ` ${l.unit}` : ""}</span>
+                        <span className="whitespace-pre-wrap">{l.description}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setDetailsOpen(false)}>Sluiten</Button>
+            {detailsItem && (
+              <>
+                <Button variant="outline" onClick={() => { setDetailsOpen(false); openEdit(detailsItem); }}>
+                  <Pencil className="mr-1 h-4 w-4" /> Bewerken
+                </Button>
+                <Button onClick={() => navigate({ to: `/projecten/${detailsItem.project_id}?tab=werkorder` as any })}>
+                  Werkorder
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
