@@ -190,7 +190,7 @@ function AgendaPage() {
     const [emp, lr, pr, pl, cu, rs] = await Promise.all([
       supabase.from("employees").select("id,first_name,last_name,role").eq("status", "actief").order("last_name"),
       supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,status"),
-      supabase.from("projects").select("id,project_number,title,status,customer_id,contact_id").in("status", ["akkoord","in_uitvoering"]).order("project_number", { ascending: false }),
+      supabase.from("projects").select("id,project_number,title,status,customer_id,contact_id").in("status", ["akkoord","in_uitvoering","te_factureren","gefactureerd"]).order("project_number", { ascending: false }),
       supabase.from("planning_items").select("*").order("work_date"),
       supabase.from("customers").select("id,name,contact_person,email,customer_type,street,house_number,house_number_addition,postal_code,city"),
       supabase.from("reservations").select("*").order("start_date"),
@@ -591,12 +591,17 @@ function AgendaPage() {
                             const proj = projectFor(p.project_id);
                             const isStart = hourOfTime(p.start_time) === h;
                             const addr = addressFor(p.project_id);
+                            const statusColor =
+                              proj?.status === "gefactureerd" ? "#C0C0C0"
+                              : proj?.status === "te_factureren" ? "#00B0F0"
+                              : "#92D050";
                             return (
                               <ContextMenu key={p.id}>
                                 <ContextMenuTrigger asChild>
                                   <button
                                     onClick={() => openDetails(p)}
-                                    className="rounded bg-primary/15 px-1 py-0.5 text-left text-[10px] hover:bg-primary/25"
+                                    className="rounded px-1 py-0.5 text-left text-[10px] text-foreground hover:opacity-90"
+                                    style={{ backgroundColor: statusColor }}
                                     title={`${proj?.project_number} ${proj?.title}${addr ? ` — ${addr}` : ""} — rechtsklik voor opties`}
                                   >
                                     {isStart ? (
