@@ -255,6 +255,114 @@ function AgendaPage() {
     }
     setDetailsLoading(false);
   }
+  function formatDateNL(s: string) {
+    const [y, m, d] = s.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    return `${DAY_NAMES[dt.getDay()]} ${dt.getDate()} ${MONTH_NAMES[dt.getMonth()]} ${dt.getFullYear()}`;
+  }
+  async function openConfirmMail(p: Planning) {
+    const proj = projectFor(p.project_id);
+    if (!proj?.customer_id) { toast.error("Project heeft geen klant"); return; }
+    const customer = customers.find((x) => x.id === proj.customer_id);
+    if (!customer) { toast.error("Klant niet gevonden"); return; }
+
+    // Bedrijfsgegevens
+    const { data: cs } = await supabase
+      .from("company_settings")
+      .select("company_name,phone,owner_first_name,owner_last_name")
+      .maybeSingle();
+    const companyName = cs?.company_name || "Stucadoorsbedrijf Derks";
+    const ondertekenaar = [cs?.owner_first_name, cs?.owner_last_name].filter(Boolean).join(" ") || "Nick Derks";
+    const tel = cs?.phone || "";
+
+    // Contactpersoon (zakelijk)
+    let contactName = "";
+    let contactEmail = "";
+    if (proj.contact_id) {
+      const { data: c } = await supabase
+        .from("customer_contacts")
+        .select("name,email")
+        .eq("id", proj.contact_id)
+        .maybeSingle();
+      contactName = c?.name ?? "";
+      contactEmail = c?.email ?? "";
+    }
+
+    // Aanhef
+    const isZakelijk = (customer.customer_type ?? "particulier") !== "particulier";
+    let aanhef = "Geachte heer/mevrouw,";
+    if (isZakelijk && (contactName || customer.contact_person)) {
+      const naam = contactName || customer.contact_person || "";
+      const voornaam = naam.trim().split(/\s+/)[0];
+      aanhef = `Beste ${voornaam},`;
+    } else if (customer.name) {
+      // particulier — gebruik achternaam (laatste woord van naam)
+      const parts = customer.name.trim().split(/\s+/);
+      const achternaam = parts.length > 1 ? parts.slice(-1)[0] : customer.name;
+      aanhef = `Geachte heer/mevrouw ${achternaam},`;
+    }
+
+    // Offertenummer
+    const { data: q } = await supabase
+      .from("quotes")
+      .select("quote_number")
+      .eq("project_id", p.project_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const offertenr = q?.quote_number || proj.project_number;
+
+    // Datums
+    const startD = new Date(p.work_date + "T00:00:00");
+    const endD = new Date((p.end_date || p.work_date) + "T00:00:00");
+    const dagen: string[] = [];
+    for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
+      // sla zondag over (werkweek ma-za)
+      if (d.getDay() === 0) continue;
+      dagen.push(`- ${formatDateNL(ymd(d))} — ${p.start_time.slice(0,5)} tot ${p.end_time.slice(0,5)}`);
+    }
+
+    const adres = addressFor(p.project_id);
+    const medewerkers = p.employee_ids.map(empName).join(", ");
+
+    const subject = `Bevestiging afspraak uitvoering werkzaamheden – offerte ${offertenr}`;
+    const body =
+      `${aanhef}\n\n` +
+      `Zoals telefonisch met u besproken, bevestigen wij hierbij de afspraak voor de uitvoering van de werkzaamheden behorend bij offerte ${offertenr}${proj.title ? ` – ${proj.title}` : ""}.\n\n` +
+      (adres ? `Locatie van uitvoering:\n${adres}\n\n` : "") +
+      `Geplande dag(en) en tijden:\n${dagen.join("\n")}\n\n` +
+      (medewerkers ? `Onze medewerker(s) ${medewerkers} zullen de werkzaamheden uitvoeren conform de afspraken in de offerte. ` : "") +
+      `Wij vragen u vriendelijk ervoor te zorgen dat de werkruimte op de geplande dag(en) toegankelijk en leeg is, zodat wij direct kunnen starten.\n\n` +
+      `Mocht er onverhoopt iets wijzigen of heeft u nog vragen, neem dan gerust telefonisch contact met ons op${tel ? ` via ${tel}` : ""}.\n\n` +
+      `Wij hebben er vertrouwen in dat we het werk netjes en naar tevredenheid voor u zullen uitvoeren.\n\n` +
+      `Met vriendelijke groet,\n\n${ondertekenaar}\n${companyName}` +
+      (tel ? `\nTel: ${tel}` : "");
+
+    setDetailsItem(p);
+    setConfirmTo(contactEmail || customer.email || "");
+    setConfirmSubject(subject);
+    setConfirmBody(body);
+    setConfirmOpen(true);
+  }
+  async function sendConfirmMail() {
+    if (!detailsItem) return;
+    if (!confirmTo) { toast.error("Geen e-mailadres"); return; }
+    setConfirmSending(true);
+    try {
+      await sendTransactionalEmail({
+        templateName: "afspraak-bevestiging",
+        recipientEmail: confirmTo,
+        idempotencyKey: `afspraak-${detailsItem.id}-${Date.now()}`,
+        templateData: { subject: confirmSubject, bodyText: confirmBody },
+      });
+      toast.success("Bevestigingsmail verstuurd");
+      setConfirmOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Versturen mislukt");
+    } finally {
+      setConfirmSending(false);
+    }
+  }
   async function savePlan() {
     if (!user) return;
     if (!form.project_id) { toast.error("Kies een project"); return; }
