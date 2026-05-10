@@ -185,6 +185,10 @@ function MedewerkersPage() {
   const [docsFor, setDocsFor] = useState<Employee | null>(null);
   const [rates, setRates] = useState<EmployeeRate[]>([]);
   const [newRate, setNewRate] = useState({ name: "", hourly_rate: "", is_default: false });
+  const [leaveReqs, setLeaveReqs] = useState<LeaveReq[]>([]);
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const [leaveForm, setLeaveForm] = useState({ start_date: todayISO, end_date: todayISO, reason: "" });
+  const [savingLeave, setSavingLeave] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
