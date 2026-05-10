@@ -851,6 +851,30 @@ function ProjectDossier() {
           <Card>
             <CardHeader><CardTitle className="text-base">Documenten</CardTitle></CardHeader>
             <CardContent>
+              <div className="mb-4 grid gap-2 rounded-md border p-3 sm:grid-cols-[1fr,1fr,auto]">
+                <div className="space-y-1">
+                  <Label htmlFor="doc-upload-name">Naam *</Label>
+                  <Input
+                    id="doc-upload-name"
+                    placeholder="Bijv. Orderbevestiging"
+                    value={uploadName}
+                    onChange={(e) => setUploadName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="doc-upload-input">Bestand *</Label>
+                  <Input
+                    id="doc-upload-input"
+                    type="file"
+                    onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={uploadDoc} disabled={uploading || !uploadFile || !uploadName.trim()}>
+                    <Upload className="mr-1 h-4 w-4" /> {uploading ? "Uploaden..." : "Uploaden"}
+                  </Button>
+                </div>
+              </div>
               {docs.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Nog geen documenten. Genereer een offerte definitief om de pdf hier te bewaren.
