@@ -1105,11 +1105,11 @@ function ProjectDossier() {
               {quote ? (
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <p className="font-mono text-lg">{quote.quote_number}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Status: <Badge variant="secondary">{quote.status}</Badge> ·
-                      Totaal: <span className="font-medium">{fmt(Number(quote.total))}</span>
-                    </p>
+                     <p className="font-mono text-lg">{quote.quote_number}</p>
+                     <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-1">
+                       <span>Status:</span> <Badge variant="secondary">{quote.status}</Badge> <span>·</span>
+                       <span>Totaal:</span> <span className="font-medium">{fmt(Number(quote.total))}</span>
+                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {quote.status !== "akkoord" && (
@@ -1307,13 +1307,13 @@ function ProjectDossier() {
               <CardContent className="space-y-3">
                 {invoice ? (
                   <div className="rounded-md border bg-muted/40 p-3 text-sm">
-                    <p className="font-mono text-base">{invoice.invoice_number}</p>
-                    <p className="text-muted-foreground">
-                      Datum: {new Date(invoice.invoice_date).toLocaleDateString("nl-NL")} ·
-                      Vervalt: {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString("nl-NL") : "—"} ·
-                      Totaal: <span className="font-medium">{fmt(Number(invoice.total))}</span> ·
-                      Status: <Badge variant="secondary">{invoice.status}</Badge>
-                    </p>
+                     <p className="font-mono text-base">{invoice.invoice_number}</p>
+                     <div className="text-muted-foreground flex flex-wrap items-center gap-1 text-sm">
+                       <span>Datum: {new Date(invoice.invoice_date).toLocaleDateString("nl-NL")}</span> <span>·</span>
+                       <span>Vervalt: {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString("nl-NL") : "—"}</span> <span>·</span>
+                       <span>Totaal:</span> <span className="font-medium">{fmt(Number(invoice.total))}</span> <span>·</span>
+                       <span>Status:</span> <Badge variant="secondary">{invoice.status}</Badge>
+                     </div>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
