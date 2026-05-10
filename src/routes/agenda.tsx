@@ -716,9 +716,14 @@ function AgendaPage() {
                             const proj = projectFor(p.project_id);
                             const isStart = hourOfTime(p.start_time) === h;
                             const addr = addressFor(p.project_id);
+                            const hasZzp = p.employee_ids.some((id) => {
+                              const e = employees.find((x) => x.id === id);
+                              return e?.role === "zzp" || e?.role === "zzper" || e?.role === "zzp-er";
+                            });
                             const statusColor =
                               proj?.status === "gefactureerd" ? "#C0C0C0"
                               : proj?.status === "te_factureren" ? "#00B0F0"
+                              : hasZzp ? "#4F8A10"
                               : "#92D050";
                             return (
                               <ContextMenu key={p.id}>
