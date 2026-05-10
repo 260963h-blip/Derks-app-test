@@ -39,7 +39,7 @@ type Project = {
   created_at: string;
 };
 type Customer = { id: string; name: string; customer_type: string };
-type Quote = { id: string; quote_number: string; status: string; total: number };
+type Quote = { id: string; quote_number: string; status: string; total: number; approval_token: string | null };
 type Doc = {
   id: string;
   doc_type: string;
