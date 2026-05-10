@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Save, Pencil, Trash2, CheckCircle2 } from "lucide-react";
+import { FileText, Download, Save, Pencil, Trash2, CheckCircle2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
 import { sendTransactionalEmail } from "@/lib/email/send";
@@ -67,6 +67,9 @@ function ProjectDossier() {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [docs, setDocs] = useState<Doc[]>([]);
   const [saving, setSaving] = useState(false);
+  const [uploadName, setUploadName] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Werkorder
   const [woSignerName, setWoSignerName] = useState("");
@@ -239,6 +242,44 @@ function ProjectDossier() {
     await supabase.storage.from("project-documents").remove([d.file_path]);
     await supabase.from("project_documents").delete().eq("id", d.id);
     load();
+  };
+
+  const uploadDoc = async () => {
+    if (!project || !user) return;
+    if (!uploadFile) return toast.error("Kies een bestand");
+    if (!uploadName.trim()) return toast.error("Geef een naam op");
+    setUploading(true);
+    try {
+      const ext = uploadFile.name.includes(".") ? uploadFile.name.split(".").pop() : "";
+      const safe = uploadName.trim().replace(/[^a-zA-Z0-9-_ ]/g, "_");
+      const fileName = ext ? `${safe}.${ext}` : safe;
+      const path = `${user.id}/${project.id}/${Date.now()}-${fileName}`;
+      const { error: upErr } = await supabase.storage
+        .from("project-documents")
+        .upload(path, uploadFile, { contentType: uploadFile.type || undefined });
+      if (upErr) throw upErr;
+      const { error: insErr } = await supabase.from("project_documents").insert({
+        user_id: user.id,
+        project_id: project.id,
+        doc_type: uploadName.trim(),
+        file_name: fileName,
+        file_path: path,
+        file_size: uploadFile.size,
+        mime_type: uploadFile.type || null,
+        version: 1,
+      });
+      if (insErr) throw insErr;
+      toast.success("Document geüpload");
+      setUploadFile(null);
+      setUploadName("");
+      const fileInput = document.getElementById("doc-upload-input") as HTMLInputElement | null;
+      if (fileInput) fileInput.value = "";
+      load();
+    } catch (e: any) {
+      toast.error("Upload mislukt: " + (e?.message ?? "onbekende fout"));
+    } finally {
+      setUploading(false);
+    }
   };
 
   const akkoordOrLater = ["akkoord", "in_uitvoering", "afgerond", "gefactureerd"].includes(
