@@ -643,6 +643,9 @@ function AgendaPage() {
                                   <ContextMenuItem onSelect={() => navigate({ to: `/projecten/${p.project_id}?tab=werkorder` as any })}>
                                     Werkorder openen
                                   </ContextMenuItem>
+                                  <ContextMenuItem onSelect={() => navigate({ to: `/projecten/${p.project_id}` as any })}>
+                                    <FileText className="mr-2 h-4 w-4" /> Project openen
+                                  </ContextMenuItem>
                                   <ContextMenuSeparator />
                                   <ContextMenuItem onSelect={() => openConfirmMail(p)}>
                                     <FileText className="mr-2 h-4 w-4" /> Bevestigingsmail naar klant
