@@ -1283,7 +1283,123 @@ function ProjectDossier() {
         </TabsContent>
 
         <TabsContent value="documents">
+          <Card>
 
+        <TabsContent value="factureren">
+          <div className="space-y-4">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Factuurtekst genereren (AI)</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={generateInvText} disabled={genInvText}>
+                    <Sparkles className="mr-1 h-4 w-4" />
+                    {genInvText ? "Genereren..." : "Genereer factuurtekst met AI"}
+                  </Button>
+                </div>
+                <Textarea
+                  rows={10}
+                  value={invoiceText}
+                  onChange={(e) => setInvoiceText(e.target.value)}
+                  placeholder="Tekst die op de factuur komt (intro, periode van uitvoering, dankwoord, betalingsinstructie). Genereer met AI of typ zelf."
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base">Factuur genereren</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {invoice ? (
+                  <div className="rounded-md border bg-muted/40 p-3 text-sm">
+                    <p className="font-mono text-base">{invoice.invoice_number}</p>
+                    <p className="text-muted-foreground">
+                      Datum: {new Date(invoice.invoice_date).toLocaleDateString("nl-NL")} ·
+                      Vervalt: {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString("nl-NL") : "—"} ·
+                      Totaal: <span className="font-medium">{fmt(Number(invoice.total))}</span> ·
+                      Status: <Badge variant="secondary">{invoice.status}</Badge>
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Nog geen factuur. Het volgende factuurnummer wordt automatisch opgehaald uit Instellingen → Nummering.
+                  </p>
+                )}
+                <div className="flex justify-end">
+                  <Button onClick={generateInvoicePdf} disabled={genInvPdf || !invoiceText.trim()}>
+                    <Receipt className="mr-1 h-4 w-4" />
+                    {genInvPdf ? "Genereren..." : "Genereer factuur"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base">Factuur per e-mail versturen</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                {!invoice ? (
+                  <p className="text-sm text-muted-foreground">Genereer eerst een factuur.</p>
+                ) : (
+                  <>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <Label className="text-xs">Aan (e-mailadres)</Label>
+                        <Input type="email" value={invSendTo} onChange={(e) => setInvSendTo(e.target.value)} />
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Bij zakelijke klant: factuurmailadres. Anders het hoofd e-mailadres.
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs">CC (contactpersoon, optioneel)</Label>
+                        <Input type="email" value={invSendCc} onChange={(e) => setInvSendCc(e.target.value)} />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Onderwerp</Label>
+                      <Input value={invSendSubject} onChange={(e) => setInvSendSubject(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Mailtekst</Label>
+                      <Textarea
+                        rows={6}
+                        value={invSendBody}
+                        onChange={(e) => setInvSendBody(e.target.value)}
+                        placeholder="Korte begeleidende tekst. De factuur en bijlagen worden als downloadlinks meegestuurd."
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Bijlagen (extra documenten naast de factuur)</Label>
+                      <div className="space-y-1 rounded-md border p-3">
+                        {docs.filter((d) => d.doc_type !== "factuur").length === 0 ? (
+                          <p className="text-sm text-muted-foreground">Geen extra documenten beschikbaar.</p>
+                        ) : (
+                          docs.filter((d) => d.doc_type !== "factuur").map((d) => (
+                            <label key={d.id} className="flex items-center gap-2 text-sm">
+                              <Checkbox
+                                checked={!!invAttachIds[d.id]}
+                                onCheckedChange={(v) =>
+                                  setInvAttachIds({ ...invAttachIds, [d.id]: Boolean(v) })
+                                }
+                              />
+                              <Badge variant="outline" className="text-xs">{d.doc_type}</Badge>
+                              <span className="truncate">{d.file_name}</span>
+                            </label>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button onClick={sendFactuur} disabled={invSending}>
+                        <Send className="mr-1 h-4 w-4" />
+                        {invSending ? "Verzenden..." : "Factuur verzenden"}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="documents">
           <Card>
             <CardHeader><CardTitle className="text-base">Documenten</CardTitle></CardHeader>
             <CardContent>
