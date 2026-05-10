@@ -10,7 +10,6 @@ interface OfferteVerzondenProps {
   bodyText?: string
   downloadUrl?: string
   validUntil?: string
-  approvalUrl?: string
 }
 
 const OfferteVerzondenEmail = ({
@@ -20,7 +19,6 @@ const OfferteVerzondenEmail = ({
   bodyText,
   downloadUrl = '#',
   validUntil,
-  approvalUrl,
 }: OfferteVerzondenProps) => {
   const paragraphs = (bodyText ?? '').split(/\n{2,}/).filter(Boolean)
   return (
@@ -44,16 +42,6 @@ const OfferteVerzondenEmail = ({
               Offerte downloaden (PDF)
             </Button>
           </Section>
-          {approvalUrl ? (
-            <Section style={{ textAlign: 'center', margin: '24px 0' }}>
-              <Text style={text}>
-                Bent u akkoord met deze offerte? Klik dan op onderstaande knop.
-              </Text>
-              <Button href={approvalUrl} style={approveButton}>
-                Akkoord geven
-              </Button>
-            </Section>
-          ) : null}
           {validUntil ? (
             <Text style={small}>Deze offerte is geldig tot {validUntil}.</Text>
           ) : null}
@@ -76,7 +64,6 @@ export const template = {
     bodyText: 'Beste Jan,\n\nHierbij ontvangt u onze offerte.\n\nMet vriendelijke groet,\nStucadoorsbedrijf Derks',
     downloadUrl: 'https://example.com/offerte.pdf',
     validUntil: '31-12-2026',
-    approvalUrl: 'https://example.com/offerte-akkoord/abc123',
   },
 } satisfies TemplateEntry
 
@@ -88,9 +75,5 @@ const small = { fontSize: '12px', color: '#777', margin: '8px 0' }
 const footer = { fontSize: '12px', color: '#999', margin: '30px 0 0' }
 const button = {
   backgroundColor: '#0a2463', color: '#ffffff', padding: '12px 24px',
-  borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: 'bold',
-}
-const approveButton = {
-  backgroundColor: '#16a34a', color: '#ffffff', padding: '12px 24px',
   borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: 'bold',
 }
