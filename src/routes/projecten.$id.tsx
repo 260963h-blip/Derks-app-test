@@ -1283,6 +1283,7 @@ function ProjectDossier() {
         </TabsContent>
 
         <TabsContent value="documents">
+
           <Card>
             <CardHeader><CardTitle className="text-base">Documenten</CardTitle></CardHeader>
             <CardContent>
