@@ -43,6 +43,7 @@ import {
 import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil, Calendar, Users, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { sendTransactionalEmail } from "@/lib/email/send";
+import { dutchHolidaysForYears } from "@/lib/dutch-holidays";
 
 export const Route = createFileRoute("/agenda")({
   component: AgendaPage,
@@ -146,6 +147,7 @@ function AgendaPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [plannings, setPlannings] = useState<Planning[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [unblockedHolidays, setUnblockedHolidays] = useState<Set<string>>(new Set());
   const [view, setView] = useState<ViewMode>("week");
   const [anchor, setAnchor] = useState<Date>(() => { const t = new Date(); t.setHours(0,0,0,0); return t; });
   const [yearOpen, setYearOpen] = useState(false);
@@ -187,13 +189,14 @@ function AgendaPage() {
   useEffect(() => { if (user) void load(); }, [user]);
 
   async function load() {
-    const [emp, lr, pr, pl, cu, rs] = await Promise.all([
+    const [emp, lr, pr, pl, cu, rs, hu] = await Promise.all([
       supabase.from("employees").select("id,first_name,last_name,role").eq("status", "actief").order("last_name"),
       supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,status"),
       supabase.from("projects").select("id,project_number,title,status,customer_id,contact_id").in("status", ["akkoord","in_uitvoering","te_factureren","gefactureerd"]).order("project_number", { ascending: false }),
       supabase.from("planning_items").select("*").order("work_date"),
       supabase.from("customers").select("id,name,contact_person,email,customer_type,street,house_number,house_number_addition,postal_code,city"),
       supabase.from("reservations").select("*").order("start_date"),
+      supabase.from("holiday_unblocks").select("holiday_date"),
     ]);
     setEmployees((emp.data ?? []) as Employee[]);
     setLeaves((lr.data ?? []) as Leave[]);
@@ -201,11 +204,43 @@ function AgendaPage() {
     setPlannings((pl.data ?? []) as Planning[]);
     setCustomers((cu.data ?? []) as Customer[]);
     setReservations((rs.data ?? []) as Reservation[]);
+    setUnblockedHolidays(new Set(((hu.data ?? []) as { holiday_date: string }[]).map((x) => x.holiday_date)));
   }
 
   const weekStart = useMemo(() => startOfWeek(anchor), [anchor]);
   const weekDays = useMemo(() => Array.from({ length: 6 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const { week, year } = useMemo(() => isoWeek(anchor), [anchor]);
+
+  // Feestdagen voor zichtbare jaren (huidig + buren) zodat alle views werken
+  const holidays = useMemo(() => {
+    const y = anchor.getFullYear();
+    return dutchHolidaysForYears([y - 1, y, y + 1]);
+  }, [anchor]);
+  function isSunday(d: Date) { return d.getDay() === 0; }
+  function holidayName(d: Date): string | null { return holidays.get(ymd(d)) ?? null; }
+  function isHolidayBlocked(d: Date): boolean {
+    const name = holidayName(d);
+    if (!name) return false;
+    return !unblockedHolidays.has(ymd(d));
+  }
+  function isDayBlocked(d: Date): boolean {
+    return isSunday(d) || isHolidayBlocked(d);
+  }
+  async function toggleHolidayBlock(d: Date) {
+    if (!user) return;
+    const key = ymd(d);
+    if (unblockedHolidays.has(key)) {
+      const { error } = await supabase.from("holiday_unblocks").delete().eq("holiday_date", key).eq("user_id", user.id);
+      if (error) { toast.error(error.message); return; }
+      setUnblockedHolidays((s) => { const n = new Set(s); n.delete(key); return n; });
+      toast.success("Feestdag opnieuw geblokkeerd");
+    } else {
+      const { error } = await supabase.from("holiday_unblocks").insert({ user_id: user.id, holiday_date: key });
+      if (error) { toast.error(error.message); return; }
+      setUnblockedHolidays((s) => { const n = new Set(s); n.add(key); return n; });
+      toast.success("Feestdag gedeblokkeerd");
+    }
+  }
 
   function isAbsent(empId: string, day: Date): Leave | null {
     const d = ymd(day);
