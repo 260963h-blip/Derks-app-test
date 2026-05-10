@@ -52,6 +52,8 @@ function Dashboard() {
     notes: string | null;
     created_at: string;
     employee_name?: string;
+    has_conflict?: boolean;
+    conflict_dates?: string[];
   }>>([]);
   const [rejectFor, setRejectFor] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -93,7 +95,37 @@ function Dashboard() {
         .in("id", empIds);
       names = Object.fromEntries((emps ?? []).map((e) => [e.id, `${e.first_name} ${e.last_name}`]));
     }
-    setLogEntries(rows.map((r) => ({ ...r, employee_name: names[r.employee_id] ?? "—" })));
+    // Conflict-detectie: heeft de medewerker in deze periode al een planning?
+    let plannings: Array<{ employee_ids: string[]; work_date: string }> = [];
+    if (rows.length) {
+      const minStart = rows.reduce((m, r) => (r.start_date < m ? r.start_date : m), rows[0].start_date);
+      const maxEnd = rows.reduce((m, r) => (r.end_date > m ? r.end_date : m), rows[0].end_date);
+      const { data: pl } = await supabase
+        .from("planning_items")
+        .select("employee_ids,work_date")
+        .gte("work_date", minStart)
+        .lte("work_date", maxEnd);
+      plannings = (pl ?? []) as any;
+    }
+    setLogEntries(
+      rows.map((r) => {
+        const conflicts = plannings
+          .filter(
+            (p) =>
+              p.work_date >= r.start_date &&
+              p.work_date <= r.end_date &&
+              Array.isArray(p.employee_ids) &&
+              p.employee_ids.includes(r.employee_id),
+          )
+          .map((p) => p.work_date);
+        return {
+          ...r,
+          employee_name: names[r.employee_id] ?? "—",
+          has_conflict: conflicts.length > 0,
+          conflict_dates: Array.from(new Set(conflicts)).sort(),
+        };
+      }),
+    );
   }
 
   async function loadTefactureren() {
@@ -129,6 +161,19 @@ function Dashboard() {
       return;
     }
     toast.success("Aanvraag goedgekeurd");
+    void loadLog();
+  }
+
+  async function revertDecision(id: string) {
+    const { error } = await supabase
+      .from("leave_requests")
+      .update({ status: "aangevraagd", notes: null })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Beslissing ongedaan gemaakt");
     void loadLog();
   }
 
@@ -199,17 +244,31 @@ function Dashboard() {
               ) : (
                 <ul className="divide-y">
                   {logEntries.map((e) => (
-                    <li key={e.id} className="flex flex-wrap items-center gap-3 p-4">
+                    <li
+                      key={e.id}
+                      className={
+                        "flex flex-wrap items-center gap-3 p-4 " +
+                        (e.has_conflict ? "border-l-4 border-destructive bg-destructive/10" : "")
+                      }
+                    >
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium">{e.employee_name}</span>
                           <Badge variant="outline">{e.leave_type}</Badge>
                           <Badge variant={statusVariant(e.status) as any}>{e.status}</Badge>
+                          {e.has_conflict && (
+                            <Badge variant="destructive">Conflict met planning</Badge>
+                          )}
                         </div>
                         <p className="mt-1 text-sm text-muted-foreground">
                           {e.start_date} t/m {e.end_date} · {Number(e.days).toFixed(1)} dagen
                           {e.reason ? ` · ${e.reason}` : ""}
                         </p>
+                        {e.has_conflict && e.conflict_dates && (
+                          <p className="mt-1 text-xs text-destructive">
+                            Medewerker is al ingepland op: {e.conflict_dates.join(", ")}
+                          </p>
+                        )}
                         {e.status === "afgekeurd" && e.notes && (
                           <p className="mt-1 text-xs text-destructive">Reden afkeuring: {e.notes}</p>
                         )}
@@ -219,6 +278,13 @@ function Dashboard() {
                           <Button size="sm" onClick={() => approve(e.id)}>Akkoord</Button>
                           <Button size="sm" variant="outline" onClick={() => { setRejectFor(e.id); setRejectReason(""); }}>
                             Afkeuren
+                          </Button>
+                        </div>
+                      )}
+                      {(e.status === "goedgekeurd" || e.status === "afgekeurd") && (
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => revertDecision(e.id)}>
+                            Ongedaan maken
                           </Button>
                         </div>
                       )}
