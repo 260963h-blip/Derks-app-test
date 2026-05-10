@@ -443,7 +443,7 @@ function MedewerkersPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={e.role === "eigenaar" ? "default" : "outline"}>
-                        {e.role === "eigenaar" ? "Eigenaar" : "Medewerker"}
+                        {e.role === "eigenaar" ? "Eigenaar" : e.role === "zzp" ? "ZZP-er" : "Medewerker"}
                       </Badge>
                     </TableCell>
                     <TableCell>{e.job_title ?? "—"}</TableCell>
@@ -512,6 +512,7 @@ function MedewerkersPage() {
                 >
                   <option value="medewerker">Medewerker</option>
                   <option value="eigenaar">Eigenaar</option>
+                  <option value="zzp">ZZP-er</option>
                 </select>
               </div>
 
