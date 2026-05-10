@@ -54,6 +54,26 @@ type QuoteLine = {
   unit: string | null;
   sort_order: number;
 };
+type QuoteFull = {
+  id: string;
+  quote_number: string;
+  status: string;
+  total: number;
+  subtotal: number;
+  vat_total: number;
+  vat_mode: string;
+  reference: string | null;
+};
+type Invoice = {
+  id: string;
+  invoice_number: string;
+  invoice_date: string;
+  due_date: string | null;
+  status: string;
+  subtotal: number;
+  vat_total: number;
+  total: number;
+};
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n || 0);
