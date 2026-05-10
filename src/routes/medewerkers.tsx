@@ -588,11 +588,12 @@ function MedewerkersPage() {
           </DialogHeader>
 
           <Tabs defaultValue="persoonlijk" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="persoonlijk">Persoonlijk</TabsTrigger>
               <TabsTrigger value="arbeid">Arbeid</TabsTrigger>
               <TabsTrigger value="loon">Loon</TabsTrigger>
               <TabsTrigger value="tarieven">Tarieven</TabsTrigger>
+              <TabsTrigger value="verlofdagen">Verlofdagen</TabsTrigger>
               <TabsTrigger value="arbo">Verzekering & Arbo</TabsTrigger>
             </TabsList>
 
