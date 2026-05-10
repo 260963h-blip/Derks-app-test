@@ -272,7 +272,11 @@ function Dashboard() {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium">{e.employee_name}</span>
-                          <Badge variant="outline">{e.leave_type}</Badge>
+                          {e.leave_type === "intrekking" ? (
+                            <Badge variant="destructive">Intrekking goedgekeurd verlof</Badge>
+                          ) : (
+                            <Badge variant="outline">{e.leave_type}</Badge>
+                          )}
                           <Badge variant={statusVariant(e.status) as any}>{e.status}</Badge>
                           {e.has_conflict && (
                             <Badge variant="destructive">Conflict met planning</Badge>
