@@ -65,6 +65,15 @@ function Dashboard() {
     updated_at: string;
     customer_name?: string;
   }>>([]);
+  const [akkoordOfferte, setAkkoordOfferte] = useState<Array<{
+    quote_id: string;
+    project_id: string;
+    project_number: string;
+    quote_number: string;
+    approved_at: string;
+    total: number;
+    customer_name?: string;
+  }>>([]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -74,6 +83,7 @@ function Dashboard() {
     if (!user) return;
     void loadLog();
     void loadTefactureren();
+    void loadAkkoord();
   }, [user]);
 
   async function loadLog() {
@@ -150,6 +160,43 @@ function Dashboard() {
       updated_at: r.updated_at,
       customer_name: r.customer_id ? names[r.customer_id] : undefined,
     })));
+  }
+
+  async function loadAkkoord() {
+    const { data, error } = await supabase
+      .from("quotes")
+      .select("id,quote_number,approved_at,total,project_id")
+      .eq("status", "akkoord")
+      .not("approved_at", "is", null)
+      .order("approved_at", { ascending: false })
+      .limit(10);
+    if (error) return;
+    const rows = (data ?? []).filter((r) => r.project_id);
+    const projIds = Array.from(new Set(rows.map((r) => r.project_id as string)));
+    let projs: Record<string, { project_number: string; customer_id: string | null }> = {};
+    if (projIds.length) {
+      const { data: ps } = await supabase
+        .from("projects").select("id,project_number,customer_id").in("id", projIds);
+      projs = Object.fromEntries((ps ?? []).map((p) => [p.id, { project_number: p.project_number, customer_id: p.customer_id }]));
+    }
+    const custIds = Array.from(new Set(Object.values(projs).map((p) => p.customer_id).filter(Boolean) as string[]));
+    let cust: Record<string, string> = {};
+    if (custIds.length) {
+      const { data: cs } = await supabase.from("customers").select("id,name").in("id", custIds);
+      cust = Object.fromEntries((cs ?? []).map((c) => [c.id, c.name]));
+    }
+    setAkkoordOfferte(rows.map((r) => {
+      const p = projs[r.project_id as string];
+      return {
+        quote_id: r.id,
+        project_id: r.project_id as string,
+        project_number: p?.project_number ?? "—",
+        quote_number: r.quote_number,
+        approved_at: r.approved_at as string,
+        total: Number(r.total ?? 0),
+        customer_name: p?.customer_id ? cust[p.customer_id] : undefined,
+      };
+    }));
   }
 
   async function approve(id: string) {
@@ -321,6 +368,39 @@ function Dashboard() {
           </Card>
         </div>
 
+        <div className="mb-8">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Akkoord ontvangen op offertes</h2>
+            <Link to="/projecten" className="text-sm text-primary hover:underline">Alle projecten</Link>
+          </div>
+          <Card>
+            <CardContent className="p-0">
+              {akkoordOfferte.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">Geen recente akkoorden</div>
+              ) : (
+                <ul className="divide-y">
+                  {akkoordOfferte.map((a) => (
+                    <li key={a.quote_id} className="flex flex-wrap items-center gap-3 p-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono font-medium">{a.project_number}</span>
+                          <Badge>akkoord</Badge>
+                          <span className="text-sm text-muted-foreground">· offerte {a.quote_number}</span>
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {a.customer_name ?? "—"} · € {a.total.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · {new Date(a.approved_at).toLocaleString("nl-NL")}
+                        </p>
+                      </div>
+                      <Link to="/projecten/$id" params={{ id: a.project_id }}>
+                        <Button size="sm" variant="outline">Open project</Button>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
         <div className="mb-8">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xl font-semibold">Te factureren</h2>
