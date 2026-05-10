@@ -307,12 +307,12 @@ function Dashboard() {
               {logEntries.length === 0 ? (
                 <div className="p-6 text-center text-sm text-muted-foreground">Geen verlofaanvragen</div>
               ) : (
-                <ul className="divide-y">
+                <ul className="flex snap-x snap-mandatory overflow-x-auto">
                   {logEntries.map((e) => (
                     <li
                       key={e.id}
                       className={
-                        "flex flex-wrap items-center gap-3 p-4 " +
+                        "flex w-full flex-shrink-0 snap-center flex-wrap items-center gap-3 border-r p-4 " +
                         (e.has_conflict ? "border-l-4 border-destructive bg-destructive/10" : "")
                       }
                     >
