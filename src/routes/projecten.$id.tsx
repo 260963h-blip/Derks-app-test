@@ -1414,7 +1414,7 @@ function ProjectDossier() {
                     <div>
                       <Label className="text-xs">Bijlagen (extra documenten naast de factuur)</Label>
                       <div className="space-y-1 rounded-md border p-3">
-                        {docs.filter((d) => d.doc_type !== "factuur").length === 0 ? (
+                         {docs.filter((d) => d.doc_type !== "factuur").length === 0 ? (
                           <p className="text-sm text-muted-foreground">Geen extra documenten beschikbaar.</p>
                         ) : (
                           docs.filter((d) => d.doc_type !== "factuur").map((d) => (
