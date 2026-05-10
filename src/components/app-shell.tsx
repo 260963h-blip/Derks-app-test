@@ -9,11 +9,13 @@ export function AppShell({
   title,
   subtitle,
   back,
+  backTo,
   children,
 }: {
   title: string;
   subtitle?: string;
   back?: boolean;
+  backTo?: string;
   children: ReactNode;
 }) {
   const navigate = useNavigate();
@@ -52,7 +54,19 @@ export function AppShell({
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-6 flex items-center gap-3">
           {back && (
-            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/" })}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (backTo) {
+                  navigate({ to: backTo });
+                } else if (typeof window !== "undefined" && window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  navigate({ to: "/" });
+                }
+              }}
+            >
               <ArrowLeft className="mr-1 h-4 w-4" /> Terug
             </Button>
           )}
