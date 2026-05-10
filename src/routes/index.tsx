@@ -57,6 +57,13 @@ function Dashboard() {
   }>>([]);
   const [rejectFor, setRejectFor] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [tefactureren, setTefactureren] = useState<Array<{
+    id: string;
+    project_number: string;
+    title: string;
+    updated_at: string;
+    customer_name?: string;
+  }>>([]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -65,6 +72,7 @@ function Dashboard() {
   useEffect(() => {
     if (!user) return;
     void loadLog();
+    void loadTefactureren();
   }, [user]);
 
   async function loadLog() {
@@ -88,6 +96,29 @@ function Dashboard() {
       names = Object.fromEntries((emps ?? []).map((e) => [e.id, `${e.first_name} ${e.last_name}`]));
     }
     setLogEntries(rows.map((r) => ({ ...r, employee_name: names[r.employee_id] ?? "—" })));
+  }
+
+  async function loadTefactureren() {
+    const { data, error } = await supabase
+      .from("projects")
+      .select("id,project_number,title,updated_at,customer_id")
+      .eq("status", "te_factureren")
+      .order("updated_at", { ascending: false });
+    if (error) return;
+    const rows = data ?? [];
+    const ids = Array.from(new Set(rows.map((r) => r.customer_id).filter(Boolean) as string[]));
+    let names: Record<string, string> = {};
+    if (ids.length) {
+      const { data: cs } = await supabase.from("customers").select("id,name").in("id", ids);
+      names = Object.fromEntries((cs ?? []).map((c) => [c.id, c.name]));
+    }
+    setTefactureren(rows.map((r) => ({
+      id: r.id,
+      project_number: r.project_number,
+      title: r.title,
+      updated_at: r.updated_at,
+      customer_name: r.customer_id ? names[r.customer_id] : undefined,
+    })));
   }
 
   async function approve(id: string) {
@@ -193,6 +224,40 @@ function Dashboard() {
                           </Button>
                         </div>
                       )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mb-8">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Te factureren</h2>
+            <Link to="/projecten" className="text-sm text-primary hover:underline">Alle projecten</Link>
+          </div>
+          <Card>
+            <CardContent className="p-0">
+              {tefactureren.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">Geen projecten te factureren</div>
+              ) : (
+                <ul className="divide-y">
+                  {tefactureren.map((p) => (
+                    <li key={p.id} className="flex flex-wrap items-center gap-3 p-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono font-medium">{p.project_number}</span>
+                          <Badge variant="secondary">te factureren</Badge>
+                          {p.title && <span className="text-sm text-muted-foreground">· {p.title}</span>}
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {p.customer_name ?? "—"} · sinds {new Date(p.updated_at).toLocaleDateString("nl-NL")}
+                        </p>
+                      </div>
+                      <Link to="/projecten/$id" params={{ id: p.id }}>
+                        <Button size="sm" variant="outline">Open project</Button>
+                      </Link>
                     </li>
                   ))}
                 </ul>
