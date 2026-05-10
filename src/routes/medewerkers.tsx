@@ -214,6 +214,8 @@ function MedewerkersPage() {
     setEditing(null);
     setForm(empty);
     setRates([]);
+    setLeaveReqs([]);
+    setLeaveForm({ start_date: todayISO, end_date: todayISO, reason: "" });
     setOpen(true);
   }
 
@@ -259,6 +261,8 @@ function MedewerkersPage() {
       arbo_notes: e.arbo_notes ?? "",
     });
     loadRates(e.id);
+    loadLeave(e.id);
+    setLeaveForm({ start_date: todayISO, end_date: todayISO, reason: "" });
     setOpen(true);
   }
 
