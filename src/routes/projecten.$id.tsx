@@ -243,6 +243,44 @@ function ProjectDossier() {
     // Default selected doc = latest offerte pdf
     const latestOfferte = (d ?? []).find((x: any) => x.doc_type === "offerte");
     if (latestOfferte) setSendDocId((latestOfferte as any).id);
+
+    // Factureren: load latest invoice for this project
+    const { data: inv } = await supabase
+      .from("invoices")
+      .select("id,invoice_number,invoice_date,due_date,status,subtotal,vat_total,total")
+      .eq("project_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setInvoice((inv ?? null) as Invoice | null);
+
+    // Factuurmail defaults
+    let invTo = "";
+    let invCc = "";
+    if (p.customer_id) {
+      const { data: cust } = await supabase
+        .from("customers")
+        .select("email,email_invoice,customer_type")
+        .eq("id", p.customer_id)
+        .maybeSingle();
+      if (cust?.customer_type === "zakelijk") {
+        invTo = (cust?.email_invoice as string) || (cust?.email as string) || "";
+        if (cust?.email_invoice && cust?.email && cust.email !== cust.email_invoice) {
+          invCc = cust.email as string;
+        }
+      } else {
+        invTo = (cust?.email as string) || "";
+      }
+    }
+    if (!invTo && p.contact_id) {
+      const { data: ct } = await supabase
+        .from("customer_contacts").select("email").eq("id", p.contact_id).maybeSingle();
+      invTo = (ct?.email as string) ?? "";
+    }
+    setInvSendTo(invTo);
+    setInvSendCc(invCc);
+    const invNum = (inv?.invoice_number as string) ?? "";
+    setInvSendSubject(invNum ? `Factuur ${invNum} - ${(comp as any)?.company_name ?? ""}` : "");
   };
 
   const saveProject = async () => {
