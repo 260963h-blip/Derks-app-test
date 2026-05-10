@@ -654,6 +654,366 @@ function ProjectDossier() {
     }
   };
 
+  const generateInvText = async () => {
+    if (!project || !user) return;
+    setGenInvText(true);
+    try {
+      const { data: cust } = project.customer_id
+        ? await supabase.from("customers").select("name,customer_type").eq("id", project.customer_id).maybeSingle()
+        : ({ data: null } as any);
+      const { data: q } = await supabase
+        .from("quotes").select("quote_number").eq("project_id", project.id).maybeSingle();
+      const { data: comp } = await supabase
+        .from("company_settings")
+        .select("company_name,owner_first_name,owner_middle_name,owner_last_name")
+        .eq("user_id", user.id).maybeSingle();
+      const ownerName = [(comp as any)?.owner_first_name, (comp as any)?.owner_middle_name, (comp as any)?.owner_last_name]
+        .filter(Boolean).join(" ").trim();
+      const { data: wos } = await supabase
+        .from("work_orders").select("work_date").eq("project_id", project.id).order("work_date", { ascending: true });
+      const dates = (wos ?? [])
+        .map((w: any) => w.work_date)
+        .filter(Boolean)
+        .map((d: string) => new Date(d).toLocaleDateString("nl-NL"));
+      const { text } = await genInvoiceText({
+        data: {
+          customer_name: (cust as any)?.name ?? "klant",
+          customer_type: (cust as any)?.customer_type ?? "particulier",
+          quote_number: (q as any)?.quote_number ?? null,
+          project_title: project.title || null,
+          execution_dates: dates,
+          lines: quoteLines.map((l) => ({
+            description: l.description,
+            quantity: Number(l.quantity || 0),
+            unit: l.unit,
+          })),
+          company_name: (comp as any)?.company_name ?? null,
+          owner_name: ownerName || null,
+        },
+      });
+      setInvoiceText(text);
+      toast.success("Factuurtekst gegenereerd");
+    } catch (e: any) {
+      toast.error("Genereren mislukt: " + (e?.message ?? e));
+    } finally {
+      setGenInvText(false);
+    }
+  };
+
+  const generateInvoicePdf = async () => {
+    if (!project || !user) return;
+    if (!invoiceText.trim()) return toast.error("Genereer of typ eerst de factuurtekst");
+    setGenInvPdf(true);
+    try {
+      // 1) Bepaal volgend factuurnummer
+      const { data: comp } = await supabase
+        .from("company_settings").select("*").eq("user_id", user.id).maybeSingle();
+      if (!comp) throw new Error("Bedrijfsgegevens ontbreken");
+      const year = new Date().getFullYear();
+      const sameYear = (comp as any).invoice_number_year === year;
+      const nextNum = sameYear ? ((comp as any).invoice_number_next ?? 1) : 1;
+      const prefix = (comp as any).invoice_number_prefix ?? "F";
+      const invoiceNumber = `${prefix}${year}-${String(nextNum).padStart(4, "0")}`;
+
+      // 2) Quote / regels / klant ophalen
+      const { data: q } = await supabase
+        .from("quotes")
+        .select("id,quote_number,subtotal,vat_total,total,vat_mode,reference")
+        .eq("project_id", project.id).maybeSingle();
+      const { data: cust } = project.customer_id
+        ? await supabase.from("customers").select("*").eq("id", project.customer_id).maybeSingle()
+        : ({ data: null } as any);
+      const { data: contactRes } = project.contact_id
+        ? await supabase.from("customer_contacts").select("*").eq("id", project.contact_id).maybeSingle()
+        : ({ data: null } as any);
+      let lines: any[] = [];
+      if (q?.id) {
+        const { data: ll } = await supabase
+          .from("quote_lines")
+          .select("description,quantity,unit,unit_price,vat_rate,line_total,sort_order")
+          .eq("quote_id", q.id).order("sort_order");
+        lines = ll ?? [];
+      }
+      const subtotal = Number((q as any)?.subtotal ?? 0);
+      const vatTotal = Number((q as any)?.vat_total ?? 0);
+      const total = Number((q as any)?.total ?? 0);
+      const vatMode = (q as any)?.vat_mode ?? "hoog";
+      const dueDays = (comp as any).default_payment_term_days ?? 14;
+      const today = new Date();
+      const due = new Date(today.getTime() + dueDays * 86400000);
+      const invoiceDate = today.toISOString().slice(0, 10);
+      const dueDate = due.toISOString().slice(0, 10);
+
+      // 3) PDF bouwen
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+      const W = 210;
+      let y = 15;
+
+      const logoTop = y;
+      const logoH = 28;
+      if ((comp as any)?.logo_url) {
+        try {
+          const resp = await fetch((comp as any).logo_url);
+          const blob = await resp.blob();
+          const dataUrl: string = await new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result as string);
+            r.onerror = rej;
+            r.readAsDataURL(blob);
+          });
+          const imgFmt = (blob.type.includes("png") ? "PNG" : "JPEG") as "PNG" | "JPEG";
+          doc.addImage(dataUrl, imgFmt, 15, logoTop, 50, logoH, undefined, "FAST");
+        } catch {}
+      }
+
+      const rightX = W - 15;
+      doc.setFontSize(13).setFont("helvetica", "bold");
+      doc.text((comp as any)?.company_name ?? "Bedrijf", rightX, y + 4, { align: "right" });
+      doc.setFontSize(9).setFont("helvetica", "normal");
+      const addrLines = [
+        (comp as any)?.address,
+        [(comp as any)?.postal_code, (comp as any)?.city].filter(Boolean).join(" "),
+      ].filter(Boolean) as string[];
+      addrLines.forEach((line, i) => doc.text(line, rightX, y + 9 + i * 4, { align: "right" }));
+      const labeled: { label: string; value?: string | null }[] = [
+        { label: "E-Mail", value: (comp as any)?.email },
+        { label: "KvK-nummer", value: (comp as any)?.kvk_number },
+        { label: "BTW-nummer", value: (comp as any)?.vat_number },
+        { label: "Telefoon", value: (comp as any)?.phone },
+        { label: "IBAN", value: (comp as any)?.iban },
+      ];
+      let ly = y + 9 + addrLines.length * 4 + 2;
+      for (const row of labeled) {
+        if (!row.value) continue;
+        doc.text(`${row.label}: ${row.value}`, rightX, ly, { align: "right" });
+        ly += 4;
+      }
+      y = Math.max(logoTop + logoH, ly) + 6;
+
+      // Klant
+      doc.setFontSize(10).setFont("helvetica", "bold");
+      doc.text("Aan:", 15, y);
+      doc.setFont("helvetica", "normal").setFontSize(9);
+      const custLines = [
+        (cust as any)?.name,
+        contactRes?.name ? `T.a.v. ${contactRes.name}` : null,
+        [(cust as any)?.street, (cust as any)?.house_number, (cust as any)?.house_number_addition].filter(Boolean).join(" ") || (cust as any)?.address,
+        [(cust as any)?.postal_code, (cust as any)?.city].filter(Boolean).join(" "),
+        (cust as any)?.country,
+        (cust as any)?.customer_type === "zakelijk" && (cust as any)?.vat_number ? `BTW: ${(cust as any).vat_number}` : null,
+        (cust as any)?.customer_type === "zakelijk" && (cust as any)?.kvk_number ? `KvK: ${(cust as any).kvk_number}` : null,
+      ].filter(Boolean) as string[];
+      custLines.forEach((line, i) => doc.text(line, 15, y + 5 + i * 4));
+      y += 5 + custLines.length * 4 + 8;
+
+      // Titel + meta
+      doc.setFontSize(14).setFont("helvetica", "bold");
+      doc.text(`Factuur ${invoiceNumber}`, 15, y);
+      doc.setFontSize(9).setFont("helvetica", "normal");
+      doc.text(`Factuurdatum: ${new Date(invoiceDate).toLocaleDateString("nl-NL")}`, W - 15, y, { align: "right" });
+      doc.text(`Vervaldatum: ${new Date(dueDate).toLocaleDateString("nl-NL")}`, W - 15, y + 5, { align: "right" });
+      if (q?.quote_number) doc.text(`Offerte: ${q.quote_number}`, 15, y + 5);
+      y += 10;
+      doc.setDrawColor(10, 36, 99); doc.setLineWidth(0.5);
+      doc.line(15, y, W - 15, y);
+      doc.setDrawColor(0);
+      y += 5;
+
+      // Tekst
+      doc.setFontSize(10);
+      const wrapped = doc.splitTextToSize(invoiceText, W - 30);
+      if (y + wrapped.length * 5 > 250) { doc.addPage(); y = 20; }
+      doc.text(wrapped, 15, y, { maxWidth: W - 30 });
+      y += wrapped.length * 5 + 6;
+
+      // Regels (compact)
+      if (lines.length > 0) {
+        if (y + 20 > 250) { doc.addPage(); y = 20; }
+        doc.setFont("helvetica", "bold").setFontSize(10);
+        doc.text("Omschrijving", 15, y);
+        doc.text("Aantal", 120, y, { align: "right" });
+        doc.text("Prijs", 150, y, { align: "right" });
+        doc.text("Totaal", W - 15, y, { align: "right" });
+        y += 2;
+        doc.setLineWidth(0.2); doc.line(15, y, W - 15, y);
+        y += 4;
+        doc.setFont("helvetica", "normal").setFontSize(9);
+        for (const l of lines) {
+          const desc = doc.splitTextToSize(String(l.description ?? ""), 100);
+          if (y + desc.length * 4 > 260) { doc.addPage(); y = 20; }
+          doc.text(desc, 15, y);
+          const qty = `${Number(l.quantity || 0)}${l.unit ? " " + l.unit : ""}`;
+          doc.text(qty, 120, y, { align: "right" });
+          doc.text(fmt(Number(l.unit_price || 0)), 150, y, { align: "right" });
+          doc.text(fmt(Number(l.line_total || 0)), W - 15, y, { align: "right" });
+          y += Math.max(4, desc.length * 4) + 2;
+        }
+        y += 2;
+      }
+
+      // Totalen
+      if (y + 25 > 270) { doc.addPage(); y = 20; }
+      const xLabel = W - 80;
+      const xVal = W - 15;
+      doc.setFontSize(10);
+      doc.text("Subtotaal", xLabel, y);
+      doc.text(fmt(subtotal), xVal, y, { align: "right" });
+      y += 5;
+      if (vatMode === "verlegd") {
+        doc.text("BTW verlegd", xLabel, y);
+        doc.text("—", xVal, y, { align: "right" });
+      } else {
+        doc.text("BTW", xLabel, y);
+        doc.text(fmt(vatTotal), xVal, y, { align: "right" });
+      }
+      y += 3;
+      doc.setLineWidth(0.3); doc.line(xLabel, y, xVal, y);
+      y += 4;
+      doc.setFont("helvetica", "bold");
+      doc.text("Totaal te voldoen", xLabel, y);
+      doc.text(fmt(total), xVal, y, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      y += 8;
+      doc.setFontSize(9);
+      doc.text(
+        `Wij verzoeken u het bedrag van ${fmt(total)} binnen ${dueDays} dagen over te maken op IBAN ${(comp as any)?.iban ?? ""} o.v.v. ${invoiceNumber}.`,
+        15, y, { maxWidth: W - 30 } as any,
+      );
+
+      // Footer
+      const footerY = 280;
+      const footerText = (comp as any)?.footer_text || (comp as any)?.invoice_footer || (comp as any)?.quote_footer;
+      if (footerText) {
+        const footer = doc.splitTextToSize(footerText, W - 60);
+        doc.setFontSize(8).setTextColor(100);
+        doc.text(footer, W - 15, footerY - 6, { align: "right" });
+        doc.setTextColor(0);
+      }
+
+      // 4) Opslaan: invoice record + storage + project_documents
+      const blob = doc.output("blob");
+      const path = `${user.id}/${project.id}/factuur-${invoiceNumber}.pdf`;
+      const { error: upErr } = await supabase.storage
+        .from("project-documents")
+        .upload(path, blob, { contentType: "application/pdf", upsert: false });
+      if (upErr) throw upErr;
+
+      const { data: invIns, error: invErr } = await supabase.from("invoices").insert({
+        user_id: user.id,
+        project_id: project.id,
+        invoice_number: invoiceNumber,
+        invoice_date: invoiceDate,
+        due_date: dueDate,
+        status: "verzonden",
+        subtotal,
+        vat_total: vatTotal,
+        total,
+        notes: invoiceText,
+      }).select("id,invoice_number,invoice_date,due_date,status,subtotal,vat_total,total").maybeSingle();
+      if (invErr) throw invErr;
+
+      await supabase.from("project_documents").insert({
+        user_id: user.id,
+        project_id: project.id,
+        doc_type: "factuur",
+        file_name: `Factuur-${invoiceNumber}.pdf`,
+        file_path: path,
+        version: 1,
+        mime_type: "application/pdf",
+        file_size: blob.size,
+      });
+
+      // Bump nummer in instellingen
+      await supabase.from("company_settings").update({
+        invoice_number_year: year,
+        invoice_number_next: nextNum + 1,
+      }).eq("user_id", user.id);
+
+      // Project op gefactureerd
+      await supabase.from("projects").update({ status: "gefactureerd" }).eq("id", project.id);
+
+      doc.save(`Factuur-${invoiceNumber}.pdf`);
+      toast.success(`Factuur ${invoiceNumber} aangemaakt`);
+      setInvoice(invIns as Invoice);
+      setInvSendSubject(`Factuur ${invoiceNumber} - ${(comp as any)?.company_name ?? ""}`);
+      load();
+    } catch (e: any) {
+      toast.error("Factuur mislukt: " + (e?.message ?? e));
+    } finally {
+      setGenInvPdf(false);
+    }
+  };
+
+  const sendFactuur = async () => {
+    if (!project || !user || !invoice) return;
+    if (!invSendTo.trim()) return toast.error("Vul een e-mailadres in");
+    setInvSending(true);
+    try {
+      // Vind factuur-pdf
+      const factuurDoc = docs.find((d) => d.doc_type === "factuur" && d.file_name.includes(invoice.invoice_number))
+        ?? docs.find((d) => d.doc_type === "factuur");
+      if (!factuurDoc) throw new Error("Factuur-pdf niet gevonden");
+      const { data: signed } = await supabase.storage
+        .from("project-documents")
+        .createSignedUrl(factuurDoc.file_path, 60 * 60 * 24 * 30);
+      const downloadUrl = signed?.signedUrl ?? "#";
+
+      // Bijlagen
+      const attachments: { name: string; url: string }[] = [];
+      for (const did of Object.keys(invAttachIds).filter((k) => invAttachIds[k])) {
+        const d = docs.find((x) => x.id === did);
+        if (!d || d.id === factuurDoc.id) continue;
+        const { data: s } = await supabase.storage
+          .from("project-documents")
+          .createSignedUrl(d.file_path, 60 * 60 * 24 * 30);
+        if (s?.signedUrl) attachments.push({ name: d.file_name, url: s.signedUrl });
+      }
+
+      const { data: comp } = await supabase
+        .from("company_settings").select("company_name").eq("user_id", user.id).maybeSingle();
+
+      const data = {
+        contactName: contactName || "klant",
+        invoiceNumber: invoice.invoice_number,
+        companyName: (comp as any)?.company_name ?? "",
+        bodyText: invSendBody,
+        downloadUrl,
+        attachments,
+        dueDate: invoice.due_date ? new Date(invoice.due_date).toLocaleDateString("nl-NL") : undefined,
+        subject: invSendSubject,
+      };
+
+      const recipients = [invSendTo.trim()];
+      const cc = invSendCc.trim();
+      if (cc && cc !== invSendTo.trim()) recipients.push(cc);
+
+      for (const rcpt of recipients) {
+        await sendTransactionalEmail({
+          templateName: "factuur-verzonden",
+          recipientEmail: rcpt,
+          idempotencyKey: `factuur-${invoice.id}-${rcpt}-${Date.now()}`,
+          templateData: data,
+        });
+      }
+
+      if (companyEmail) {
+        await sendTransactionalEmail({
+          templateName: "factuur-verzonden",
+          recipientEmail: companyEmail,
+          idempotencyKey: `factuur-bcc-${invoice.id}-${Date.now()}`,
+          templateData: { ...data, subject: `[Kopie] ${invSendSubject}` },
+        });
+      }
+
+      toast.success("Factuur verzonden");
+    } catch (e: any) {
+      toast.error("Versturen mislukt: " + (e?.message ?? e));
+    } finally {
+      setInvSending(false);
+    }
+  };
+
   if (authLoading || !user || !project) return null;
 
 
