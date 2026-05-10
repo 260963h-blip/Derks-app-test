@@ -153,6 +153,26 @@ function Dashboard() {
   }
 
   async function approve(id: string) {
+    const entry = logEntries.find((x) => x.id === id);
+    // Intrekking: bij goedkeuring de oorspronkelijke aanvraag verwijderen,
+    // zodat de verlofdagen weer bijgeschreven worden en de medewerker
+    // weer beschikbaar is in de agenda.
+    if (entry?.leave_type === "intrekking") {
+      const originalId = entry.notes?.startsWith("original:")
+        ? entry.notes.slice("original:".length)
+        : null;
+      if (originalId) {
+        await supabase.from("leave_requests").delete().eq("id", originalId);
+      }
+      const { error } = await supabase.from("leave_requests").delete().eq("id", id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("Intrekking goedgekeurd — verlofdagen teruggeboekt");
+      void loadLog();
+      return;
+    }
     const { error } = await supabase
       .from("leave_requests")
       .update({ status: "goedgekeurd" })
