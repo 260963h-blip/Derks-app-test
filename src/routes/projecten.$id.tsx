@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { AppShell } from "@/components/app-shell";
@@ -14,11 +15,12 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Save, Pencil, Trash2, CheckCircle2, Upload } from "lucide-react";
+import { FileText, Download, Save, Pencil, Trash2, CheckCircle2, Upload, Sparkles, Receipt, Send } from "lucide-react";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { Checkbox } from "@/components/ui/checkbox";
+import { generateInvoiceText } from "@/lib/invoice-text.functions";
 
 export const Route = createFileRoute("/projecten/$id")({
   component: ProjectDossier,
