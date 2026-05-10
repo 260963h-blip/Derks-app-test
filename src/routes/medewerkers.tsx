@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Search, FolderOpen, Save } from "lucide-react";
 import { toast } from "sonner";
 import { EmployeeDocumentsDialog } from "@/components/employee-documents-dialog";
+import { dutchHolidaysForYears } from "@/lib/dutch-holidays";
 
 export const Route = createFileRoute("/medewerkers")({
   component: MedewerkersPage,
@@ -92,6 +93,37 @@ type EmployeeRate = {
   is_default: boolean;
   sort_order: number;
 };
+
+type LeaveReq = {
+  id: string;
+  employee_id: string;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  days: number;
+  reason: string | null;
+  status: string;
+  notes: string | null;
+};
+
+function calcLeaveDays(start: string, end: string): number {
+  if (!start || !end) return 0;
+  const s = new Date(start);
+  const e = new Date(end);
+  if (e < s) return 0;
+  const years = new Set<number>();
+  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) years.add(d.getFullYear());
+  const holidays = dutchHolidaysForYears(Array.from(years));
+  let count = 0;
+  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) continue; // weekend
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (holidays.has(key)) continue; // wettelijke feestdag
+    count++;
+  }
+  return count;
+}
 
 const empty = {
   first_name: "",
