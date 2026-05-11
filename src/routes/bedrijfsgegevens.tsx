@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { LogoUploadCard, ExtraImagesCard } from "@/components/company-images-card";
 import { HeaderFooterCard } from "@/components/header-footer-card";
 import { HeaderPreviewCard } from "@/components/header-preview-card";
+import { AccountCredentialsCard } from "@/components/account-credentials-card";
 
 export const Route = createFileRoute("/bedrijfsgegevens")({
   component: BedrijfsgegevensPage,
@@ -260,6 +261,13 @@ function BedrijfsgegevensPage() {
                 </div>
                 <Field label="Telefoon" v={form.owner_phone} on={(v) => set("owner_phone", v)} />
                 <Field label="E-mail" v={form.owner_email} on={(v) => set("owner_email", v)} type="email" />
+              </div>
+              <div className="mt-6">
+                <AccountCredentialsCard
+                  defaultEmail={form.owner_email}
+                  title="Inloggegevens eigenaar"
+                  description="Maak een login aan zodat de eigenaar in de app kan inloggen."
+                />
               </div>
             </CardContent>
           </Card>
