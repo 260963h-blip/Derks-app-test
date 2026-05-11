@@ -942,25 +942,79 @@ function OfferteEditor() {
                         onChange={(e) => setRoomWalls(e.target.value)}
                       />
                     </div>
-                    {roomPricingMode !== "fixed" && (
-                      <div>
-                        <Label className="text-xs">m²</Label>
-                        <Input
-                          type="number"
-                          placeholder="m²"
-                          value={roomM2}
-                          onChange={(e) => setRoomM2(e.target.value)}
-                        />
+                    <div>
+                      <Label className="text-xs">
+                        m² {roomPricingMode === "fixed" ? "(voor afwerkingen)" : ""}
+                      </Label>
+                      <Input
+                        type="number"
+                        placeholder="m²"
+                        value={roomM2}
+                        onChange={(e) => setRoomM2(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  {finishes.length > 0 && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Afwerkingen</Label>
+                      <div className="space-y-1 rounded-md border p-2 max-h-40 overflow-y-auto">
+                        {finishes.map((f) => (
+                          <label key={f.id} className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={pickedFinishes.includes(f.id)}
+                              onCheckedChange={(v) =>
+                                setPickedFinishes((prev) =>
+                                  v ? [...prev, f.id] : prev.filter((x) => x !== f.id)
+                                )
+                              }
+                            />
+                            <span className="flex-1">{f.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {fmt(Number(f.price_per_m2))}/m²
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-y-2 rounded-md border p-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={addCeilingArticle}
+                        onCheckedChange={(v) => setAddCeilingArticle(!!v)}
+                      />
+                      Plafond toevoegen (artikel)
+                    </label>
+                    {addCeilingArticle && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Plafond-artikel</Label>
+                          <Select
+                            value={pickCeilingArticle || undefined}
+                            onValueChange={(v) => setPickCeilingArticle(v)}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Kies artikel..." /></SelectTrigger>
+                            <SelectContent>
+                              {articles.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>
+                                  {a.name} — {fmt(Number(a.price))}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">m² plafond</Label>
+                          <Input
+                            type="number"
+                            placeholder="m²"
+                            value={ceilingM2}
+                            onChange={(e) => setCeilingM2(e.target.value)}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={roomCeiling}
-                      onCheckedChange={(v) => setRoomCeiling(!!v)}
-                    />
-                    Plafond meenemen
-                  </label>
                   <div className="flex">
                     <Button size="sm" onClick={addRoomLine} disabled={!pickRoom} className="ml-auto">
                       <Plus className="mr-1 h-4 w-4" /> Toevoegen
