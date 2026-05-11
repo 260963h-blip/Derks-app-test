@@ -107,6 +107,7 @@ function OfferteEditor() {
   const [roomM2, setRoomM2] = useState<string>("");
   const [roomWalls, setRoomWalls] = useState<string>("");
   const [roomCeiling, setRoomCeiling] = useState<boolean>(false);
+  const [roomPricingMode, setRoomPricingMode] = useState<"per_m2" | "fixed">("per_m2");
 
   const [saving, setSaving] = useState(false);
   const [generatingText, setGeneratingText] = useState(false);
@@ -302,7 +303,7 @@ function OfferteEditor() {
     if (walls > 0) descParts.push(`${walls} ${walls === 1 ? "wand" : "wanden"}`);
     if (roomCeiling) descParts.push("incl. plafond");
     const extra = descParts.length ? ` (${descParts.join(", ")})` : "";
-    if (r.pricing_type === "fixed") {
+    if (roomPricingMode === "fixed") {
       const price = Number(r.fixed_price);
       setLines((prev) => [
         ...prev,
@@ -829,7 +830,11 @@ function OfferteEditor() {
               <Select value={pickRoom || undefined} onValueChange={(v) => {
                 setPickRoom(v);
                 const r = rooms.find((x) => x.id === v);
-                if (r?.pricing_type !== "fixed" && r?.default_m2) setRoomM2(String(r.default_m2));
+                const hasM2 = !!r && Number(r.price_per_m2) > 0;
+                const hasFixed = !!r && Number(r.fixed_price) > 0;
+                const mode: "per_m2" | "fixed" = hasM2 ? "per_m2" : hasFixed ? "fixed" : "per_m2";
+                setRoomPricingMode(mode);
+                if (mode === "per_m2" && r?.default_m2) setRoomM2(String(r.default_m2));
                 else setRoomM2("");
                 setRoomWalls(r?.default_walls ? String(r.default_walls) : "");
                 setRoomCeiling(!!r?.include_ceiling);
@@ -838,15 +843,36 @@ function OfferteEditor() {
                 <SelectContent>
                   {rooms.map((r) => (
                     <SelectItem key={r.id} value={r.id}>
-                      {r.name} — {r.pricing_type === "fixed"
-                        ? `${fmt(Number(r.fixed_price))} vast`
-                        : `${fmt(Number(r.price_per_m2))}/m²`}
+                      {r.name}
+                      {Number(r.price_per_m2) > 0 ? ` — ${fmt(Number(r.price_per_m2))}/m²` : ""}
+                      {Number(r.fixed_price) > 0 ? ` — ${fmt(Number(r.fixed_price))} vast` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {pickRoom && (
                 <div className="space-y-2 rounded-md border p-2">
+                  {(() => {
+                    const r = rooms.find((x) => x.id === pickRoom);
+                    const hasM2 = !!r && Number(r.price_per_m2) > 0;
+                    const hasFixed = !!r && Number(r.fixed_price) > 0;
+                    if (!hasM2 || !hasFixed) return null;
+                    return (
+                      <div>
+                        <Label className="text-xs">Prijstype</Label>
+                        <Select
+                          value={roomPricingMode}
+                          onValueChange={(v) => setRoomPricingMode(v as "per_m2" | "fixed")}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="per_m2">Per m² ({fmt(Number(r!.price_per_m2))}/m²)</SelectItem>
+                            <SelectItem value="fixed">Vast bedrag ({fmt(Number(r!.fixed_price))})</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })()}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label className="text-xs">Aantal wanden</Label>
@@ -858,7 +884,7 @@ function OfferteEditor() {
                         onChange={(e) => setRoomWalls(e.target.value)}
                       />
                     </div>
-                    {rooms.find((x) => x.id === pickRoom)?.pricing_type !== "fixed" && (
+                    {roomPricingMode !== "fixed" && (
                       <div>
                         <Label className="text-xs">m²</Label>
                         <Input
