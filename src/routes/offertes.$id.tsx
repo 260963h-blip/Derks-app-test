@@ -62,6 +62,7 @@ type Room = {
   default_walls: number;
   include_ceiling: boolean;
 };
+type Finish = { id: string; name: string; price_per_m2: number };
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n || 0);
@@ -97,6 +98,7 @@ function OfferteEditor() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [rates, setRates] = useState<Rate[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [finishes, setFinishes] = useState<Finish[]>([]);
 
   const [pickArticle, setPickArticle] = useState<string>("");
   const [artQty, setArtQty] = useState<string>("1");
@@ -108,6 +110,10 @@ function OfferteEditor() {
   const [roomWalls, setRoomWalls] = useState<string>("");
   const [roomCeiling, setRoomCeiling] = useState<boolean>(false);
   const [roomPricingMode, setRoomPricingMode] = useState<"per_m2" | "fixed">("per_m2");
+  const [pickedFinishes, setPickedFinishes] = useState<string[]>([]);
+  const [addCeilingArticle, setAddCeilingArticle] = useState<boolean>(false);
+  const [pickCeilingArticle, setPickCeilingArticle] = useState<string>("");
+  const [ceilingM2, setCeilingM2] = useState<string>("");
 
   const [saving, setSaving] = useState(false);
   const [generatingText, setGeneratingText] = useState(false);
@@ -125,7 +131,7 @@ function OfferteEditor() {
   }, [user, id]);
 
   const load = async () => {
-    const [{ data: q, error: qe }, { data: ls }, { data: cs }, { data: arts }, { data: emps }, { data: rs }, { data: rms }] = await Promise.all([
+    const [{ data: q, error: qe }, { data: ls }, { data: cs }, { data: arts }, { data: emps }, { data: rs }, { data: rms }, { data: fns }] = await Promise.all([
       supabase.from("quotes").select("*").eq("id", id).maybeSingle(),
       supabase.from("quote_lines").select("*").eq("quote_id", id).order("sort_order"),
       supabase.from("customers").select("id,name,customer_type").order("name"),
@@ -133,6 +139,7 @@ function OfferteEditor() {
       supabase.from("employees").select("id,first_name,last_name,role").order("first_name"),
       supabase.from("employee_rates").select("id,employee_id,name,hourly_rate,is_default").order("sort_order"),
       supabase.from("rooms").select("id,name,price_per_m2,vat_rate,default_m2,pricing_type,fixed_price,default_walls,include_ceiling").eq("is_active", true).order("sort_order").order("name"),
+      supabase.from("finishes").select("id,name,price_per_m2").eq("is_active", true).order("sort_order").order("name"),
     ]);
     if (qe || !q) {
       toast.error("Offerte niet gevonden");
@@ -154,6 +161,7 @@ function OfferteEditor() {
     setEmployees((emps ?? []) as Employee[]);
     setRates((rs ?? []) as Rate[]);
     setRooms((rms ?? []) as Room[]);
+    setFinishes((fns ?? []) as Finish[]);
   };
 
   const selectedCustomer = useMemo(
@@ -303,44 +311,94 @@ function OfferteEditor() {
     if (walls > 0) descParts.push(`${walls} ${walls === 1 ? "wand" : "wanden"}`);
     if (roomCeiling) descParts.push("incl. plafond");
     const extra = descParts.length ? ` (${descParts.join(", ")})` : "";
+    const m2 = Number(roomM2) || 0;
+    const newLines: Line[] = [];
     if (roomPricingMode === "fixed") {
       const price = Number(r.fixed_price);
-      setLines((prev) => [
-        ...prev,
-        {
-          id: `tmp-${crypto.randomUUID()}`,
-          line_type: "ruimte",
-          description: r.name + extra,
-          quantity: 1,
-          unit: "stuk",
-          unit_price: price,
-          vat_rate: vr,
-          line_total: price,
-          sort_order: prev.length,
-        },
-      ]);
+      newLines.push({
+        id: `tmp-${crypto.randomUUID()}`,
+        line_type: "ruimte",
+        description: r.name + extra,
+        quantity: 1,
+        unit: "stuk",
+        unit_price: price,
+        vat_rate: vr,
+        line_total: price,
+        sort_order: 0,
+      });
     } else {
-      const m2 = Number(roomM2) || 0;
       if (m2 <= 0) return;
-      setLines((prev) => [
-        ...prev,
-        {
+      newLines.push({
+        id: `tmp-${crypto.randomUUID()}`,
+        line_type: "ruimte",
+        description: r.name + extra,
+        quantity: m2,
+        unit: "m²",
+        unit_price: Number(r.price_per_m2),
+        vat_rate: vr,
+        line_total: m2 * Number(r.price_per_m2),
+        sort_order: 0,
+      });
+    }
+    // Afwerkingen toevoegen op basis van m² van de ruimte
+    if (pickedFinishes.length > 0 && m2 > 0) {
+      const vrArt = vatForLine(selectedCustomer?.customer_type, quote!.vat_mode, "artikel");
+      for (const fid of pickedFinishes) {
+        const f = finishes.find((x) => x.id === fid);
+        if (!f) continue;
+        newLines.push({
           id: `tmp-${crypto.randomUUID()}`,
-          line_type: "ruimte",
-          description: r.name + extra,
+          line_type: "artikel",
+          description: `Afwerking: ${f.name} (${r.name})`,
           quantity: m2,
           unit: "m²",
-          unit_price: Number(r.price_per_m2),
-          vat_rate: vr,
-          line_total: m2 * Number(r.price_per_m2),
-          sort_order: prev.length,
-        },
-      ]);
+          unit_price: Number(f.price_per_m2),
+          vat_rate: vrArt,
+          line_total: m2 * Number(f.price_per_m2),
+          sort_order: 0,
+        });
+      }
+    } else if (pickedFinishes.length > 0 && m2 <= 0) {
+      toast.error("Vul m² in om afwerkingen toe te voegen");
+      return;
     }
+    // Plafond als artikel toevoegen
+    if (addCeilingArticle && pickCeilingArticle) {
+      const a = articles.find((x) => x.id === pickCeilingArticle);
+      const cm2 = Number(ceilingM2) || 0;
+      if (a && cm2 > 0) {
+        const vrArt = vatForLine(selectedCustomer?.customer_type, quote!.vat_mode, "artikel");
+        newLines.push({
+          id: `tmp-${crypto.randomUUID()}`,
+          line_type: "artikel",
+          description: `Plafond — ${a.name} (${r.name})`,
+          quantity: cm2,
+          unit: "m²",
+          unit_price: Number(a.price),
+          vat_rate: vrArt,
+          line_total: cm2 * Number(a.price),
+          sort_order: 0,
+        });
+      } else if (!a) {
+        toast.error("Kies een plafond-artikel");
+        return;
+      } else {
+        toast.error("Vul m² voor plafond in");
+        return;
+      }
+    }
+    setLines((prev) => [
+      ...prev,
+      ...newLines.map((l, i) => ({ ...l, sort_order: prev.length + i })),
+    ]);
     setPickRoom("");
     setRoomM2("");
     setRoomWalls("");
     setRoomCeiling(false);
+    setPickedFinishes([]);
+    setAddCeilingArticle(false);
+    setPickCeilingArticle("");
+    setCeilingM2("");
   };
 
   const save = async () => {
