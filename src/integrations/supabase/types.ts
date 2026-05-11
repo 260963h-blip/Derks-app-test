@@ -735,6 +735,39 @@ export type Database = {
         }
         Relationships: []
       }
+      finishes: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          price_per_m2: number
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price_per_m2?: number
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_per_m2?: number
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       holiday_unblocks: {
         Row: {
           created_at: string
