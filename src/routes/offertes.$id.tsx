@@ -988,29 +988,17 @@ function OfferteEditor() {
                     {addCeilingArticle && (
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <Label className="text-xs">Plafond-artikel</Label>
-                          <Select
-                            value={pickCeilingArticle || undefined}
-                            onValueChange={(v) => setPickCeilingArticle(v)}
-                          >
-                            <SelectTrigger><SelectValue placeholder="Kies artikel..." /></SelectTrigger>
-                            <SelectContent>
-                              {articles.map((a) => (
-                                <SelectItem key={a.id} value={a.id}>
-                                  {a.name} — {fmt(Number(a.price))}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
                           <Label className="text-xs">m² plafond</Label>
                           <Input
                             type="number"
+                            step="0.01"
                             placeholder="m²"
                             value={ceilingM2}
                             onChange={(e) => setCeilingM2(e.target.value)}
                           />
+                        </div>
+                        <div className="flex items-end text-xs text-muted-foreground">
+                          Prijs uit artikel "Plafond"
                         </div>
                       </div>
                     )}
