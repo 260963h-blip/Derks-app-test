@@ -39,6 +39,7 @@ import { Plus, Pencil, Trash2, Search, FolderOpen, Save } from "lucide-react";
 import { toast } from "sonner";
 import { EmployeeDocumentsDialog } from "@/components/employee-documents-dialog";
 import { dutchHolidaysForYears } from "@/lib/dutch-holidays";
+import { AccountCredentialsCard } from "@/components/account-credentials-card";
 
 export const Route = createFileRoute("/medewerkers")({
   component: MedewerkersPage,
@@ -619,13 +620,14 @@ function MedewerkersPage() {
           </DialogHeader>
 
           <Tabs defaultValue="persoonlijk" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="persoonlijk">Persoonlijk</TabsTrigger>
               <TabsTrigger value="arbeid">Arbeid</TabsTrigger>
               <TabsTrigger value="loon">Loon</TabsTrigger>
               <TabsTrigger value="tarieven">Tarieven</TabsTrigger>
               <TabsTrigger value="verlofdagen">Verlofdagen</TabsTrigger>
               <TabsTrigger value="arbo">Verzekering & Arbo</TabsTrigger>
+              <TabsTrigger value="inlog">Inlog</TabsTrigger>
             </TabsList>
 
             {/* PERSOONLIJK */}
