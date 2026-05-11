@@ -593,6 +593,51 @@ function ArtikelenPage() {
                   </Table>
                 )}
               </TabsContent>
+
+              <TabsContent value="afwerking" className="m-0">
+                {loading ? (
+                  <p className="text-sm text-muted-foreground">Laden...</p>
+                ) : filteredFinishes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Nog geen afwerkingen. Klik op "Nieuw" om er een toe te voegen.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Naam</TableHead>
+                        <TableHead className="text-right">Prijs per m²</TableHead>
+                        <TableHead className="w-[100px]" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredFinishes.map((f) => (
+                        <TableRow key={f.id}>
+                          <TableCell className="font-medium">
+                            {f.name}
+                            {!f.is_active && (
+                              <Badge variant="outline" className="ml-2">
+                                inactief
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            € {Number(f.price_per_m2).toFixed(2)} / m²
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button size="icon" variant="ghost" onClick={() => openEditFinish(f)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => setDelFinish(f.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
             </CardContent>
           </Card>
         </Tabs>
