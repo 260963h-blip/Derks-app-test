@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { createUserAccount } from "@/lib/user-accounts.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 type Props = {
   defaultEmail?: string;
@@ -27,7 +28,15 @@ export function AccountCredentialsCard({ defaultEmail = "", title = "Inloggegeve
     }
     setBusy(true);
     try {
-      await create({ data: { email, password } });
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error("Je sessie is verlopen. Log opnieuw in.");
+      }
+
+      await create({ data: { email, password, accessToken: session.access_token } });
       toast.success("Account aangemaakt voor " + email);
       setPassword("");
       setConfirm("");
