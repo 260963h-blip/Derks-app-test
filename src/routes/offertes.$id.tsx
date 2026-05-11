@@ -107,6 +107,7 @@ function OfferteEditor() {
   const [roomM2, setRoomM2] = useState<string>("");
   const [roomWalls, setRoomWalls] = useState<string>("");
   const [roomCeiling, setRoomCeiling] = useState<boolean>(false);
+  const [roomPricingMode, setRoomPricingMode] = useState<"per_m2" | "fixed">("per_m2");
 
   const [saving, setSaving] = useState(false);
   const [generatingText, setGeneratingText] = useState(false);
@@ -302,7 +303,7 @@ function OfferteEditor() {
     if (walls > 0) descParts.push(`${walls} ${walls === 1 ? "wand" : "wanden"}`);
     if (roomCeiling) descParts.push("incl. plafond");
     const extra = descParts.length ? ` (${descParts.join(", ")})` : "";
-    if (r.pricing_type === "fixed") {
+    if (roomPricingMode === "fixed") {
       const price = Number(r.fixed_price);
       setLines((prev) => [
         ...prev,
