@@ -793,26 +793,6 @@ function ArtikelenPage() {
                 placeholder="bv. Keuken, Woonkamer, Slaapkamer"
               />
             </div>
-            <div>
-              <Label>Prijstype</Label>
-              <Select
-                value={roomForm.pricing_type}
-                onValueChange={(v) =>
-                  setRoomForm({ ...roomForm, pricing_type: v as "per_m2" | "fixed" })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="per_m2">Per m²</SelectItem>
-                  <SelectItem value="fixed">Vast bedrag</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Kies "Vast bedrag" voor ruimten zoals een toilet met een vaste prijs.
-              </p>
-            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Standaard aantal wanden</Label>
@@ -825,23 +805,21 @@ function ArtikelenPage() {
                   }
                 />
               </div>
-              {roomForm.pricing_type === "per_m2" && (
-                <div>
-                  <Label>Standaard vierkante meters</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={roomForm.default_m2 ?? ""}
-                    onChange={(e) =>
-                      setRoomForm({
-                        ...roomForm,
-                        default_m2: e.target.value === "" ? null : Number(e.target.value),
-                      })
-                    }
-                    placeholder="optioneel"
-                  />
-                </div>
-              )}
+              <div>
+                <Label>Standaard vierkante meters</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={roomForm.default_m2 ?? ""}
+                  onChange={(e) =>
+                    setRoomForm({
+                      ...roomForm,
+                      default_m2: e.target.value === "" ? null : Number(e.target.value),
+                    })
+                  }
+                  placeholder="optioneel"
+                />
+              </div>
             </div>
             <div className="flex items-center justify-between rounded-md border p-3">
               <div>
@@ -856,32 +834,34 @@ function ArtikelenPage() {
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {roomForm.pricing_type === "per_m2" ? (
-                <div>
-                  <Label>Prijs per m² (€)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={roomForm.price_per_m2}
-                    onChange={(e) =>
-                      setRoomForm({ ...roomForm, price_per_m2: Number(e.target.value) })
-                    }
-                  />
-                </div>
-              ) : (
-                <div>
-                  <Label>Vast bedrag (€)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={roomForm.fixed_price}
-                    onChange={(e) =>
-                      setRoomForm({ ...roomForm, fixed_price: Number(e.target.value) })
-                    }
-                    placeholder="bv. 275.00"
-                  />
-                </div>
-              )}
+              <div>
+                <Label>Prijs per m² (€)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={roomForm.price_per_m2}
+                  onChange={(e) =>
+                    setRoomForm({ ...roomForm, price_per_m2: Number(e.target.value) })
+                  }
+                />
+              </div>
+              <div>
+                <Label>Vast bedrag (€)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={roomForm.fixed_price}
+                  onChange={(e) =>
+                    setRoomForm({ ...roomForm, fixed_price: Number(e.target.value) })
+                  }
+                  placeholder="bv. 275.00"
+                />
+              </div>
+            </div>
+            <p className="-mt-2 text-xs text-muted-foreground">
+              Vul één of beide prijzen in. Bij het opmaken van een offerte kies je per ruimte welke prijs je gebruikt.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>BTW (%)</Label>
                 <Select
