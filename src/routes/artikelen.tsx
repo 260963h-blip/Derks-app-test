@@ -901,6 +901,66 @@ function ArtikelenPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Afwerking dialog */}
+      <Dialog open={finishDialog} onOpenChange={setFinishDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {finishEditing ? "Afwerking bewerken" : "Nieuwe afwerking"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div>
+              <Label>Naam</Label>
+              <Input
+                value={finishForm.name}
+                onChange={(e) => setFinishForm({ ...finishForm, name: e.target.value })}
+                placeholder="bv. Spachtelputz, Sausen, Behangklaar"
+              />
+            </div>
+            <div>
+              <Label>Prijs per m² (€)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={finishForm.price_per_m2}
+                onChange={(e) =>
+                  setFinishForm({ ...finishForm, price_per_m2: Number(e.target.value) })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <Label>Actief</Label>
+              <Switch
+                checked={finishForm.is_active}
+                onCheckedChange={(v) => setFinishForm({ ...finishForm, is_active: v })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFinishDialog(false)}>
+              Annuleren
+            </Button>
+            <Button onClick={saveFinish}>Opslaan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!delFinish} onOpenChange={(o) => !o && setDelFinish(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Afwerking verwijderen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deze actie kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={removeFinish}>Verwijderen</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
