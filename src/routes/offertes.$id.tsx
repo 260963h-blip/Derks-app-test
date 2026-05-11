@@ -362,30 +362,30 @@ function OfferteEditor() {
       toast.error("Vul m² in om afwerkingen toe te voegen");
       return;
     }
-    // Plafond als artikel toevoegen
-    if (addCeilingArticle && pickCeilingArticle) {
-      const a = articles.find((x) => x.id === pickCeilingArticle);
+    // Plafond als artikel toevoegen — prijs uit artikel "Plafond"
+    if (addCeilingArticle) {
+      const a = articles.find((x) => x.name.toLowerCase().includes("plafond"));
       const cm2 = Number(ceilingM2) || 0;
-      if (a && cm2 > 0) {
-        const vrArt = vatForLine(selectedCustomer?.customer_type, quote!.vat_mode, "artikel");
-        newLines.push({
-          id: `tmp-${crypto.randomUUID()}`,
-          line_type: "artikel",
-          description: `Plafond — ${a.name} (${r.name})`,
-          quantity: cm2,
-          unit: "m²",
-          unit_price: Number(a.price),
-          vat_rate: vrArt,
-          line_total: cm2 * Number(a.price),
-          sort_order: 0,
-        });
-      } else if (!a) {
-        toast.error("Kies een plafond-artikel");
+      if (!a) {
+        toast.error('Maak eerst een artikel "Plafond" aan onder Artikelen');
         return;
-      } else {
+      }
+      if (cm2 <= 0) {
         toast.error("Vul m² voor plafond in");
         return;
       }
+      const vrArt = vatForLine(selectedCustomer?.customer_type, quote!.vat_mode, "artikel");
+      newLines.push({
+        id: `tmp-${crypto.randomUUID()}`,
+        line_type: "artikel",
+        description: `Plafond (${r.name})`,
+        quantity: cm2,
+        unit: "m²",
+        unit_price: Number(a.price),
+        vat_rate: vrArt,
+        line_total: cm2 * Number(a.price),
+        sort_order: 0,
+      });
     }
     setLines((prev) => [
       ...prev,
@@ -397,7 +397,7 @@ function OfferteEditor() {
     setRoomCeiling(false);
     setPickedFinishes([]);
     setAddCeilingArticle(false);
-    setPickCeilingArticle("");
+    setCeilingM2("");
     setCeilingM2("");
   };
 
