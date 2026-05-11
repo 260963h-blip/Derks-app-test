@@ -1143,6 +1143,15 @@ function MedewerkersPage() {
                 </div>
               </div>
             </TabsContent>
+
+            {/* INLOG */}
+            <TabsContent value="inlog" className="space-y-4 pt-4">
+              <AccountCredentialsCard
+                defaultEmail={form.email}
+                title="Inloggegevens medewerker"
+                description="Maak een login aan zodat deze medewerker in de app kan inloggen."
+              />
+            </TabsContent>
           </Tabs>
 
           <DialogFooter>
