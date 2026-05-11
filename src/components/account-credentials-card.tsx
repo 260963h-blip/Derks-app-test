@@ -32,7 +32,20 @@ export function AccountCredentialsCard({ defaultEmail = "", title = "Inloggegeve
       setPassword("");
       setConfirm("");
     } catch (e: any) {
-      toast.error(e?.message ?? "Account aanmaken mislukt");
+      let msg = "Account aanmaken mislukt";
+      try {
+        if (e instanceof Response) {
+          const text = await e.text();
+          msg = text || `Fout (${e.status})`;
+        } else if (typeof e?.message === "string" && e.message) {
+          msg = e.message;
+        } else if (typeof e === "string") {
+          msg = e;
+        }
+      } catch {
+        // ignore
+      }
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
