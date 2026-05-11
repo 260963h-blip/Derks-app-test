@@ -1,53 +1,46 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createManagedUser, updateManagedUserPassword } from "@/lib/user-accounts.server";
 
-type CreateInput = { email: string; password: string };
+type CreateInput = { email: string; password: string; accessToken: string };
 
 function validate(input: unknown): CreateInput {
   const data = input as Partial<CreateInput> | undefined;
   const email = (data?.email ?? "").trim().toLowerCase();
   const password = data?.password ?? "";
+  const accessToken = (data?.accessToken ?? "").trim();
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error("Ongeldig e-mailadres");
   }
   if (password.length < 6) {
     throw new Error("Wachtwoord moet minimaal 6 tekens zijn");
   }
-  return { email, password };
+  if (!accessToken) {
+    throw new Error("Je sessie is verlopen. Log opnieuw in.");
+  }
+  return { email, password, accessToken };
 }
 
 export const createUserAccount = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(validate)
   .handler(async ({ data }) => {
-    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: data.password,
-      email_confirm: true,
-    });
-    if (error) throw new Error(error.message);
-    return { id: created.user?.id, email: created.user?.email };
+    return createManagedUser(data);
   });
 
-type UpdateInput = { user_id: string; password: string };
+type UpdateInput = { user_id: string; password: string; accessToken: string };
 
 function validateUpdate(input: unknown): UpdateInput {
   const data = input as Partial<UpdateInput> | undefined;
   const user_id = (data?.user_id ?? "").trim();
   const password = data?.password ?? "";
+  const accessToken = (data?.accessToken ?? "").trim();
   if (!user_id) throw new Error("Ontbrekende gebruiker");
   if (password.length < 6) throw new Error("Wachtwoord moet minimaal 6 tekens zijn");
-  return { user_id, password };
+  if (!accessToken) throw new Error("Je sessie is verlopen. Log opnieuw in.");
+  return { user_id, password, accessToken };
 }
 
 export const updateUserPassword = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(validateUpdate)
   .handler(async ({ data }) => {
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
-      password: data.password,
-    });
-    if (error) throw new Error(error.message);
-    return { ok: true };
+    return updateManagedUserPassword(data);
   });
