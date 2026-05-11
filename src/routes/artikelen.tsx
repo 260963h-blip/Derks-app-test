@@ -99,6 +99,13 @@ type Room = {
 type CategoryRow = { id: string; scope: "materiaal" | "werkzaamheid"; name: string };
 type UnitRow = { id: string; code: string; label: string };
 
+type Finish = {
+  id: string;
+  name: string;
+  price_per_m2: number;
+  is_active: boolean;
+};
+
 const normalize = (v: string | null | undefined) => v?.trim() ?? "";
 const uniqueNames = (vals: Array<string | null | undefined>) =>
   Array.from(new Set(vals.map(normalize).filter(Boolean)));
@@ -138,13 +145,20 @@ const emptyRoom = () => ({
   fixed_price: 0,
 });
 
+const emptyFinish = () => ({
+  name: "",
+  price_per_m2: 0,
+  is_active: true,
+});
+
 function ArtikelenPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [tab, setTab] = useState<"materiaal" | "ruimte">("materiaal");
+  const [tab, setTab] = useState<"materiaal" | "ruimte" | "afwerking">("materiaal");
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [finishes, setFinishes] = useState<Finish[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [units, setUnits] = useState<UnitRow[]>([]);
   const [defaultVat, setDefaultVat] = useState<number>(21);
@@ -162,6 +176,11 @@ function ArtikelenPage() {
   const [roomForm, setRoomForm] = useState(emptyRoom());
   const [delRoom, setDelRoom] = useState<string | null>(null);
 
+  const [finishDialog, setFinishDialog] = useState(false);
+  const [finishEditing, setFinishEditing] = useState<Finish | null>(null);
+  const [finishForm, setFinishForm] = useState(emptyFinish());
+  const [delFinish, setDelFinish] = useState<string | null>(null);
+
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
   }, [user, authLoading, navigate]);
@@ -172,7 +191,7 @@ function ArtikelenPage() {
 
   const load = async () => {
     setLoading(true);
-    const [a, r, c, u, s] = await Promise.all([
+    const [a, r, c, u, s, f] = await Promise.all([
       supabase
         .from("articles")
         .select("*")
@@ -183,6 +202,7 @@ function ArtikelenPage() {
       supabase.from("article_categories").select("id,scope,name").order("sort_order").order("name"),
       supabase.from("article_units").select("id,code,label").order("sort_order").order("label"),
       supabase.from("company_settings").select("default_vat_rate").maybeSingle(),
+      supabase.from("finishes").select("*").order("sort_order").order("name"),
     ]);
     if (a.error) toast.error("Laden mislukt: " + a.error.message);
     else setArticles((a.data ?? []) as unknown as Article[]);
@@ -191,6 +211,7 @@ function ArtikelenPage() {
     if (!u.error) setUnits((u.data ?? []) as UnitRow[]);
     if (!s.error && s.data?.default_vat_rate != null)
       setDefaultVat(Number(s.data.default_vat_rate));
+    if (!f.error) setFinishes((f.data ?? []) as Finish[]);
     setLoading(false);
   };
 
@@ -217,6 +238,13 @@ function ArtikelenPage() {
       return r.name.toLowerCase().includes(search.toLowerCase());
     });
   }, [rooms, search]);
+
+  const filteredFinishes = useMemo(() => {
+    return finishes.filter((f) => {
+      if (!search.trim()) return true;
+      return f.name.toLowerCase().includes(search.toLowerCase());
+    });
+  }, [finishes, search]);
 
   // ---- Materiaal handlers ----
   const openNewMat = () => {
@@ -338,6 +366,49 @@ function ArtikelenPage() {
     setDelRoom(null);
   };
 
+  // ---- Afwerking handlers ----
+  const openNewFinish = () => {
+    setFinishEditing(null);
+    setFinishForm(emptyFinish());
+    setFinishDialog(true);
+  };
+  const openEditFinish = (f: Finish) => {
+    setFinishEditing(f);
+    setFinishForm({
+      name: f.name,
+      price_per_m2: Number(f.price_per_m2),
+      is_active: f.is_active,
+    });
+    setFinishDialog(true);
+  };
+  const saveFinish = async () => {
+    if (!user) return;
+    if (!finishForm.name.trim()) return toast.error("Naam is verplicht");
+    const payload = {
+      user_id: user.id,
+      name: finishForm.name.trim(),
+      price_per_m2: Number(finishForm.price_per_m2) || 0,
+      is_active: finishForm.is_active,
+    };
+    const res = finishEditing
+      ? await supabase.from("finishes").update(payload).eq("id", finishEditing.id)
+      : await supabase.from("finishes").insert(payload);
+    if (res.error) return toast.error("Opslaan mislukt: " + res.error.message);
+    toast.success(finishEditing ? "Afwerking bijgewerkt" : "Afwerking toegevoegd");
+    setFinishDialog(false);
+    load();
+  };
+  const removeFinish = async () => {
+    if (!delFinish) return;
+    const { error } = await supabase.from("finishes").delete().eq("id", delFinish);
+    if (error) toast.error("Verwijderen mislukt: " + error.message);
+    else {
+      toast.success("Verwijderd");
+      load();
+    }
+    setDelFinish(null);
+  };
+
   if (authLoading || !user) return null;
 
   const selectedMatCat = materialCats.includes(matForm.subcategory)
@@ -353,7 +424,15 @@ function ArtikelenPage() {
             <h1 className="text-2xl font-bold">Artikelen</h1>
             <p className="text-muted-foreground">Materialen en ruimten beheren</p>
           </div>
-          <Button onClick={tab === "materiaal" ? openNewMat : openNewRoom}>
+          <Button
+            onClick={
+              tab === "materiaal"
+                ? openNewMat
+                : tab === "ruimte"
+                  ? openNewRoom
+                  : openNewFinish
+            }
+          >
             <Plus className="mr-2 h-4 w-4" /> Nieuw
           </Button>
         </div>
@@ -361,7 +440,7 @@ function ArtikelenPage() {
         <Tabs
           value={tab}
           onValueChange={(v) => {
-            setTab(v as "materiaal" | "ruimte");
+            setTab(v as "materiaal" | "ruimte" | "afwerking");
             setFilterCat("alle");
             setSearch("");
           }}
@@ -369,6 +448,7 @@ function ArtikelenPage() {
           <TabsList>
             <TabsTrigger value="materiaal">Materialen</TabsTrigger>
             <TabsTrigger value="ruimte">Ruimten</TabsTrigger>
+            <TabsTrigger value="afwerking">Afwerkingen</TabsTrigger>
           </TabsList>
 
           <Card className="mt-4">
