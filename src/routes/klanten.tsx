@@ -361,6 +361,50 @@ function KlantenPage() {
                   : "Geen klanten gevonden."}
             </p>
           ) : (
+            <>
+              {/* Mobiel: kaartweergave */}
+              <div className="divide-y sm:hidden">
+                {filtered.map((c) => (
+                  <div key={c.id} className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-semibold">{c.name}</p>
+                        <Badge variant={c.customer_type === "zakelijk" ? "default" : "secondary"} className="mt-1">
+                          {c.customer_type === "zakelijk" ? "Zakelijk" : "Particulier"}
+                        </Badge>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title={c.is_archived ? "Weer actief maken" : "Archiveren"}
+                          onClick={() => toggleArchive(c)}
+                        >
+                          {c.is_archived ? (
+                            <ArchiveRestore className="h-4 w-4" />
+                          ) : (
+                            <Archive className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => askDelete(c)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                      <p>{c.city ?? "—"} · BTW {Number(c.default_vat_rate ?? 21)}%</p>
+                      {c.phone && <p className="truncate">{c.phone}</p>}
+                      {c.email && <p className="truncate">{c.email}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Tablet/desktop: tabel */}
+              <div className="hidden sm:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -410,6 +454,8 @@ function KlantenPage() {
                 ))}
               </TableBody>
             </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
