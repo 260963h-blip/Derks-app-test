@@ -63,6 +63,7 @@ type Customer = {
   default_vat_type: VatType;
   default_vat_rate: number;
   notes: string | null;
+  is_archived: boolean;
 };
 
 type Contact = {
