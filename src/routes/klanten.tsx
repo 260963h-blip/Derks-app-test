@@ -109,6 +109,58 @@ function KlantenPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [blocked, setBlocked] = useState<{ name: string; text: string } | null>(null);
+
+  const countLinked = async (customerId: string) => {
+    const { data: projs } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("customer_id", customerId);
+    const projectIds = (projs ?? []).map((p: any) => p.id);
+    const [{ count: quoteCount }, invRes] = await Promise.all([
+      supabase
+        .from("quotes")
+        .select("id", { count: "exact", head: true })
+        .eq("customer_id", customerId),
+      projectIds.length
+        ? supabase.from("invoices").select("id", { count: "exact", head: true }).in("project_id", projectIds)
+        : Promise.resolve({ count: 0 } as any),
+    ]);
+    return {
+      projects: projectIds.length,
+      quotes: quoteCount ?? 0,
+      invoices: (invRes as any)?.count ?? 0,
+    };
+  };
+
+  const askDelete = async (c: Customer) => {
+    const n = await countLinked(c.id);
+    const parts: string[] = [];
+    if (n.projects) parts.push(`${n.projects} gekoppeld${n.projects === 1 ? " project" : "e projecten"}`);
+    if (n.quotes) parts.push(`${n.quotes} offerte${n.quotes === 1 ? "" : "s"}`);
+    if (n.invoices) parts.push(`${n.invoices} factu${n.invoices === 1 ? "ur" : "ren"}`);
+    if (parts.length) {
+      setBlocked({
+        name: c.name,
+        text: `Deze klant heeft nog ${parts.join(", ")} en kan niet verwijderd worden. Archiveer de klant in plaats van te verwijderen.`,
+      });
+      return;
+    }
+    setDeleteId(c.id);
+  };
+
+  const toggleArchive = async (c: Customer) => {
+    const { error } = await supabase
+      .from("customers")
+      .update({ is_archived: !c.is_archived })
+      .eq("id", c.id);
+    if (error) toast.error("Bijwerken mislukt");
+    else {
+      toast.success(c.is_archived ? "Klant weer actief" : "Klant gearchiveerd");
+      load();
+    }
+  };
 
   const load = async () => {
     if (!user) return;
