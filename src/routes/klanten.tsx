@@ -384,11 +384,23 @@ function KlantenPage() {
                     <TableCell>{Number(c.default_vat_rate ?? 21)}%</TableCell>
                     <TableCell>{c.phone ?? "—"}</TableCell>
                     <TableCell>{c.email ?? "—"}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(c.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title={c.is_archived ? "Weer actief maken" : "Archiveren"}
+                        onClick={() => toggleArchive(c)}
+                      >
+                        {c.is_archived ? (
+                          <ArchiveRestore className="h-4 w-4" />
+                        ) : (
+                          <Archive className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => askDelete(c)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
