@@ -99,11 +99,6 @@ function OffertesPage() {
         .single();
       if (error) throw error;
 
-      await supabase
-        .from("company_settings")
-        .update({ quote_number_next: next + 1 })
-        .eq("user_id", user.id);
-
       navigate({ to: "/offertes/$id", params: { id: q.id } });
     } catch (e: any) {
       toast.error("Aanmaken mislukt: " + e.message);
