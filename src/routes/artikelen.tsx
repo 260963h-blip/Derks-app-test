@@ -486,6 +486,41 @@ function ArtikelenPage() {
                 ) : filteredMaterials.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Geen materialen gevonden.</p>
                 ) : (
+                  <>
+                    {/* Mobiel: kaartweergave */}
+                    <div className="divide-y rounded-md border sm:hidden">
+                      {filteredMaterials.map((a) => (
+                        <div key={a.id} className="p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-base font-semibold">
+                                {a.name}
+                                {!a.is_active && (
+                                  <Badge variant="outline" className="ml-2">
+                                    inactief
+                                  </Badge>
+                                )}
+                              </p>
+                              <p className="truncate text-xs text-muted-foreground">{a.subcategory ?? "—"}</p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1">
+                              <Button size="icon" variant="ghost" onClick={() => openEditMat(a)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => setDelMat(a.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            € {Number(a.price).toFixed(2)} / {a.unit_label || a.unit} · BTW {Number(a.vat_rate)}%
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Tablet/desktop: tabel */}
+                    <div className="hidden sm:block">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -526,6 +561,8 @@ function ArtikelenPage() {
                       ))}
                     </TableBody>
                   </Table>
+                    </div>
+                  </>
                 )}
               </TabsContent>
 
@@ -537,6 +574,47 @@ function ArtikelenPage() {
                     Nog geen ruimten. Klik op "Nieuw" om er een toe te voegen.
                   </p>
                 ) : (
+                  <>
+                    {/* Mobiel: kaartweergave */}
+                    <div className="divide-y rounded-md border sm:hidden">
+                      {filteredRooms.map((r) => (
+                        <div key={r.id} className="p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-base font-semibold">
+                                {r.name}
+                                {!r.is_active && (
+                                  <Badge variant="outline" className="ml-2">
+                                    inactief
+                                  </Badge>
+                                )}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {r.default_walls} wanden{r.include_ceiling ? " · incl. plafond" : ""}
+                              </p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1">
+                              <Button size="icon" variant="ghost" onClick={() => openEditRoom(r)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => setDelRoom(r.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            {Number(r.price_per_m2) > 0 ? `€ ${Number(r.price_per_m2).toFixed(2)} / m²` : ""}
+                            {Number(r.price_per_m2) > 0 && Number(r.fixed_price) > 0 ? " · " : ""}
+                            {Number(r.fixed_price) > 0 ? `€ ${Number(r.fixed_price).toFixed(2)} vast` : ""}
+                            {Number(r.price_per_m2) <= 0 && Number(r.fixed_price) <= 0 ? "—" : ""}
+                            {" · BTW "}{Number(r.vat_rate)}%
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Tablet/desktop: tabel */}
+                    <div className="hidden sm:block">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -585,6 +663,8 @@ function ArtikelenPage() {
                       ))}
                     </TableBody>
                   </Table>
+                    </div>
+                  </>
                 )}
               </TabsContent>
 
@@ -596,6 +676,40 @@ function ArtikelenPage() {
                     Nog geen afwerkingen. Klik op "Nieuw" om er een toe te voegen.
                   </p>
                 ) : (
+                  <>
+                    {/* Mobiel: kaartweergave */}
+                    <div className="divide-y rounded-md border sm:hidden">
+                      {filteredFinishes.map((f) => (
+                        <div key={f.id} className="p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-base font-semibold">
+                                {f.name}
+                                {!f.is_active && (
+                                  <Badge variant="outline" className="ml-2">
+                                    inactief
+                                  </Badge>
+                                )}
+                              </p>
+                              <p className="mt-1 text-sm text-muted-foreground">
+                                € {Number(f.price_per_m2).toFixed(2)} / m²
+                              </p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1">
+                              <Button size="icon" variant="ghost" onClick={() => openEditFinish(f)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => setDelFinish(f.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Tablet/desktop: tabel */}
+                    <div className="hidden sm:block">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -630,6 +744,8 @@ function ArtikelenPage() {
                       ))}
                     </TableBody>
                   </Table>
+                    </div>
+                  </>
                 )}
               </TabsContent>
             </CardContent>

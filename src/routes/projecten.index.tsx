@@ -613,6 +613,39 @@ function ProjectenPage() {
           ) : filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground">Geen projecten gevonden voor "{search}".</p>
           ) : (
+            <>
+              {/* Mobiel: kaartweergave */}
+              <div className="divide-y sm:hidden">
+                {filtered.map((p) => (
+                  <div key={p.id} className="p-1">
+                    <Link to="/projecten/$id" params={{ id: p.id }} className="block rounded-md p-3 active:bg-muted">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-base font-semibold">{p.title || p.project_number}</p>
+                          <p className="font-mono text-xs text-muted-foreground">{p.project_number}</p>
+                        </div>
+                        <Badge variant="secondary" className="shrink-0">
+                          {STATUS_LABELS[p.status] ?? p.status}
+                        </Badge>
+                      </div>
+                      <p className="mt-2 truncate text-sm text-muted-foreground">
+                        {p.customer_name ?? "—"}
+                      </p>
+                    </Link>
+                    <div className="flex justify-end gap-1 px-3 pb-3">
+                      <Button size="icon" variant="ghost" onClick={() => navigate({ to: "/projecten/$id", params: { id: p.id } })} title="Openen">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => removeProject(p.id)} title="Verwijderen">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Tablet/desktop: tabel */}
+              <div className="hidden sm:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -648,6 +681,8 @@ function ProjectenPage() {
                 ))}
               </TableBody>
             </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

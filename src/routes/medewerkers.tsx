@@ -550,6 +550,48 @@ function MedewerkersPage() {
                 : "Geen resultaten."}
             </p>
           ) : (
+            <>
+              {/* Mobiel: kaartweergave */}
+              <div className="divide-y sm:hidden">
+                {filtered.map((e) => (
+                  <div key={e.id} className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-semibold">
+                          {[e.first_name, e.middle_name, e.last_name].filter(Boolean).join(" ")}
+                        </p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <Badge variant={e.role === "eigenaar" ? "default" : "outline"}>
+                            {e.role === "eigenaar" ? "Eigenaar" : e.role === "zzp" ? "ZZP-er" : "Medewerker"}
+                          </Badge>
+                          <Badge variant={e.status === "actief" ? "default" : "secondary"}>
+                            {e.status}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Button size="icon" variant="ghost" title="Documenten" onClick={() => setDocsFor(e)}>
+                          <FolderOpen className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => openEdit(e)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => setDeleteId(e.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                      {e.job_title && <p className="truncate">{e.job_title}</p>}
+                      {e.email && <p className="truncate">{e.email}</p>}
+                      {(e.mobile ?? e.phone) && <p className="truncate">{e.mobile ?? e.phone}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Tablet/desktop: tabel */}
+              <div className="hidden sm:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -607,6 +649,8 @@ function MedewerkersPage() {
                 ))}
               </TableBody>
             </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
