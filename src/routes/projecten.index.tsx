@@ -54,6 +54,7 @@ const STATUS_LABELS: Record<string, string> = {
   offerte: "Offerte verzonden",
   akkoord: "Akkoord",
   in_uitvoering: "In uitvoering",
+  te_factureren: "Te factureren",
   afgerond: "Afgerond",
   gefactureerd: "Gefactureerd",
 };
@@ -82,6 +83,7 @@ function ProjectenPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("alle");
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
