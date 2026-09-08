@@ -54,6 +54,7 @@ const STATUS_LABELS: Record<string, string> = {
   offerte: "Offerte verzonden",
   akkoord: "Akkoord",
   in_uitvoering: "In uitvoering",
+  te_factureren: "Te factureren",
   afgerond: "Afgerond",
   gefactureerd: "Gefactureerd",
 };
@@ -82,6 +83,7 @@ function ProjectenPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("alle");
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
@@ -303,6 +305,7 @@ function ProjectenPage() {
   if (authLoading || !user) return null;
 
   const filtered = projects.filter((p) => {
+    if (statusFilter !== "alle" && p.status !== statusFilter) return false;
     const s = search.trim().toLowerCase();
     if (!s) return true;
     return (
@@ -324,6 +327,17 @@ function ProjectenPage() {
             className="pl-8"
           />
         </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="alle">Alle statussen</SelectItem>
+            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetWizard(); }}>
           <DialogTrigger asChild>
             <Button><Plus className="mr-1 h-4 w-4" /> Nieuw project</Button>
