@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { FileText, Download, Save, Pencil, Trash2, CheckCircle2, Upload, Sparkles, Receipt, Send } from "lucide-react";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
+import { tekenLogoEnBedrijfsgegevens, tekenKlantblok, tekenVoettekst } from "@/lib/pdf-shared";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateInvoiceText } from "@/lib/invoice-text.functions";
@@ -483,60 +484,9 @@ function ProjectDossier() {
       const W = 210;
       let y = 15;
 
-      // Logo
-      const logoTop = y;
-      const logoH = 28;
-      if (company?.logo_url) {
-        try {
-          const resp = await fetch(company.logo_url);
-          const blob = await resp.blob();
-          const dataUrl: string = await new Promise((res, rej) => {
-            const r = new FileReader();
-            r.onload = () => res(r.result as string);
-            r.onerror = rej;
-            r.readAsDataURL(blob);
-          });
-          const imgFmt = (blob.type.includes("png") ? "PNG" : "JPEG") as "PNG" | "JPEG";
-          doc.addImage(dataUrl, imgFmt, 15, logoTop, 50, logoH, undefined, "FAST");
-        } catch {}
-      }
-
-      // Bedrijfsgegevens rechts
-      const rightX = W - 15;
-      doc.setFontSize(13).setFont("helvetica", "bold");
-      doc.text(company?.company_name ?? "Bedrijf", rightX, y + 4, { align: "right" });
-      doc.setFontSize(9).setFont("helvetica", "normal");
-      const addrLines = [
-        company?.address,
-        [company?.postal_code, company?.city].filter(Boolean).join(" "),
-      ].filter(Boolean) as string[];
-      addrLines.forEach((line, i) => doc.text(line, rightX, y + 9 + i * 4, { align: "right" }));
-      const labeled: { label: string; value?: string | null }[] = [
-        { label: "E-Mail", value: company?.email },
-        { label: "KvK-nummer", value: company?.kvk_number },
-        { label: "BTW-nummer", value: company?.vat_number },
-        { label: "Telefoon", value: company?.phone },
-      ];
-      let ly = y + 9 + addrLines.length * 4 + 2;
-      for (const row of labeled) {
-        if (!row.value) continue;
-        doc.text(`${row.label}: ${row.value}`, rightX, ly, { align: "right" });
-        ly += 4;
-      }
-      y = Math.max(logoTop + logoH, ly) + 6;
-
-      // Klant
-      doc.setFontSize(10).setFont("helvetica", "bold");
-      doc.text("Aan:", 15, y);
-      doc.setFont("helvetica", "normal").setFontSize(9);
-      const custLines = [
-        cust?.name,
-        [cust?.street, cust?.house_number, cust?.house_number_addition].filter(Boolean).join(" ") || cust?.address,
-        [cust?.postal_code, cust?.city].filter(Boolean).join(" "),
-        cust?.country,
-      ].filter(Boolean) as string[];
-      custLines.forEach((line, i) => doc.text(line, 15, y + 5 + i * 4));
-      y += 5 + custLines.length * 4 + 8;
+      // Koptekst + klantblok (gedeelde hulpfuncties)
+      y = await tekenLogoEnBedrijfsgegevens(doc, company);
+      y = tekenKlantblok(doc, cust, null, y);
 
       // Titel
       doc.setFontSize(14).setFont("helvetica", "bold");
@@ -595,29 +545,11 @@ function ProjectDossier() {
       doc.text("Handtekening", 90, y + 32);
       doc.setTextColor(0);
 
-      // Footer
-      const footerY = 280;
-      if ((company as any)?.footer_image_url) {
-        try {
-          const resp = await fetch((company as any).footer_image_url);
-          const blob = await resp.blob();
-          const dataUrl: string = await new Promise((res, rej) => {
-            const r = new FileReader();
-            r.onload = () => res(r.result as string);
-            r.onerror = rej;
-            r.readAsDataURL(blob);
-          });
-          const fmtImg = (blob.type.includes("png") ? "PNG" : "JPEG") as "PNG" | "JPEG";
-          doc.addImage(dataUrl, fmtImg, 15, footerY - 12, 30, 12, undefined, "FAST");
-        } catch {}
-      }
-      const footerText = (company as any)?.footer_text || (company as any)?.quote_footer;
-      if (footerText) {
-        const footer = doc.splitTextToSize(footerText, W - 60);
-        doc.setFontSize(8).setTextColor(100);
-        doc.text(footer, W - 15, footerY - 6, { align: "right" });
-        doc.setTextColor(0);
-      }
+      // Voettekst (gedeelde hulpfunctie)
+      await tekenVoettekst(doc, company, {
+        footerImageUrl: (company as any)?.footer_image_url,
+        fallbackText: (company as any)?.quote_footer,
+      });
 
       const blob = doc.output("blob");
       const { data: existing } = await supabase
@@ -762,62 +694,9 @@ function ProjectDossier() {
       const W = 210;
       let y = 15;
 
-      const logoTop = y;
-      const logoH = 28;
-      if ((comp as any)?.logo_url) {
-        try {
-          const resp = await fetch((comp as any).logo_url);
-          const blob = await resp.blob();
-          const dataUrl: string = await new Promise((res, rej) => {
-            const r = new FileReader();
-            r.onload = () => res(r.result as string);
-            r.onerror = rej;
-            r.readAsDataURL(blob);
-          });
-          const imgFmt = (blob.type.includes("png") ? "PNG" : "JPEG") as "PNG" | "JPEG";
-          doc.addImage(dataUrl, imgFmt, 15, logoTop, 50, logoH, undefined, "FAST");
-        } catch {}
-      }
-
-      const rightX = W - 15;
-      doc.setFontSize(13).setFont("helvetica", "bold");
-      doc.text((comp as any)?.company_name ?? "Bedrijf", rightX, y + 4, { align: "right" });
-      doc.setFontSize(9).setFont("helvetica", "normal");
-      const addrLines = [
-        (comp as any)?.address,
-        [(comp as any)?.postal_code, (comp as any)?.city].filter(Boolean).join(" "),
-      ].filter(Boolean) as string[];
-      addrLines.forEach((line, i) => doc.text(line, rightX, y + 9 + i * 4, { align: "right" }));
-      const labeled: { label: string; value?: string | null }[] = [
-        { label: "E-Mail", value: (comp as any)?.email },
-        { label: "KvK-nummer", value: (comp as any)?.kvk_number },
-        { label: "BTW-nummer", value: (comp as any)?.vat_number },
-        { label: "Telefoon", value: (comp as any)?.phone },
-        { label: "IBAN", value: (comp as any)?.iban },
-      ];
-      let ly = y + 9 + addrLines.length * 4 + 2;
-      for (const row of labeled) {
-        if (!row.value) continue;
-        doc.text(`${row.label}: ${row.value}`, rightX, ly, { align: "right" });
-        ly += 4;
-      }
-      y = Math.max(logoTop + logoH, ly) + 6;
-
-      // Klant
-      doc.setFontSize(10).setFont("helvetica", "bold");
-      doc.text("Aan:", 15, y);
-      doc.setFont("helvetica", "normal").setFontSize(9);
-      const custLines = [
-        (cust as any)?.name,
-        contactRes?.name ? `T.a.v. ${contactRes.name}` : null,
-        [(cust as any)?.street, (cust as any)?.house_number, (cust as any)?.house_number_addition].filter(Boolean).join(" ") || (cust as any)?.address,
-        [(cust as any)?.postal_code, (cust as any)?.city].filter(Boolean).join(" "),
-        (cust as any)?.country,
-        (cust as any)?.customer_type === "zakelijk" && (cust as any)?.vat_number ? `BTW: ${(cust as any).vat_number}` : null,
-        (cust as any)?.customer_type === "zakelijk" && (cust as any)?.kvk_number ? `KvK: ${(cust as any).kvk_number}` : null,
-      ].filter(Boolean) as string[];
-      custLines.forEach((line, i) => doc.text(line, 15, y + 5 + i * 4));
-      y += 5 + custLines.length * 4 + 8;
+      // Koptekst + klantblok (gedeelde hulpfuncties)
+      y = await tekenLogoEnBedrijfsgegevens(doc, comp, { includeIban: true });
+      y = tekenKlantblok(doc, cust, contactRes, y, { includeFiscalInfo: true });
 
       // Titel + meta
       doc.setFontSize(14).setFont("helvetica", "bold");
@@ -893,15 +772,10 @@ function ProjectDossier() {
         15, y, { maxWidth: W - 30 } as any,
       );
 
-      // Footer
-      const footerY = 280;
-      const footerText = (comp as any)?.footer_text || (comp as any)?.invoice_footer || (comp as any)?.quote_footer;
-      if (footerText) {
-        const footer = doc.splitTextToSize(footerText, W - 60);
-        doc.setFontSize(8).setTextColor(100);
-        doc.text(footer, W - 15, footerY - 6, { align: "right" });
-        doc.setTextColor(0);
-      }
+      // Voettekst (gedeelde hulpfunctie)
+      await tekenVoettekst(doc, comp, {
+        fallbackText: (comp as any)?.invoice_footer || (comp as any)?.quote_footer,
+      });
 
       // 4) Opslaan: invoice record + storage + project_documents
       const blob = doc.output("blob");

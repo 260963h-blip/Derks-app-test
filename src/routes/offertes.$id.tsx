@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Plus, Save, FileText, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { generateQuoteText } from "@/lib/quote-text.functions";
+import { tekenLogoEnBedrijfsgegevens, tekenKlantblok, tekenVoettekst } from "@/lib/pdf-shared";
 
 export const Route = createFileRoute("/offertes/$id")({
   component: OfferteEditor,
@@ -522,66 +523,9 @@ function OfferteEditor() {
       const W = 210;
       let y = 15;
 
-      // Logo links binnen marge
-      const logoTop = y;
-      const logoH = 28;
-      if (company?.logo_url) {
-        try {
-          const resp = await fetch(company.logo_url);
-          const blob = await resp.blob();
-          const dataUrl: string = await new Promise((res, rej) => {
-            const r = new FileReader();
-            r.onload = () => res(r.result as string);
-            r.onerror = rej;
-            r.readAsDataURL(blob);
-          });
-          const imgFmt = (blob.type.includes("png") ? "PNG" : "JPEG") as "PNG" | "JPEG";
-          doc.addImage(dataUrl, imgFmt, 15, logoTop, 50, logoH, undefined, "FAST");
-        } catch {
-          // logo niet geladen, ga door zonder
-        }
-      }
-
-      // Bedrijfsgegevens rechts uitgelijnd
-      const rightX = W - 15;
-      doc.setFontSize(13).setFont("helvetica", "bold");
-      doc.text(company?.company_name ?? "Bedrijf", rightX, y + 4, { align: "right" });
-      doc.setFontSize(9).setFont("helvetica", "normal");
-      const addrLines = [
-        company?.address,
-        [company?.postal_code, company?.city].filter(Boolean).join(" "),
-      ].filter(Boolean) as string[];
-      addrLines.forEach((line, i) => doc.text(line, rightX, y + 9 + i * 4, { align: "right" }));
-      const labeled: { label: string; value?: string | null }[] = [
-        { label: "E-Mail", value: company?.email },
-        { label: "KvK-nummer", value: company?.kvk_number },
-        { label: "BTW-nummer", value: company?.vat_number },
-        { label: "Telefoon", value: company?.phone },
-      ];
-      let ly = y + 9 + addrLines.length * 4 + 2;
-      for (const row of labeled) {
-        if (!row.value) continue;
-        doc.text(`${row.label}: ${row.value}`, rightX, ly, { align: "right" });
-        ly += 4;
-      }
-
-      y = Math.max(logoTop + logoH, ly) + 6;
-
-      // Klantblok
-      doc.setFontSize(10).setFont("helvetica", "bold");
-      doc.text("Aan:", 15, y);
-      doc.setFont("helvetica", "normal").setFontSize(9);
-      const custLines = [
-        cust?.name,
-        contactRes.data?.name ? `T.a.v. ${contactRes.data.name}` : null,
-        [cust?.street, cust?.house_number, cust?.house_number_addition].filter(Boolean).join(" ") || cust?.address,
-        [cust?.postal_code, cust?.city].filter(Boolean).join(" "),
-        cust?.country,
-        cust?.customer_type === "zakelijk" && cust?.vat_number ? `BTW: ${cust.vat_number}` : null,
-        cust?.customer_type === "zakelijk" && cust?.kvk_number ? `KvK: ${cust.kvk_number}` : null,
-      ].filter(Boolean) as string[];
-      custLines.forEach((line, i) => doc.text(line, 15, y + 5 + i * 4));
-      y += 5 + custLines.length * 4 + 8;
+      // Koptekst + klantblok (gedeelde hulpfuncties)
+      y = await tekenLogoEnBedrijfsgegevens(doc, company);
+      y = tekenKlantblok(doc, cust, contactRes.data, y, { includeFiscalInfo: true });
 
       // Titel + meta
       doc.setFontSize(14).setFont("helvetica", "bold");
@@ -641,30 +585,10 @@ function OfferteEditor() {
       y += 10;
 
       // Voettekst (afbeelding + tekst) uit bedrijfsgegevens
-      const footerY = 280;
-      if ((company as any)?.footer_image_url) {
-        try {
-          const resp = await fetch((company as any).footer_image_url);
-          const blob = await resp.blob();
-          const dataUrl: string = await new Promise((res, rej) => {
-            const r = new FileReader();
-            r.onload = () => res(r.result as string);
-            r.onerror = rej;
-            r.readAsDataURL(blob);
-          });
-          const fmtImg = (blob.type.includes("png") ? "PNG" : "JPEG") as "PNG" | "JPEG";
-          doc.addImage(dataUrl, fmtImg, 15, footerY - 12, 30, 12, undefined, "FAST");
-        } catch {
-          // afbeelding niet geladen
-        }
-      }
-      const footerText = (company as any)?.footer_text || company?.quote_footer;
-      if (footerText) {
-        const footer = doc.splitTextToSize(footerText, W - 60);
-        doc.setFontSize(8).setTextColor(100);
-        doc.text(footer, W - 15, footerY - 6, { align: "right" });
-        doc.setTextColor(0);
-      }
+      await tekenVoettekst(doc, company, {
+        footerImageUrl: (company as any)?.footer_image_url,
+        fallbackText: company?.quote_footer,
+      });
 
       const fileName = `Offerte-${quote.quote_number}.pdf`;
       // Lokaal downloaden
