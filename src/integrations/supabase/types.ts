@@ -364,6 +364,7 @@ export type Database = {
           house_number: string | null
           house_number_addition: string | null
           id: string
+          is_archived: boolean
           kvk_number: string | null
           name: string
           notes: string | null
@@ -388,6 +389,7 @@ export type Database = {
           house_number?: string | null
           house_number_addition?: string | null
           id?: string
+          is_archived?: boolean
           kvk_number?: string | null
           name: string
           notes?: string | null
@@ -412,6 +414,7 @@ export type Database = {
           house_number?: string | null
           house_number_addition?: string | null
           id?: string
+          is_archived?: boolean
           kvk_number?: string | null
           name?: string
           notes?: string | null
