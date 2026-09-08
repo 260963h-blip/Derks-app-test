@@ -338,9 +338,14 @@ function KlantenPage() {
             className="pl-8"
           />
         </div>
-        <Button onClick={openNew}>
-          <Plus className="mr-1 h-4 w-4" /> Nieuwe klant
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowArchived((v) => !v)}>
+            {showArchived ? "Actieve klanten" : `Gearchiveerd (${archivedCount})`}
+          </Button>
+          <Button onClick={openNew}>
+            <Plus className="mr-1 h-4 w-4" /> Nieuwe klant
+          </Button>
+        </div>
       </div>
 
       <Card>
