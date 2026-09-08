@@ -354,9 +354,11 @@ function KlantenPage() {
             <p className="p-6 text-muted-foreground">Laden...</p>
           ) : filtered.length === 0 ? (
             <p className="p-6 text-muted-foreground">
-              {list.length === 0
-                ? "Nog geen klanten. Klik op 'Nieuwe klant' om je eerste klant toe te voegen."
-                : "Geen klanten gevonden."}
+              {showArchived
+                ? "Geen gearchiveerde klanten."
+                : list.length === 0
+                  ? "Nog geen klanten. Klik op 'Nieuwe klant' om je eerste klant toe te voegen."
+                  : "Geen klanten gevonden."}
             </p>
           ) : (
             <Table>
