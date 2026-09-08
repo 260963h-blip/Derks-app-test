@@ -1363,6 +1363,8 @@ export type Database = {
         }
         Returns: number
       }
+      next_invoice_number: { Args: never; Returns: string }
+      next_quote_number: { Args: never; Returns: string }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
