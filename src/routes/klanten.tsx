@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/table";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Archive, ArchiveRestore } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/klanten")({
