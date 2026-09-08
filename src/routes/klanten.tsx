@@ -311,7 +311,10 @@ function KlantenPage() {
     setDeleteId(null);
   };
 
+  const archivedCount = list.filter((c) => c.is_archived).length;
+
   const filtered = list.filter((c) => {
+    if (showArchived ? !c.is_archived : c.is_archived) return false;
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (
