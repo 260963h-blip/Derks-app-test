@@ -723,11 +723,9 @@ function ProjectDossier() {
       const { data: comp } = await supabase
         .from("company_settings").select("*").eq("user_id", user.id).maybeSingle();
       if (!comp) throw new Error("Bedrijfsgegevens ontbreken");
-      const year = new Date().getFullYear();
-      const sameYear = (comp as any).invoice_number_year === year;
-      const nextNum = sameYear ? ((comp as any).invoice_number_next ?? 1) : 1;
-      const prefix = (comp as any).invoice_number_prefix ?? "F";
-      const invoiceNumber = `${prefix}${year}-${String(nextNum).padStart(4, "0")}`;
+      const { data: invNum, error: invNumErr } = await supabase.rpc("next_invoice_number");
+      if (invNumErr || !invNum) throw invNumErr ?? new Error("Factuurnummer ophalen mislukt");
+      const invoiceNumber = invNum as string;
 
       // 2) Quote / regels / klant ophalen
       const { data: q } = await supabase
@@ -977,11 +975,6 @@ function ProjectDossier() {
         toast.warning("Factuur-pdf opgeslagen, maar XML genereren mislukte: " + (xmlErr?.message ?? xmlErr));
       }
 
-      // Bump nummer in instellingen
-      await supabase.from("company_settings").update({
-        invoice_number_year: year,
-        invoice_number_next: nextNum + 1,
-      }).eq("user_id", user.id);
 
       // Project op gefactureerd
       await supabase.from("projects").update({ status: "gefactureerd" }).eq("id", project.id);
