@@ -282,11 +282,6 @@ function ProjectenPage() {
       });
       if (qe) throw qe;
 
-      // 5) Teller ophogen
-      await supabase
-        .from("company_settings")
-        .update({ quote_number_next: next + 1 })
-        .eq("user_id", user.id);
 
       setOpen(false);
       resetWizard();
