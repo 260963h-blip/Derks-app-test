@@ -975,11 +975,6 @@ function ProjectDossier() {
         toast.warning("Factuur-pdf opgeslagen, maar XML genereren mislukte: " + (xmlErr?.message ?? xmlErr));
       }
 
-      // Bump nummer in instellingen
-      await supabase.from("company_settings").update({
-        invoice_number_year: year,
-        invoice_number_next: nextNum + 1,
-      }).eq("user_id", user.id);
 
       // Project op gefactureerd
       await supabase.from("projects").update({ status: "gefactureerd" }).eq("id", project.id);
