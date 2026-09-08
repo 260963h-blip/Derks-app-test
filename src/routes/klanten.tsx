@@ -644,6 +644,27 @@ function KlantenPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!blocked} onOpenChange={(o) => !o && setBlocked(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Verwijderen niet mogelijk</AlertDialogTitle>
+            <AlertDialogDescription>{blocked?.text}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Sluiten</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const c = list.find((x) => x.name === blocked?.name);
+                setBlocked(null);
+                if (c && !c.is_archived) toggleArchive(c);
+              }}
+            >
+              Archiveren
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
