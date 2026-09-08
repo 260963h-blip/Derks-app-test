@@ -243,12 +243,11 @@ function ProjectenPage() {
       // 2) Nummer ophalen
       const { data: cs } = await supabase
         .from("company_settings")
-        .select("quote_number_year,quote_number_next,default_quote_validity_days")
+        .select("default_quote_validity_days")
         .eq("user_id", user.id)
         .maybeSingle();
-      const year = cs?.quote_number_year ?? new Date().getFullYear();
-      const next = cs?.quote_number_next ?? 1;
-      const number = `${year}-${String(next).padStart(4, "0")}`;
+      const { data: number, error: numErr } = await supabase.rpc("next_quote_number");
+      if (numErr || !number) throw numErr ?? new Error("Offertenummer ophalen mislukt");
       const validity = cs?.default_quote_validity_days ?? 30;
       const validUntil = new Date();
       validUntil.setDate(validUntil.getDate() + Number(validity));
