@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/table";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Archive, ArchiveRestore } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/klanten")({
@@ -63,6 +63,7 @@ type Customer = {
   default_vat_type: VatType;
   default_vat_rate: number;
   notes: string | null;
+  is_archived: boolean;
 };
 
 type Contact = {
@@ -108,6 +109,58 @@ function KlantenPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [blocked, setBlocked] = useState<{ name: string; text: string } | null>(null);
+
+  const countLinked = async (customerId: string) => {
+    const { data: projs } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("customer_id", customerId);
+    const projectIds = (projs ?? []).map((p: any) => p.id);
+    const [{ count: quoteCount }, invRes] = await Promise.all([
+      supabase
+        .from("quotes")
+        .select("id", { count: "exact", head: true })
+        .eq("customer_id", customerId),
+      projectIds.length
+        ? supabase.from("invoices").select("id", { count: "exact", head: true }).in("project_id", projectIds)
+        : Promise.resolve({ count: 0 } as any),
+    ]);
+    return {
+      projects: projectIds.length,
+      quotes: quoteCount ?? 0,
+      invoices: (invRes as any)?.count ?? 0,
+    };
+  };
+
+  const askDelete = async (c: Customer) => {
+    const n = await countLinked(c.id);
+    const parts: string[] = [];
+    if (n.projects) parts.push(`${n.projects} gekoppeld${n.projects === 1 ? " project" : "e projecten"}`);
+    if (n.quotes) parts.push(`${n.quotes} offerte${n.quotes === 1 ? "" : "s"}`);
+    if (n.invoices) parts.push(`${n.invoices} factu${n.invoices === 1 ? "ur" : "ren"}`);
+    if (parts.length) {
+      setBlocked({
+        name: c.name,
+        text: `Deze klant heeft nog ${parts.join(", ")} en kan niet verwijderd worden. Archiveer de klant in plaats van te verwijderen.`,
+      });
+      return;
+    }
+    setDeleteId(c.id);
+  };
+
+  const toggleArchive = async (c: Customer) => {
+    const { error } = await supabase
+      .from("customers")
+      .update({ is_archived: !c.is_archived })
+      .eq("id", c.id);
+    if (error) toast.error("Bijwerken mislukt");
+    else {
+      toast.success(c.is_archived ? "Klant weer actief" : "Klant gearchiveerd");
+      load();
+    }
+  };
 
   const load = async () => {
     if (!user) return;
@@ -258,7 +311,10 @@ function KlantenPage() {
     setDeleteId(null);
   };
 
+  const archivedCount = list.filter((c) => c.is_archived).length;
+
   const filtered = list.filter((c) => {
+    if (showArchived ? !c.is_archived : c.is_archived) return false;
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (
@@ -282,9 +338,14 @@ function KlantenPage() {
             className="pl-8"
           />
         </div>
-        <Button onClick={openNew}>
-          <Plus className="mr-1 h-4 w-4" /> Nieuwe klant
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowArchived((v) => !v)}>
+            {showArchived ? "Actieve klanten" : `Gearchiveerd (${archivedCount})`}
+          </Button>
+          <Button onClick={openNew}>
+            <Plus className="mr-1 h-4 w-4" /> Nieuwe klant
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -293,9 +354,11 @@ function KlantenPage() {
             <p className="p-6 text-muted-foreground">Laden...</p>
           ) : filtered.length === 0 ? (
             <p className="p-6 text-muted-foreground">
-              {list.length === 0
-                ? "Nog geen klanten. Klik op 'Nieuwe klant' om je eerste klant toe te voegen."
-                : "Geen klanten gevonden."}
+              {showArchived
+                ? "Geen gearchiveerde klanten."
+                : list.length === 0
+                  ? "Nog geen klanten. Klik op 'Nieuwe klant' om je eerste klant toe te voegen."
+                  : "Geen klanten gevonden."}
             </p>
           ) : (
             <Table>
@@ -323,11 +386,23 @@ function KlantenPage() {
                     <TableCell>{Number(c.default_vat_rate ?? 21)}%</TableCell>
                     <TableCell>{c.phone ?? "—"}</TableCell>
                     <TableCell>{c.email ?? "—"}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(c.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title={c.is_archived ? "Weer actief maken" : "Archiveren"}
+                        onClick={() => toggleArchive(c)}
+                      >
+                        {c.is_archived ? (
+                          <ArchiveRestore className="h-4 w-4" />
+                        ) : (
+                          <Archive className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => askDelete(c)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -568,6 +643,27 @@ function KlantenPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Annuleren</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete}>Verwijderen</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!blocked} onOpenChange={(o) => !o && setBlocked(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Verwijderen niet mogelijk</AlertDialogTitle>
+            <AlertDialogDescription>{blocked?.text}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Sluiten</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const c = list.find((x) => x.name === blocked?.name);
+                setBlocked(null);
+                if (c && !c.is_archived) toggleArchive(c);
+              }}
+            >
+              Archiveren
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
