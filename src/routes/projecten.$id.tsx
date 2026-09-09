@@ -92,6 +92,7 @@ function ProjectDossier() {
   const navigate = useNavigate();
 
   const [project, setProject] = useState<Project | null>(null);
+  const [clockQrToken, setClockQrToken] = useState<string | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -169,6 +170,9 @@ function ProjectDossier() {
     const { data: cs } = await supabase
       .from("customers").select("id,name,customer_type").order("name");
     setCustomers((cs ?? []) as Customer[]);
+    const { data: comp } = await supabase
+      .from("company_settings").select("clock_qr_token").eq("user_id", user.id).maybeSingle();
+    setClockQrToken((comp as any)?.clock_qr_token ?? null);
     if (p.customer_id) {
       const c = (cs ?? []).find((x: any) => x.id === p.customer_id) ?? null;
       setCustomer(c as Customer | null);
@@ -955,7 +959,7 @@ function ProjectDossier() {
 
   if (authLoading || !user || !project) return null;
 
-  const qrUrl = project.qr_token ? `${window.location.origin}/klok/${project.qr_token}` : "";
+  const qrUrl = clockQrToken ? `${window.location.origin}/klok/${clockQrToken}` : "";
   const projectAddress = [
     project.location_address,
     [project.location_postal_code, project.location_city].filter(Boolean).join(" "),
