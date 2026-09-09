@@ -1102,6 +1102,7 @@ export type Database = {
           location_postal_code: string | null
           notes: string | null
           project_number: string
+          qr_token: string
           reference: string | null
           status: string
           title: string
@@ -1119,6 +1120,7 @@ export type Database = {
           location_postal_code?: string | null
           notes?: string | null
           project_number: string
+          qr_token?: string
           reference?: string | null
           status?: string
           title?: string
@@ -1136,6 +1138,7 @@ export type Database = {
           location_postal_code?: string | null
           notes?: string | null
           project_number?: string
+          qr_token?: string
           reference?: string | null
           status?: string
           title?: string
@@ -1385,6 +1388,54 @@ export type Database = {
           reason?: string
         }
         Relationships: []
+      }
+      time_clock_entries: {
+        Row: {
+          clock_in_at: string
+          clock_out_at: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          project_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          clock_in_at?: string
+          clock_out_at?: string | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          project_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          clock_in_at?: string
+          clock_out_at?: string | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          project_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_clock_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_clock_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       time_entries: {
         Row: {
