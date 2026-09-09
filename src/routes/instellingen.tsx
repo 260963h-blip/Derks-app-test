@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2 } from "lucide-react";
+import { MicrosoftPlanningCard } from "@/components/microsoft-planning-card";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/instellingen")({
@@ -146,7 +147,12 @@ function InstellingenPage() {
             <TabsTrigger value="categories">Categorieën</TabsTrigger>
             <TabsTrigger value="units">Eenheden</TabsTrigger>
             <TabsTrigger value="numbering">Nummering</TabsTrigger>
+            <TabsTrigger value="planning">Planning</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="planning" className="mt-4">
+            <MicrosoftPlanningCard />
+          </TabsContent>
 
           <TabsContent value="categories" className="mt-4 space-y-4">
             {(["materiaal"] as const).map((scope) => (
