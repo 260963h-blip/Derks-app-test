@@ -15,7 +15,9 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Save, Pencil, Trash2, CheckCircle2, Upload, Sparkles, Receipt, Send } from "lucide-react";
+import { FileText, Download, Save, Pencil, Trash2, CheckCircle2, Upload, Sparkles, Receipt, Send, QrCode, Printer } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
 import { tekenLogoEnBedrijfsgegevens, tekenKlantblok, tekenVoettekst } from "@/lib/pdf-shared";
@@ -38,6 +40,10 @@ type Project = {
   reference: string | null;
   notes: string | null;
   created_at: string;
+  qr_token: string | null;
+  location_address: string | null;
+  location_postal_code: string | null;
+  location_city: string | null;
 };
 type Customer = { id: string; name: string; customer_type: string };
 type Quote = { id: string; quote_number: string; status: string; total: number; approval_token: string | null };
