@@ -10,11 +10,15 @@ import { toast } from "sonner";
 import logo from "@/assets/logo-derks.png";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } =>
+    typeof search.redirect === "string" ? { redirect: search.redirect } : {},
   component: LoginPage,
 });
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
+  const target = redirect && redirect.startsWith("/") ? redirect : "/";
   const { user, loading } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -22,7 +26,7 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/" });
+    if (!loading && user) navigate({ to: target });
   }, [user, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,7 +45,7 @@ function LoginPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/" });
+        navigate({ to: target });
       }
     } catch (err: any) {
       toast.error(err.message ?? "Er ging iets mis");
