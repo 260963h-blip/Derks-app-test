@@ -655,6 +655,7 @@ export type Database = {
           created_at: string
           date_of_birth: string | null
           email: string | null
+          employment_type: string
           end_date: string | null
           first_name: string
           hourly_rate: number | null
@@ -699,6 +700,7 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
+          employment_type?: string
           end_date?: string | null
           first_name: string
           hourly_rate?: number | null
@@ -743,6 +745,7 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
+          employment_type?: string
           end_date?: string | null
           first_name?: string
           hourly_rate?: number | null
