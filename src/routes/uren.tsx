@@ -281,6 +281,71 @@ function UrenPage() {
   };
   const cusName = (id: string | null) => customers.find((x) => x.id === id)?.name ?? "";
 
+  const filteredClock = useMemo(
+    () => (filterEmp === "all" ? clockEntries : clockEntries.filter((e) => e.employee_id === filterEmp)),
+    [clockEntries, filterEmp],
+  );
+
+  function openClockNew() {
+    setClockEditing(null);
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 17, 0);
+    setClockForm({
+      employee_id: employees[0]?.id ?? "",
+      clock_in_at: toLocalInput(startOfDay.toISOString()),
+      clock_out_at: toLocalInput(endOfDay.toISOString()),
+    });
+    setClockOpen(true);
+  }
+
+  function openClockEdit(e: ClockEntry) {
+    setClockEditing(e);
+    setClockForm({
+      employee_id: e.employee_id,
+      clock_in_at: toLocalInput(e.clock_in_at),
+      clock_out_at: toLocalInput(e.clock_out_at),
+    });
+    setClockOpen(true);
+  }
+
+  async function saveClock() {
+    if (!user) return;
+    if (!clockForm.employee_id) {
+      toast.error("Selecteer een medewerker");
+      return;
+    }
+    const inAt = fromLocalInput(clockForm.clock_in_at);
+    if (!inAt) {
+      toast.error("Vul een geldige begintijd in");
+      return;
+    }
+    const outAt = fromLocalInput(clockForm.clock_out_at);
+    if (outAt && new Date(outAt) <= new Date(inAt)) {
+      toast.error("De eindtijd moet na de begintijd liggen");
+      return;
+    }
+    const payload = {
+      user_id: user.id,
+      employee_id: clockForm.employee_id,
+      clock_in_at: inAt,
+      clock_out_at: outAt,
+      edited_by: user.id,
+      edited_at: new Date().toISOString(),
+    };
+    const res = clockEditing
+      ? await supabase.from("time_clock_entries").update(payload).eq("id", clockEditing.id)
+      : await supabase.from("time_clock_entries").insert(payload);
+    if (res.error) {
+      toast.error(res.error.message);
+      return;
+    }
+    toast.success(clockEditing ? "Klokuren bijgewerkt" : "Klokuren toegevoegd");
+    setClockOpen(false);
+    void loadAll();
+  }
+
+
   const liveHours = calcHours(form.start_time, form.end_time, parseInt(form.break_minutes || "0", 10) || 0);
 
   return (
