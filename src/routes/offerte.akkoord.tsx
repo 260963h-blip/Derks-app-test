@@ -1,6 +1,9 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getQuoteByApprovalToken,
+  approveQuoteByApprovalToken,
+} from "@/lib/quote-approval.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
@@ -16,7 +19,6 @@ function OfferteAkkoordPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quote, setQuote] = useState<{
-    id: string;
     quote_number: string;
     status: string;
     total: number;
@@ -31,16 +33,12 @@ function OfferteAkkoordPage() {
         setLoading(false);
         return;
       }
-      const { data, error } = await supabase
-        .from("quotes")
-        .select("id,quote_number,status,total,approved_at")
-        .eq("approval_token", token)
-        .maybeSingle();
-      if (error || !data) {
-        setError("Deze offerte kon niet worden gevonden.");
-      } else {
-        setQuote(data as any);
+      try {
+        const data = await getQuoteByApprovalToken({ data: { token } });
+        setQuote(data);
         if (data.status === "akkoord" || data.approved_at) setDone(true);
+      } catch {
+        setError("Deze offerte kon niet worden gevonden.");
       }
       setLoading(false);
     })();
@@ -50,16 +48,14 @@ function OfferteAkkoordPage() {
     if (!quote || !token) return;
     if (!window.confirm("Weet u zeker dat u akkoord gaat met deze offerte?")) return;
     setSubmitting(true);
-    const { error } = await supabase
-      .from("quotes")
-      .update({ status: "akkoord", approved_at: new Date().toISOString() })
-      .eq("approval_token", token);
-    setSubmitting(false);
-    if (error) {
-      setError("Akkoord registreren mislukt: " + error.message);
-      return;
+    try {
+      await approveQuoteByApprovalToken({ data: { token } });
+      setDone(true);
+    } catch (e) {
+      setError("Akkoord registreren mislukt. Probeer het later opnieuw.");
+    } finally {
+      setSubmitting(false);
     }
-    setDone(true);
   };
 
   return (
