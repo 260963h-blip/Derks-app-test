@@ -24,6 +24,7 @@ import { Route as OffertesIndexRouteImport } from './routes/offertes.index'
 import { Route as ProjectenIdRouteImport } from './routes/projecten.$id'
 import { Route as OffertesIdRouteImport } from './routes/offertes.$id'
 import { Route as OfferteAkkoordRouteImport } from './routes/offerte.akkoord'
+import { Route as KlokTokenRouteImport } from './routes/klok.$token'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as OauthMicrosoftReturnRouteImport } from './routes/oauth/microsoft/return'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -107,6 +108,11 @@ const OfferteAkkoordRoute = OfferteAkkoordRouteImport.update({
   path: '/offerte/akkoord',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KlokTokenRoute = KlokTokenRouteImport.update({
+  id: '/klok/$token',
+  path: '/klok/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/uren': typeof UrenRoute
   '/verlof': typeof VerlofRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/klok/$token': typeof KlokTokenRoute
   '/offerte/akkoord': typeof OfferteAkkoordRoute
   '/offertes/$id': typeof OffertesIdRoute
   '/projecten/$id': typeof ProjectenIdRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/uren': typeof UrenRoute
   '/verlof': typeof VerlofRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/klok/$token': typeof KlokTokenRoute
   '/offerte/akkoord': typeof OfferteAkkoordRoute
   '/offertes/$id': typeof OffertesIdRoute
   '/projecten/$id': typeof ProjectenIdRoute
@@ -207,6 +215,7 @@ export interface FileRoutesById {
   '/uren': typeof UrenRoute
   '/verlof': typeof VerlofRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/klok/$token': typeof KlokTokenRoute
   '/offerte/akkoord': typeof OfferteAkkoordRoute
   '/offertes/$id': typeof OffertesIdRoute
   '/projecten/$id': typeof ProjectenIdRoute
@@ -233,6 +242,7 @@ export interface FileRouteTypes {
     | '/uren'
     | '/verlof'
     | '/email/unsubscribe'
+    | '/klok/$token'
     | '/offerte/akkoord'
     | '/offertes/$id'
     | '/projecten/$id'
@@ -257,6 +267,7 @@ export interface FileRouteTypes {
     | '/uren'
     | '/verlof'
     | '/email/unsubscribe'
+    | '/klok/$token'
     | '/offerte/akkoord'
     | '/offertes/$id'
     | '/projecten/$id'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/uren'
     | '/verlof'
     | '/email/unsubscribe'
+    | '/klok/$token'
     | '/offerte/akkoord'
     | '/offertes/$id'
     | '/projecten/$id'
@@ -306,6 +318,7 @@ export interface RootRouteChildren {
   UrenRoute: typeof UrenRoute
   VerlofRoute: typeof VerlofRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
+  KlokTokenRoute: typeof KlokTokenRoute
   OfferteAkkoordRoute: typeof OfferteAkkoordRoute
   OffertesIdRoute: typeof OffertesIdRoute
   ProjectenIdRoute: typeof ProjectenIdRoute
@@ -426,6 +439,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OfferteAkkoordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/klok/$token': {
+      id: '/klok/$token'
+      path: '/klok/$token'
+      fullPath: '/klok/$token'
+      preLoaderRoute: typeof KlokTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/email/unsubscribe': {
       id: '/email/unsubscribe'
       path: '/email/unsubscribe'
@@ -490,6 +510,7 @@ const rootRouteChildren: RootRouteChildren = {
   UrenRoute: UrenRoute,
   VerlofRoute: VerlofRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
+  KlokTokenRoute: KlokTokenRoute,
   OfferteAkkoordRoute: OfferteAkkoordRoute,
   OffertesIdRoute: OffertesIdRoute,
   ProjectenIdRoute: ProjectenIdRoute,
