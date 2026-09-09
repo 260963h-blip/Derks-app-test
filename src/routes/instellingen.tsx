@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2 } from "lucide-react";
 import { MicrosoftPlanningCard } from "@/components/microsoft-planning-card";
+import { ClockQrCard } from "@/components/clock-qr-card";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/instellingen")({
@@ -40,6 +41,8 @@ function InstellingenPage() {
     invoice_number_next: 1,
   });
   const [savingNum, setSavingNum] = useState(false);
+  const [clockQrToken, setClockQrToken] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -59,7 +62,7 @@ function InstellingenPage() {
     if (user) {
       const { data } = await supabase
         .from("company_settings")
-        .select("quote_number_year,quote_number_next,invoice_number_year,invoice_number_next")
+        .select("quote_number_year,quote_number_next,invoice_number_year,invoice_number_next,clock_qr_token,company_name")
         .eq("user_id", user.id)
         .maybeSingle();
       if (data) {
@@ -69,6 +72,8 @@ function InstellingenPage() {
           invoice_number_year: data.invoice_number_year ?? new Date().getFullYear(),
           invoice_number_next: data.invoice_number_next ?? 1,
         });
+        setClockQrToken((data as any).clock_qr_token ?? null);
+        setCompanyName(data.company_name ?? "");
       }
     }
   };
@@ -148,7 +153,12 @@ function InstellingenPage() {
             <TabsTrigger value="units">Eenheden</TabsTrigger>
             <TabsTrigger value="numbering">Nummering</TabsTrigger>
             <TabsTrigger value="planning">Planning</TabsTrigger>
+            <TabsTrigger value="klok">Inklokken</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="klok" className="mt-4">
+            <ClockQrCard token={clockQrToken} companyName={companyName} />
+          </TabsContent>
 
           <TabsContent value="planning" className="mt-4">
             <MicrosoftPlanningCard />
