@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_user_connections: {
+        Row: {
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_key_ciphertext?: string
+          connector_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       article_categories: {
         Row: {
           created_at: string
@@ -201,6 +228,10 @@ export type Database = {
           owner_postal_code: string | null
           owner_street: string | null
           phone: string | null
+          planning_file_id: string | null
+          planning_file_name: string | null
+          planning_last_sync_at: string | null
+          planning_worksheet: string | null
           postal_code: string | null
           quote_email_body: string | null
           quote_email_subject: string | null
@@ -248,6 +279,10 @@ export type Database = {
           owner_postal_code?: string | null
           owner_street?: string | null
           phone?: string | null
+          planning_file_id?: string | null
+          planning_file_name?: string | null
+          planning_last_sync_at?: string | null
+          planning_worksheet?: string | null
           postal_code?: string | null
           quote_email_body?: string | null
           quote_email_subject?: string | null
@@ -295,6 +330,10 @@ export type Database = {
           owner_postal_code?: string | null
           owner_street?: string | null
           phone?: string | null
+          planning_file_id?: string | null
+          planning_file_name?: string | null
+          planning_last_sync_at?: string | null
+          planning_worksheet?: string | null
           postal_code?: string | null
           quote_email_body?: string | null
           quote_email_subject?: string | null
