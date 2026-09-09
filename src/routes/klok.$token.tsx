@@ -14,9 +14,9 @@ export const Route = createFileRoute("/klok/$token")({
   head: () => ({
     meta: [
       { title: "In- en uitklokken | Stucadoorsbedrijf Derks" },
-      { name: "description", content: "Klok in of uit op een project via de QR-code op locatie." },
+      { name: "description", content: "Klok in of uit via de QR-code van het bedrijf." },
       { property: "og:title", content: "In- en uitklokken | Stucadoorsbedrijf Derks" },
-      { property: "og:description", content: "Klok in of uit op een project via de QR-code op locatie." },
+      { property: "og:description", content: "Klok in of uit via de QR-code van het bedrijf." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
@@ -92,7 +92,7 @@ function KlokPage() {
       <div className="mx-auto w-full max-w-md space-y-6">
         <img src={logo} alt="Stucadoorsbedrijf Derks" className="mx-auto h-16 w-auto" />
 
-        {!state.project ? (
+        {!state.company ? (
           <Card>
             <CardContent className="p-8 text-center">
               <p className="text-xl font-bold text-destructive">Deze QR-code is niet geldig</p>
@@ -102,11 +102,7 @@ function KlokPage() {
           <>
             <Card>
               <CardContent className="p-6 text-center">
-                <p className="text-sm text-muted-foreground">{state.project.number}</p>
-                <h1 className="text-3xl font-bold leading-tight">{state.project.title}</h1>
-                {state.project.address && (
-                  <p className="mt-2 text-base text-muted-foreground">{state.project.address}</p>
-                )}
+                <h1 className="text-3xl font-bold leading-tight">{state.company.name}</h1>
                 {state.employee && (
                   <p className="mt-3 text-base font-medium">{state.employee.name}</p>
                 )}
@@ -128,8 +124,7 @@ function KlokPage() {
             ) : state.openEntry ? (
               <div className="space-y-4">
                 <p className="text-center text-lg">
-                  Je bent ingeklokt sinds <strong>{fmtTime(state.openEntry.clock_in_at)}</strong> bij{" "}
-                  <strong>{state.openEntry.project_title}</strong>
+                  Je bent ingeklokt sinds <strong>{fmtTime(state.openEntry.clock_in_at)}</strong>
                 </p>
                 <Button
                   className="h-24 w-full text-2xl font-bold"
