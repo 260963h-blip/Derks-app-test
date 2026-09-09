@@ -1400,6 +1400,8 @@ export type Database = {
           clock_in_at: string
           clock_out_at: string | null
           created_at: string
+          edited_at: string | null
+          edited_by: string | null
           employee_id: string
           id: string
           project_id: string | null
@@ -1410,6 +1412,8 @@ export type Database = {
           clock_in_at?: string
           clock_out_at?: string | null
           created_at?: string
+          edited_at?: string | null
+          edited_by?: string | null
           employee_id: string
           id?: string
           project_id?: string | null
@@ -1420,6 +1424,8 @@ export type Database = {
           clock_in_at?: string
           clock_out_at?: string | null
           created_at?: string
+          edited_at?: string | null
+          edited_by?: string | null
           employee_id?: string
           id?: string
           project_id?: string | null
