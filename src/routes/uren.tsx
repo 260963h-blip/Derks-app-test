@@ -163,10 +163,15 @@ function UrenPage() {
 
   async function loadAll() {
     setLoading(true);
-    const [emp, cus, te] = await Promise.all([
+    const [emp, cus, te, ce] = await Promise.all([
       supabase.from("employees").select("id,first_name,last_name").order("last_name"),
       supabase.from("customers").select("id,name").order("name"),
       supabase.from("time_entries").select("*").order("work_date", { ascending: false }).limit(500),
+      supabase
+        .from("time_clock_entries")
+        .select("id,employee_id,clock_in_at,clock_out_at,edited_by,edited_at,created_at")
+        .order("clock_in_at", { ascending: false })
+        .limit(500),
     ]);
     if (emp.error) toast.error(emp.error.message);
     else setEmployees(emp.data ?? []);
@@ -174,8 +179,11 @@ function UrenPage() {
     else setCustomers(cus.data ?? []);
     if (te.error) toast.error(te.error.message);
     else setEntries((te.data ?? []) as TimeEntry[]);
+    if (ce.error) toast.error(ce.error.message);
+    else setClockEntries((ce.data ?? []) as ClockEntry[]);
     setLoading(false);
   }
+
 
   const filtered = useMemo(
     () => (filterEmp === "all" ? entries : entries.filter((e) => e.employee_id === filterEmp)),
