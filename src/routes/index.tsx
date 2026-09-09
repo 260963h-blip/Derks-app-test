@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { PlanningChangesPanel } from "@/components/planning-changes-panel";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -295,6 +296,10 @@ function Dashboard() {
         <div className="mb-6">
           <h2 className="text-2xl font-bold">Welkom terug</h2>
           <p className="text-muted-foreground">Ingelogd als {user.email}</p>
+        </div>
+
+        <div className="mb-8">
+          <PlanningChangesPanel />
         </div>
 
         <div className="mb-8 grid gap-4 lg:grid-cols-3">
