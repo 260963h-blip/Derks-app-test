@@ -885,6 +885,50 @@ export type Database = {
         }
         Relationships: []
       }
+      planning_changes: {
+        Row: {
+          change_type: string
+          created_at: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          status: string
+          sync_row_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          change_type: string
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          status?: string
+          sync_row_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          change_type?: string
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          status?: string
+          sync_row_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planning_changes_sync_row_id_fkey"
+            columns: ["sync_row_id"]
+            isOneToOne: false
+            referencedRelation: "planning_sync_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planning_items: {
         Row: {
           created_at: string
@@ -926,6 +970,47 @@ export type Database = {
           work_date?: string
         }
         Relationships: []
+      }
+      planning_sync_rows: {
+        Row: {
+          created_at: string
+          external_key: string
+          id: string
+          last_seen_data: Json | null
+          last_synced_at: string | null
+          project_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          external_key: string
+          id?: string
+          last_seen_data?: Json | null
+          last_synced_at?: string | null
+          project_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          external_key?: string
+          id?: string
+          last_seen_data?: Json | null
+          last_synced_at?: string | null
+          project_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planning_sync_rows_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_documents: {
         Row: {
@@ -972,6 +1057,10 @@ export type Database = {
           created_at: string
           customer_id: string | null
           id: string
+          location_address: string | null
+          location_city: string | null
+          location_phone: string | null
+          location_postal_code: string | null
           notes: string | null
           project_number: string
           reference: string | null
@@ -985,6 +1074,10 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           id?: string
+          location_address?: string | null
+          location_city?: string | null
+          location_phone?: string | null
+          location_postal_code?: string | null
           notes?: string | null
           project_number: string
           reference?: string | null
@@ -998,6 +1091,10 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           id?: string
+          location_address?: string | null
+          location_city?: string | null
+          location_phone?: string | null
+          location_postal_code?: string | null
           notes?: string | null
           project_number?: string
           reference?: string | null
@@ -1301,6 +1398,42 @@ export type Database = {
           updated_at?: string
           user_id?: string
           work_date?: string
+        }
+        Relationships: []
+      }
+      unmatched_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          file_path: string
+          id: string
+          received_at: string
+          source: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          file_path: string
+          id?: string
+          received_at?: string
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          file_path?: string
+          id?: string
+          received_at?: string
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
