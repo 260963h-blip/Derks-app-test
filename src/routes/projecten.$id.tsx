@@ -955,6 +955,52 @@ function ProjectDossier() {
 
   if (authLoading || !user || !project) return null;
 
+  const qrUrl = project.qr_token ? `${window.location.origin}/klok/${project.qr_token}` : "";
+  const projectAddress = [
+    project.location_address,
+    [project.location_postal_code, project.location_city].filter(Boolean).join(" "),
+  ].filter(Boolean).join(", ");
+
+  const getQrCanvas = () =>
+    qrCanvasWrapRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+
+  const downloadQr = () => {
+    const canvas = getQrCanvas();
+    if (!canvas) return;
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = `QR-${project.project_number}.png`;
+    a.click();
+  };
+
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  const printQr = () => {
+    const canvas = getQrCanvas();
+    if (!canvas) return;
+    const win = window.open("", "_blank", "width=800,height=1100");
+    if (!win) {
+      toast.error("Pop-up geblokkeerd, sta pop-ups toe om af te drukken");
+      return;
+    }
+    win.document.write(`<!doctype html><html><head><title>QR-code ${esc(project.project_number)}</title>
+      <style>
+        body{font-family:sans-serif;text-align:center;padding:40px}
+        h1{font-size:36px;margin:0 0 8px}
+        p{font-size:22px;color:#444;margin:0 0 32px}
+        img{width:480px;height:480px}
+        small{display:block;margin-top:24px;color:#666;font-size:14px}
+      </style></head><body>
+      <h1>${esc(project.title || `Project ${project.project_number}`)}</h1>
+      <p>${esc(projectAddress)}</p>
+      <img src="${canvas.toDataURL("image/png")}" alt="QR-code" />
+      <small>Scan deze code om in- en uit te klokken &middot; ${esc(project.project_number)}</small>
+      <script>window.onload=function(){setTimeout(function(){window.print()},250)}<\/script>
+      </body></html>`);
+    win.document.close();
+  };
+
 
   return (
     <AppShell title={`Project ${project.project_number}`} subtitle={project.title || "Projectdossier"} back backTo="/projecten">
