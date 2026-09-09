@@ -421,6 +421,114 @@ function UrenPage() {
         </CardContent>
       </Card>
 
+      <div className="mt-8 mb-4 flex flex-wrap items-center gap-3">
+        <h2 className="text-lg font-semibold">Geklokte uren (QR-code)</h2>
+        <div className="ml-auto">
+          <Button variant="outline" onClick={openClockNew}>
+            <Plus className="mr-2 h-4 w-4" /> Uren handmatig toevoegen
+          </Button>
+        </div>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-8 text-center text-muted-foreground">Laden...</div>
+          ) : filteredClock.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">Nog geen geklokte uren</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Medewerker</TableHead>
+                  <TableHead>Ingeklokt</TableHead>
+                  <TableHead>Uitgeklokt</TableHead>
+                  <TableHead className="text-right">Uren</TableHead>
+                  <TableHead>Herkomst</TableHead>
+                  <TableHead className="w-28"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredClock.map((e) => (
+                  <TableRow key={e.id}>
+                    <TableCell>{empName(e.employee_id)}</TableCell>
+                    <TableCell>{fmtDateTime(e.clock_in_at)}</TableCell>
+                    <TableCell>
+                      {e.clock_out_at ? fmtDateTime(e.clock_out_at) : <Badge variant="outline">Nog ingeklokt</Badge>}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {e.clock_out_at ? clockHours(e).toFixed(2) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {e.edited_by ? (
+                        <Badge variant="secondary">
+                          {e.edited_at && e.created_at && new Date(e.edited_at).getTime() - new Date(e.created_at).getTime() < 5000
+                            ? "handmatig toegevoegd"
+                            : "handmatig aangepast"}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">via QR-code</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => openClockEdit(e)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Bewerken
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={clockOpen} onOpenChange={setClockOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{clockEditing ? "Geklokte uren bewerken" : "Uren handmatig toevoegen"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label>Medewerker *</Label>
+              <Select
+                value={clockForm.employee_id}
+                onValueChange={(v) => setClockForm({ ...clockForm, employee_id: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
+                <SelectContent>
+                  {employees.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.first_name} {e.last_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Ingeklokt *</Label>
+              <Input
+                type="datetime-local"
+                value={clockForm.clock_in_at}
+                onChange={(e) => setClockForm({ ...clockForm, clock_in_at: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Uitgeklokt</Label>
+              <Input
+                type="datetime-local"
+                value={clockForm.clock_out_at}
+                onChange={(e) => setClockForm({ ...clockForm, clock_out_at: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClockOpen(false)}>Annuleren</Button>
+            <Button onClick={saveClock}>{clockEditing ? "Bijwerken" : "Toevoegen"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
