@@ -51,6 +51,7 @@ type Employee = {
   middle_name: string | null;
   last_name: string;
   role: string;
+  employment_type: string;
   bsn: string | null;
   date_of_birth: string | null;
   street: string | null;
@@ -131,6 +132,7 @@ const empty = {
   middle_name: "",
   last_name: "",
   role: "medewerker",
+  employment_type: "in_dienst",
   bsn: "",
   date_of_birth: "",
   street: "",
@@ -227,6 +229,7 @@ function MedewerkersPage() {
       middle_name: e.middle_name ?? "",
       last_name: e.last_name ?? "",
       role: e.role ?? "medewerker",
+      employment_type: e.employment_type ?? "in_dienst",
       bsn: e.bsn ?? "",
       date_of_birth: e.date_of_birth ?? "",
       street: e.street ?? "",
@@ -438,6 +441,7 @@ function MedewerkersPage() {
       middle_name: form.middle_name.trim() || null,
       last_name: form.last_name.trim(),
       role: form.role,
+      employment_type: form.employment_type,
       bsn: form.bsn.trim() || null,
       date_of_birth: form.date_of_birth || null,
       street: form.street.trim() || null,
@@ -515,6 +519,8 @@ function MedewerkersPage() {
     );
   }
 
+  const isZzp = form.employment_type === "zzp";
+
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm({ ...form, [k]: v });
 
@@ -564,6 +570,9 @@ function MedewerkersPage() {
                           <Badge variant={e.role === "eigenaar" ? "default" : "outline"}>
                             {e.role === "eigenaar" ? "Eigenaar" : e.role === "zzp" ? "ZZP-er" : "Medewerker"}
                           </Badge>
+                          <Badge variant="secondary">
+                            {e.employment_type === "zzp" ? "ZZP" : "In dienst"}
+                          </Badge>
                           <Badge variant={e.status === "actief" ? "default" : "secondary"}>
                             {e.status}
                           </Badge>
@@ -608,7 +617,12 @@ function MedewerkersPage() {
                 {filtered.map((e) => (
                   <TableRow key={e.id}>
                     <TableCell className="font-medium">
-                      {[e.first_name, e.middle_name, e.last_name].filter(Boolean).join(" ")}
+                      <span className="mr-2">
+                        {[e.first_name, e.middle_name, e.last_name].filter(Boolean).join(" ")}
+                      </span>
+                      <Badge variant="secondary" className="align-middle text-[10px]">
+                        {e.employment_type === "zzp" ? "ZZP" : "In dienst"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={e.role === "eigenaar" ? "default" : "outline"}>
@@ -664,13 +678,13 @@ function MedewerkersPage() {
           </DialogHeader>
 
           <Tabs defaultValue="persoonlijk" className="w-full">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className={isZzp ? "grid w-full grid-cols-3" : "grid w-full grid-cols-7"}>
               <TabsTrigger value="persoonlijk">Persoonlijk</TabsTrigger>
-              <TabsTrigger value="arbeid">Arbeid</TabsTrigger>
-              <TabsTrigger value="loon">Loon</TabsTrigger>
+              {!isZzp && <TabsTrigger value="arbeid">Arbeid</TabsTrigger>}
+              {!isZzp && <TabsTrigger value="loon">Loon</TabsTrigger>}
               <TabsTrigger value="tarieven">Tarieven</TabsTrigger>
-              <TabsTrigger value="verlofdagen">Verlofdagen</TabsTrigger>
-              <TabsTrigger value="arbo">Verzekering & Arbo</TabsTrigger>
+              {!isZzp && <TabsTrigger value="verlofdagen">Verlofdagen</TabsTrigger>}
+              {!isZzp && <TabsTrigger value="arbo">Verzekering & Arbo</TabsTrigger>}
               <TabsTrigger value="inlog">Inlog</TabsTrigger>
             </TabsList>
 
@@ -687,6 +701,23 @@ function MedewerkersPage() {
                   <option value="eigenaar">Eigenaar</option>
                   <option value="zzp">ZZP-er</option>
                 </select>
+              </div>
+
+              <div>
+                <Label>Type</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={form.employment_type}
+                  onChange={(e) => set("employment_type", e.target.value)}
+                >
+                  <option value="in_dienst">In dienst</option>
+                  <option value="zzp">ZZP</option>
+                </select>
+                {isZzp && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Loon, arbeidsvoorwaarden, verlofdagen en verzekering/arbo zijn niet van toepassing voor een zzp'er.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
