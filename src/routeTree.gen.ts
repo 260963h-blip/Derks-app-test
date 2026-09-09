@@ -25,6 +25,7 @@ import { Route as ProjectenIdRouteImport } from './routes/projecten.$id'
 import { Route as OffertesIdRouteImport } from './routes/offertes.$id'
 import { Route as OfferteAkkoordRouteImport } from './routes/offerte.akkoord'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as OauthMicrosoftReturnRouteImport } from './routes/oauth/microsoft/return'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -110,6 +111,11 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OauthMicrosoftReturnRoute = OauthMicrosoftReturnRouteImport.update({
+  id: '/oauth/microsoft/return',
+  path: '/oauth/microsoft/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/offertes/': typeof OffertesIndexRoute
   '/projecten/': typeof ProjectenIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/oauth/microsoft/return': typeof OauthMicrosoftReturnRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/offertes': typeof OffertesIndexRoute
   '/projecten': typeof ProjectenIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/oauth/microsoft/return': typeof OauthMicrosoftReturnRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/offertes/': typeof OffertesIndexRoute
   '/projecten/': typeof ProjectenIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/oauth/microsoft/return': typeof OauthMicrosoftReturnRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/offertes/'
     | '/projecten/'
     | '/lovable/email/suppression'
+    | '/oauth/microsoft/return'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
     | '/offertes'
     | '/projecten'
     | '/lovable/email/suppression'
+    | '/oauth/microsoft/return'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -265,6 +276,7 @@ export interface FileRouteTypes {
     | '/offertes/'
     | '/projecten/'
     | '/lovable/email/suppression'
+    | '/oauth/microsoft/return'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -288,6 +300,7 @@ export interface RootRouteChildren {
   OffertesIndexRoute: typeof OffertesIndexRoute
   ProjectenIndexRoute: typeof ProjectenIndexRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  OauthMicrosoftReturnRoute: typeof OauthMicrosoftReturnRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
   LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
@@ -407,6 +420,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/oauth/microsoft/return': {
+      id: '/oauth/microsoft/return'
+      path: '/oauth/microsoft/return'
+      fullPath: '/oauth/microsoft/return'
+      preLoaderRoute: typeof OauthMicrosoftReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
       path: '/lovable/email/suppression'
@@ -456,6 +476,7 @@ const rootRouteChildren: RootRouteChildren = {
   OffertesIndexRoute: OffertesIndexRoute,
   ProjectenIndexRoute: ProjectenIndexRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  OauthMicrosoftReturnRoute: OauthMicrosoftReturnRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
   LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
