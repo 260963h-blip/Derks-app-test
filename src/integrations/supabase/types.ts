@@ -196,6 +196,7 @@ export type Database = {
           address: string | null
           bic: string | null
           city: string | null
+          clock_qr_token: string
           company_name: string
           country: string | null
           created_at: string
@@ -247,6 +248,7 @@ export type Database = {
           address?: string | null
           bic?: string | null
           city?: string | null
+          clock_qr_token?: string
           company_name?: string
           country?: string | null
           created_at?: string
@@ -298,6 +300,7 @@ export type Database = {
           address?: string | null
           bic?: string | null
           city?: string | null
+          clock_qr_token?: string
           company_name?: string
           country?: string | null
           created_at?: string
