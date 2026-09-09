@@ -139,6 +139,10 @@ function UrenPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TimeEntry | null>(null);
   const [toDelete, setToDelete] = useState<TimeEntry | null>(null);
+  const [clockEntries, setClockEntries] = useState<ClockEntry[]>([]);
+  const [clockOpen, setClockOpen] = useState(false);
+  const [clockEditing, setClockEditing] = useState<ClockEntry | null>(null);
+  const [clockForm, setClockForm] = useState({ employee_id: "", clock_in_at: "", clock_out_at: "" });
   const [form, setForm] = useState({
     employee_id: "",
     work_date: new Date().toISOString().slice(0, 10),
