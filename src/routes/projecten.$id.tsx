@@ -170,9 +170,9 @@ function ProjectDossier() {
     const { data: cs } = await supabase
       .from("customers").select("id,name,customer_type").order("name");
     setCustomers((cs ?? []) as Customer[]);
-    const { data: comp } = await supabase
-      .from("company_settings").select("clock_qr_token").eq("user_id", user.id).maybeSingle();
-    setClockQrToken((comp as any)?.clock_qr_token ?? null);
+    const { data: compSet } = await supabase
+      .from("company_settings").select("clock_qr_token").eq("user_id", user!.id).maybeSingle();
+    setClockQrToken((compSet as any)?.clock_qr_token ?? null);
     if (p.customer_id) {
       const c = (cs ?? []).find((x: any) => x.id === p.customer_id) ?? null;
       setCustomer(c as Customer | null);
