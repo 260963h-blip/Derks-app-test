@@ -1459,6 +1459,31 @@ function ProjectDossier() {
           </Card>
         </TabsContent>
       </Tabs>
+      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>QR-code in- en uitklokken</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div ref={qrCanvasWrapRef} className="rounded-lg border bg-white p-4">
+              <QRCodeCanvas value={qrUrl} size={260} includeMargin level="M" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold">{project.title || `Project ${project.project_number}`}</p>
+              {projectAddress && <p className="text-sm text-muted-foreground">{projectAddress}</p>}
+              <p className="mt-1 text-xs text-muted-foreground">Scan om in- en uit te klokken</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={downloadQr}>
+                <Download className="mr-2 h-4 w-4" /> Downloaden
+              </Button>
+              <Button onClick={printQr}>
+                <Printer className="mr-2 h-4 w-4" /> Afdrukken
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
