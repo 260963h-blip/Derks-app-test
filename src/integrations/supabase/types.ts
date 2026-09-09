@@ -1402,7 +1402,7 @@ export type Database = {
           created_at: string
           employee_id: string
           id: string
-          project_id: string
+          project_id: string | null
           updated_at: string
           user_id: string
         }
@@ -1412,7 +1412,7 @@ export type Database = {
           created_at?: string
           employee_id: string
           id?: string
-          project_id: string
+          project_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1422,7 +1422,7 @@ export type Database = {
           created_at?: string
           employee_id?: string
           id?: string
-          project_id?: string
+          project_id?: string | null
           updated_at?: string
           user_id?: string
         }
