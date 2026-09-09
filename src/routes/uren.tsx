@@ -80,6 +80,16 @@ const STATUS = [
   { value: "afgekeurd", label: "Afgekeurd" },
 ];
 
+type ClockEntry = {
+  id: string;
+  employee_id: string;
+  clock_in_at: string;
+  clock_out_at: string | null;
+  edited_by: string | null;
+  edited_at: string | null;
+  created_at: string;
+};
+
 function calcHours(start: string, end: string, breakMin: number): number {
   if (!start || !end) return 0;
   const [sh, sm] = start.split(":").map(Number);
@@ -87,6 +97,37 @@ function calcHours(start: string, end: string, breakMin: number): number {
   const mins = eh * 60 + em - (sh * 60 + sm) - (breakMin || 0);
   return Math.max(0, Math.round((mins / 60) * 100) / 100);
 }
+
+function toLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromLocalInput(value: string): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function fmtDateTime(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("nl-NL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function clockHours(entry: ClockEntry): number {
+  if (!entry.clock_out_at) return 0;
+  const ms = new Date(entry.clock_out_at).getTime() - new Date(entry.clock_in_at).getTime();
+  return Math.max(0, Math.round((ms / 3600000) * 100) / 100);
+}
+
 
 function UrenPage() {
   const { user } = useAuth();
@@ -98,6 +139,10 @@ function UrenPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TimeEntry | null>(null);
   const [toDelete, setToDelete] = useState<TimeEntry | null>(null);
+  const [clockEntries, setClockEntries] = useState<ClockEntry[]>([]);
+  const [clockOpen, setClockOpen] = useState(false);
+  const [clockEditing, setClockEditing] = useState<ClockEntry | null>(null);
+  const [clockForm, setClockForm] = useState({ employee_id: "", clock_in_at: "", clock_out_at: "" });
   const [form, setForm] = useState({
     employee_id: "",
     work_date: new Date().toISOString().slice(0, 10),
@@ -118,10 +163,15 @@ function UrenPage() {
 
   async function loadAll() {
     setLoading(true);
-    const [emp, cus, te] = await Promise.all([
+    const [emp, cus, te, ce] = await Promise.all([
       supabase.from("employees").select("id,first_name,last_name").order("last_name"),
       supabase.from("customers").select("id,name").order("name"),
       supabase.from("time_entries").select("*").order("work_date", { ascending: false }).limit(500),
+      supabase
+        .from("time_clock_entries")
+        .select("id,employee_id,clock_in_at,clock_out_at,edited_by,edited_at,created_at")
+        .order("clock_in_at", { ascending: false })
+        .limit(500),
     ]);
     if (emp.error) toast.error(emp.error.message);
     else setEmployees(emp.data ?? []);
@@ -129,8 +179,11 @@ function UrenPage() {
     else setCustomers(cus.data ?? []);
     if (te.error) toast.error(te.error.message);
     else setEntries((te.data ?? []) as TimeEntry[]);
+    if (ce.error) toast.error(ce.error.message);
+    else setClockEntries((ce.data ?? []) as ClockEntry[]);
     setLoading(false);
   }
+
 
   const filtered = useMemo(
     () => (filterEmp === "all" ? entries : entries.filter((e) => e.employee_id === filterEmp)),
@@ -228,6 +281,71 @@ function UrenPage() {
   };
   const cusName = (id: string | null) => customers.find((x) => x.id === id)?.name ?? "";
 
+  const filteredClock = useMemo(
+    () => (filterEmp === "all" ? clockEntries : clockEntries.filter((e) => e.employee_id === filterEmp)),
+    [clockEntries, filterEmp],
+  );
+
+  function openClockNew() {
+    setClockEditing(null);
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 17, 0);
+    setClockForm({
+      employee_id: employees[0]?.id ?? "",
+      clock_in_at: toLocalInput(startOfDay.toISOString()),
+      clock_out_at: toLocalInput(endOfDay.toISOString()),
+    });
+    setClockOpen(true);
+  }
+
+  function openClockEdit(e: ClockEntry) {
+    setClockEditing(e);
+    setClockForm({
+      employee_id: e.employee_id,
+      clock_in_at: toLocalInput(e.clock_in_at),
+      clock_out_at: toLocalInput(e.clock_out_at),
+    });
+    setClockOpen(true);
+  }
+
+  async function saveClock() {
+    if (!user) return;
+    if (!clockForm.employee_id) {
+      toast.error("Selecteer een medewerker");
+      return;
+    }
+    const inAt = fromLocalInput(clockForm.clock_in_at);
+    if (!inAt) {
+      toast.error("Vul een geldige begintijd in");
+      return;
+    }
+    const outAt = fromLocalInput(clockForm.clock_out_at);
+    if (outAt && new Date(outAt) <= new Date(inAt)) {
+      toast.error("De eindtijd moet na de begintijd liggen");
+      return;
+    }
+    const payload = {
+      user_id: user.id,
+      employee_id: clockForm.employee_id,
+      clock_in_at: inAt,
+      clock_out_at: outAt,
+      edited_by: user.id,
+      edited_at: new Date().toISOString(),
+    };
+    const res = clockEditing
+      ? await supabase.from("time_clock_entries").update(payload).eq("id", clockEditing.id)
+      : await supabase.from("time_clock_entries").insert(payload);
+    if (res.error) {
+      toast.error(res.error.message);
+      return;
+    }
+    toast.success(clockEditing ? "Klokuren bijgewerkt" : "Klokuren toegevoegd");
+    setClockOpen(false);
+    void loadAll();
+  }
+
+
   const liveHours = calcHours(form.start_time, form.end_time, parseInt(form.break_minutes || "0", 10) || 0);
 
   return (
@@ -302,6 +420,114 @@ function UrenPage() {
           )}
         </CardContent>
       </Card>
+
+      <div className="mt-8 mb-4 flex flex-wrap items-center gap-3">
+        <h2 className="text-lg font-semibold">Geklokte uren (QR-code)</h2>
+        <div className="ml-auto">
+          <Button variant="outline" onClick={openClockNew}>
+            <Plus className="mr-2 h-4 w-4" /> Uren handmatig toevoegen
+          </Button>
+        </div>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-8 text-center text-muted-foreground">Laden...</div>
+          ) : filteredClock.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">Nog geen geklokte uren</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Medewerker</TableHead>
+                  <TableHead>Ingeklokt</TableHead>
+                  <TableHead>Uitgeklokt</TableHead>
+                  <TableHead className="text-right">Uren</TableHead>
+                  <TableHead>Herkomst</TableHead>
+                  <TableHead className="w-28"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredClock.map((e) => (
+                  <TableRow key={e.id}>
+                    <TableCell>{empName(e.employee_id)}</TableCell>
+                    <TableCell>{fmtDateTime(e.clock_in_at)}</TableCell>
+                    <TableCell>
+                      {e.clock_out_at ? fmtDateTime(e.clock_out_at) : <Badge variant="outline">Nog ingeklokt</Badge>}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {e.clock_out_at ? clockHours(e).toFixed(2) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {e.edited_by ? (
+                        <Badge variant="secondary">
+                          {e.edited_at && e.created_at && new Date(e.edited_at).getTime() - new Date(e.created_at).getTime() < 5000
+                            ? "handmatig toegevoegd"
+                            : "handmatig aangepast"}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">via QR-code</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => openClockEdit(e)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Bewerken
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={clockOpen} onOpenChange={setClockOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{clockEditing ? "Geklokte uren bewerken" : "Uren handmatig toevoegen"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label>Medewerker *</Label>
+              <Select
+                value={clockForm.employee_id}
+                onValueChange={(v) => setClockForm({ ...clockForm, employee_id: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Kies..." /></SelectTrigger>
+                <SelectContent>
+                  {employees.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.first_name} {e.last_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Ingeklokt *</Label>
+              <Input
+                type="datetime-local"
+                value={clockForm.clock_in_at}
+                onChange={(e) => setClockForm({ ...clockForm, clock_in_at: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Uitgeklokt</Label>
+              <Input
+                type="datetime-local"
+                value={clockForm.clock_out_at}
+                onChange={(e) => setClockForm({ ...clockForm, clock_out_at: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClockOpen(false)}>Annuleren</Button>
+            <Button onClick={saveClock}>{clockEditing ? "Bijwerken" : "Toevoegen"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
