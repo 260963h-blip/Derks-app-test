@@ -80,6 +80,16 @@ const STATUS = [
   { value: "afgekeurd", label: "Afgekeurd" },
 ];
 
+type ClockEntry = {
+  id: string;
+  employee_id: string;
+  clock_in_at: string;
+  clock_out_at: string | null;
+  edited_by: string | null;
+  edited_at: string | null;
+  created_at: string;
+};
+
 function calcHours(start: string, end: string, breakMin: number): number {
   if (!start || !end) return 0;
   const [sh, sm] = start.split(":").map(Number);
@@ -87,6 +97,37 @@ function calcHours(start: string, end: string, breakMin: number): number {
   const mins = eh * 60 + em - (sh * 60 + sm) - (breakMin || 0);
   return Math.max(0, Math.round((mins / 60) * 100) / 100);
 }
+
+function toLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromLocalInput(value: string): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function fmtDateTime(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("nl-NL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function clockHours(entry: ClockEntry): number {
+  if (!entry.clock_out_at) return 0;
+  const ms = new Date(entry.clock_out_at).getTime() - new Date(entry.clock_in_at).getTime();
+  return Math.max(0, Math.round((ms / 3600000) * 100) / 100);
+}
+
 
 function UrenPage() {
   const { user } = useAuth();
