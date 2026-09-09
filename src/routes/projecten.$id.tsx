@@ -15,7 +15,9 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Save, Pencil, Trash2, CheckCircle2, Upload, Sparkles, Receipt, Send } from "lucide-react";
+import { FileText, Download, Save, Pencil, Trash2, CheckCircle2, Upload, Sparkles, Receipt, Send, QrCode, Printer } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
 import { tekenLogoEnBedrijfsgegevens, tekenKlantblok, tekenVoettekst } from "@/lib/pdf-shared";
@@ -38,6 +40,10 @@ type Project = {
   reference: string | null;
   notes: string | null;
   created_at: string;
+  qr_token: string | null;
+  location_address: string | null;
+  location_postal_code: string | null;
+  location_city: string | null;
 };
 type Customer = { id: string; name: string; customer_type: string };
 type Quote = { id: string; quote_number: string; status: string; total: number; approval_token: string | null };
@@ -94,6 +100,10 @@ function ProjectDossier() {
   const [uploadName, setUploadName] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // QR-code
+  const [qrOpen, setQrOpen] = useState(false);
+  const qrCanvasWrapRef = useRef<HTMLDivElement>(null);
 
   // Werkorder
   const [woSignerName, setWoSignerName] = useState("");
@@ -945,18 +955,71 @@ function ProjectDossier() {
 
   if (authLoading || !user || !project) return null;
 
+  const qrUrl = project.qr_token ? `${window.location.origin}/klok/${project.qr_token}` : "";
+  const projectAddress = [
+    project.location_address,
+    [project.location_postal_code, project.location_city].filter(Boolean).join(" "),
+  ].filter(Boolean).join(", ");
+
+  const getQrCanvas = () =>
+    qrCanvasWrapRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+
+  const downloadQr = () => {
+    const canvas = getQrCanvas();
+    if (!canvas) return;
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = `QR-${project.project_number}.png`;
+    a.click();
+  };
+
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  const printQr = () => {
+    const canvas = getQrCanvas();
+    if (!canvas) return;
+    const win = window.open("", "_blank", "width=800,height=1100");
+    if (!win) {
+      toast.error("Pop-up geblokkeerd, sta pop-ups toe om af te drukken");
+      return;
+    }
+    win.document.write(`<!doctype html><html><head><title>QR-code ${esc(project.project_number)}</title>
+      <style>
+        body{font-family:sans-serif;text-align:center;padding:40px}
+        h1{font-size:36px;margin:0 0 8px}
+        p{font-size:22px;color:#444;margin:0 0 32px}
+        img{width:480px;height:480px}
+        small{display:block;margin-top:24px;color:#666;font-size:14px}
+      </style></head><body>
+      <h1>${esc(project.title || `Project ${project.project_number}`)}</h1>
+      <p>${esc(projectAddress)}</p>
+      <img src="${canvas.toDataURL("image/png")}" alt="QR-code" />
+      <small>Scan deze code om in- en uit te klokken &middot; ${esc(project.project_number)}</small>
+      <script>window.onload=function(){setTimeout(function(){window.print()},250)}<\/script>
+      </body></html>`);
+    win.document.close();
+  };
+
 
   return (
     <AppShell title={`Project ${project.project_number}`} subtitle={project.title || "Projectdossier"} back backTo="/projecten">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overzicht</TabsTrigger>
-          <TabsTrigger value="quote">Offerte</TabsTrigger>
-          <TabsTrigger value="verzenden">Verzenden</TabsTrigger>
-          <TabsTrigger value="werkorder">Werkorder</TabsTrigger>
-          <TabsTrigger value="factureren">Factureren</TabsTrigger>
-          <TabsTrigger value="documents">Documenten ({docs.length})</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <TabsList>
+            <TabsTrigger value="overview">Overzicht</TabsTrigger>
+            <TabsTrigger value="quote">Offerte</TabsTrigger>
+            <TabsTrigger value="verzenden">Verzenden</TabsTrigger>
+            <TabsTrigger value="werkorder">Werkorder</TabsTrigger>
+            <TabsTrigger value="factureren">Factureren</TabsTrigger>
+            <TabsTrigger value="documents">Documenten ({docs.length})</TabsTrigger>
+          </TabsList>
+          {project.qr_token && (
+            <Button variant="outline" onClick={() => setQrOpen(true)}>
+              <QrCode className="mr-2 h-4 w-4" /> QR-code
+            </Button>
+          )}
+        </div>
 
         <TabsContent value="overview">
           <Card>
@@ -1396,6 +1459,31 @@ function ProjectDossier() {
           </Card>
         </TabsContent>
       </Tabs>
+      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>QR-code in- en uitklokken</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div ref={qrCanvasWrapRef} className="rounded-lg border bg-white p-4">
+              <QRCodeCanvas value={qrUrl} size={260} includeMargin level="M" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold">{project.title || `Project ${project.project_number}`}</p>
+              {projectAddress && <p className="text-sm text-muted-foreground">{projectAddress}</p>}
+              <p className="mt-1 text-xs text-muted-foreground">Scan om in- en uit te klokken</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={downloadQr}>
+                <Download className="mr-2 h-4 w-4" /> Downloaden
+              </Button>
+              <Button onClick={printQr}>
+                <Printer className="mr-2 h-4 w-4" /> Afdrukken
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
