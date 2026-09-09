@@ -1005,14 +1005,21 @@ function ProjectDossier() {
   return (
     <AppShell title={`Project ${project.project_number}`} subtitle={project.title || "Projectdossier"} back backTo="/projecten">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overzicht</TabsTrigger>
-          <TabsTrigger value="quote">Offerte</TabsTrigger>
-          <TabsTrigger value="verzenden">Verzenden</TabsTrigger>
-          <TabsTrigger value="werkorder">Werkorder</TabsTrigger>
-          <TabsTrigger value="factureren">Factureren</TabsTrigger>
-          <TabsTrigger value="documents">Documenten ({docs.length})</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <TabsList>
+            <TabsTrigger value="overview">Overzicht</TabsTrigger>
+            <TabsTrigger value="quote">Offerte</TabsTrigger>
+            <TabsTrigger value="verzenden">Verzenden</TabsTrigger>
+            <TabsTrigger value="werkorder">Werkorder</TabsTrigger>
+            <TabsTrigger value="factureren">Factureren</TabsTrigger>
+            <TabsTrigger value="documents">Documenten ({docs.length})</TabsTrigger>
+          </TabsList>
+          {project.qr_token && (
+            <Button variant="outline" onClick={() => setQrOpen(true)}>
+              <QrCode className="mr-2 h-4 w-4" /> QR-code
+            </Button>
+          )}
+        </div>
 
         <TabsContent value="overview">
           <Card>
