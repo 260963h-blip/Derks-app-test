@@ -101,6 +101,10 @@ function ProjectDossier() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // QR-code
+  const [qrOpen, setQrOpen] = useState(false);
+  const qrCanvasWrapRef = useRef<HTMLDivElement>(null);
+
   // Werkorder
   const [woSignerName, setWoSignerName] = useState("");
   const [woDate, setWoDate] = useState(new Date().toISOString().slice(0, 10));
