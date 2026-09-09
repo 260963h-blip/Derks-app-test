@@ -17,11 +17,11 @@ async function requireUser(accessToken: string) {
   return data.user;
 }
 
-async function findProjectByToken(token: string) {
+async function findCompanyByToken(token: string) {
   const { data, error } = await supabaseAdmin
-    .from("projects")
-    .select("id,user_id,project_number,title,location_address,location_city")
-    .eq("qr_token", token)
+    .from("company_settings")
+    .select("user_id,company_name")
+    .eq("clock_qr_token", token)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data;
@@ -38,7 +38,7 @@ async function findEmployee(userId: string, email: string | undefined, ownerUser
       .maybeSingle();
     if (data) return data;
   }
-  // De eigenaar zelf mag ook klokken op zijn eigen projecten.
+  // De eigenaar zelf mag ook klokken.
   if (userId === ownerUserId) {
     const { data } = await supabaseAdmin
       .from("employees")
@@ -53,51 +53,36 @@ async function findEmployee(userId: string, email: string | undefined, ownerUser
 }
 
 export type ClockState = {
-  project: { id: string; title: string; number: string; address: string | null } | null;
+  company: { name: string } | null;
   employee: { id: string; name: string } | null;
-  openEntry: { id: string; clock_in_at: string; project_title: string } | null;
+  openEntry: { id: string; clock_in_at: string } | null;
   error?: string;
 };
 
 async function loadOpenEntry(ownerUserId: string, employeeId: string) {
   const { data } = await supabaseAdmin
     .from("time_clock_entries")
-    .select("id,clock_in_at,project_id")
+    .select("id,clock_in_at")
     .eq("user_id", ownerUserId)
     .eq("employee_id", employeeId)
     .is("clock_out_at", null)
     .order("clock_in_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!data) return null;
-  const { data: proj } = await supabaseAdmin
-    .from("projects")
-    .select("title")
-    .eq("id", data.project_id)
-    .maybeSingle();
-  return {
-    id: data.id,
-    clock_in_at: data.clock_in_at,
-    project_title: proj?.title ?? "onbekend project",
-  };
+  return data ? { id: data.id, clock_in_at: data.clock_in_at } : null;
 }
 
 export async function getClockState(input: { token: string; accessToken: string }): Promise<ClockState> {
   const user = await requireUser(input.accessToken);
-  const project = await findProjectByToken(input.token);
-  if (!project) return { project: null, employee: null, openEntry: null, error: "Deze QR-code is niet geldig" };
+  const company = await findCompanyByToken(input.token);
+  if (!company) {
+    return { company: null, employee: null, openEntry: null, error: "Deze QR-code is niet geldig" };
+  }
 
-  const employee = await findEmployee(user.id, user.email, project.user_id);
+  const employee = await findEmployee(user.id, user.email, company.user_id);
   if (!employee) {
     return {
-      project: {
-        id: project.id,
-        title: project.title,
-        number: project.project_number,
-        address: project.location_address
-          ? `${project.location_address}${project.location_city ? `, ${project.location_city}` : ""}`
-          : null,
-      },
+      company: { name: company.company_name },
       employee: null,
       openEntry: null,
       error: "Je account is niet gekoppeld aan een medewerker.",
@@ -105,32 +90,25 @@ export async function getClockState(input: { token: string; accessToken: string 
   }
 
   return {
-    project: {
-      id: project.id,
-      title: project.title,
-      number: project.project_number,
-      address: project.location_address
-        ? `${project.location_address}${project.location_city ? `, ${project.location_city}` : ""}`
-        : null,
-    },
+    company: { name: company.company_name },
     employee: { id: employee.id, name: `${employee.first_name} ${employee.last_name}` },
-    openEntry: await loadOpenEntry(project.user_id, employee.id),
+    openEntry: await loadOpenEntry(company.user_id, employee.id),
   };
 }
 
 export async function clockIn(input: { token: string; accessToken: string }) {
   const state = await getClockState(input);
-  if (state.error || !state.project || !state.employee) {
+  if (state.error || !state.company || !state.employee) {
     throw new Error(state.error ?? "Klokken niet mogelijk.");
   }
   if (state.openEntry) throw new Error("Je bent al ingeklokt.");
 
-  const project = await findProjectByToken(input.token);
+  const company = await findCompanyByToken(input.token);
   const now = new Date().toISOString();
   const { error } = await supabaseAdmin.from("time_clock_entries").insert({
-    user_id: project!.user_id,
+    user_id: company!.user_id,
     employee_id: state.employee.id,
-    project_id: state.project.id,
+    project_id: null,
     clock_in_at: now,
   });
   if (error) throw new Error(error.message);
@@ -146,25 +124,19 @@ export async function clockOut(input: { token: string; accessToken: string }) {
   if (!state.employee) throw new Error(state.error ?? "Klokken niet mogelijk.");
   if (!state.openEntry) throw new Error("Je bent niet ingeklokt.");
 
-  const project = await findProjectByToken(input.token);
-  const ownerUserId = project!.user_id;
+  const company = await findCompanyByToken(input.token);
+  const ownerUserId = company!.user_id;
   const now = new Date().toISOString();
 
   const { data: updated, error } = await supabaseAdmin
     .from("time_clock_entries")
     .update({ clock_out_at: now })
     .eq("id", state.openEntry.id)
-    .select("id,employee_id,project_id,clock_in_at,clock_out_at")
+    .select("id,employee_id,clock_in_at,clock_out_at")
     .single();
   if (error) throw new Error(error.message);
 
   // Zet de geklokte tijd door naar het bestaande urenoverzicht (zelfde goedkeuringsflow).
-  const { data: proj } = await supabaseAdmin
-    .from("projects")
-    .select("title,project_number,customer_id")
-    .eq("id", updated.project_id)
-    .maybeSingle();
-
   const start = new Date(updated.clock_in_at);
   const end = new Date(now);
   const hours = Math.max(0, Math.round(((end.getTime() - start.getTime()) / 3600000) * 100) / 100);
@@ -178,8 +150,6 @@ export async function clockOut(input: { token: string; accessToken: string }) {
     break_minutes: 0,
     hours,
     entry_type: "regulier",
-    customer_id: proj?.customer_id ?? null,
-    project: proj ? `${proj.project_number} ${proj.title}` : null,
     description: "Geklokt via QR-code",
     status: "ingediend",
   });
