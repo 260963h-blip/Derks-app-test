@@ -19,7 +19,6 @@ function OfferteAkkoordPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quote, setQuote] = useState<{
-    id: string;
     quote_number: string;
     status: string;
     total: number;
